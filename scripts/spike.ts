@@ -493,6 +493,18 @@ async function renderStandard(card: CardData): Promise<Buffer> {
   if (card.isLegendary) {
     const crownPath = path.join(ASSETS, 'crowns', `${card.frameColor}.png`);
     if (fs.existsSync(crownPath)) {
+      // Draw crown mask as black silhouette for pinline border effect (CC's approach)
+      const maskPath = path.join(ASSETS, 'crowns', 'maskCrownPinline.png');
+      if (fs.existsSync(maskPath)) {
+        const maskImg = await loadImage(maskPath);
+        const maskCanvas = createCanvas(cw, ch);
+        const maskCtx = maskCanvas.getContext('2d');
+        maskCtx.drawImage(maskImg, 0, 0, cw, ch);
+        maskCtx.globalCompositeOperation = 'source-in';
+        maskCtx.fillStyle = 'black';
+        maskCtx.fillRect(0, 0, cw, ch);
+        ctx.drawImage(maskCanvas, 0, 0);
+      }
       ctx.drawImage(await loadImage(crownPath), L.crown.x * cw, L.crown.y * ch, L.crown.w * cw, L.crown.h * ch);
     }
   }
