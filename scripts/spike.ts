@@ -493,19 +493,23 @@ async function renderStandard(card: CardData): Promise<Buffer> {
   if (card.isLegendary) {
     const crownPath = path.join(ASSETS, 'crowns', `${card.frameColor}.png`);
     if (fs.existsSync(crownPath)) {
-      // Draw crown mask as black silhouette for pinline border effect (CC's approach)
+      // "Legend Crown Border Cover" — black bar behind crown top (CC's complementary:9)
+      ctx.fillStyle = 'black';
+      ctx.fillRect(0, 0, cw, (137 / 2814) * ch);
+      // Mask-clip the crown so frame's dark borders show through at edges
       const maskPath = path.join(ASSETS, 'crowns', 'maskCrownPinline.png');
+      const crownImg = await loadImage(crownPath);
       if (fs.existsSync(maskPath)) {
         const maskImg = await loadImage(maskPath);
-        const maskCanvas = createCanvas(cw, ch);
-        const maskCtx = maskCanvas.getContext('2d');
-        maskCtx.drawImage(maskImg, 0, 0, cw, ch);
-        maskCtx.globalCompositeOperation = 'source-in';
-        maskCtx.fillStyle = 'black';
-        maskCtx.fillRect(0, 0, cw, ch);
-        ctx.drawImage(maskCanvas, 0, 0);
+        const crownCanvas = createCanvas(cw, ch);
+        const crownCtx = crownCanvas.getContext('2d');
+        crownCtx.drawImage(maskImg, 0, 0, cw, ch);
+        crownCtx.globalCompositeOperation = 'source-in';
+        crownCtx.drawImage(crownImg, L.crown.x * cw, L.crown.y * ch, L.crown.w * cw, L.crown.h * ch);
+        ctx.drawImage(crownCanvas, 0, 0);
+      } else {
+        ctx.drawImage(crownImg, L.crown.x * cw, L.crown.y * ch, L.crown.w * cw, L.crown.h * ch);
       }
-      ctx.drawImage(await loadImage(crownPath), L.crown.x * cw, L.crown.y * ch, L.crown.w * cw, L.crown.h * ch);
     }
   }
 
