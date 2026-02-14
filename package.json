@@ -1,0 +1,70 @@
+{
+  "name": "@domainellipticlanguage/mtg-crucible",
+  "version": "0.2.5",
+  "description": "TypeScript library for rendering custom Magic: The Gathering card images as PNGs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/domainellipticlanguage/mtg-crucible.git"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./constants": {
+      "types": "./dist/constants/constants/index.d.ts",
+      "default": "./dist/constants/constants/index.js"
+    },
+    "./parser": {
+      "types": "./dist/parser/parser/index.d.ts",
+      "default": "./dist/parser/parser/index.js"
+    },
+    "./react": {
+      "types": "./dist/react/react/index.d.ts",
+      "default": "./dist/react/react/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "assets"
+  ],
+  "scripts": {
+    "test": "vitest",
+    "build": "tsc && tsc -p tsconfig.parser.json && tsc -p tsconfig.constants.json && tsc -p tsconfig.react.json",
+    "build:parser": "tsc -p tsconfig.parser.json",
+    "build:core": "tsc",
+    "build:react": "tsc -p tsconfig.react.json",
+    "dev": "npx tsx watch scripts/dev-server.ts",
+    "spike": "npx tsx scripts/spike.ts",
+    "generate-assets": "npx tsx logo/generate-assets.ts"
+  },
+  "keywords": ["mtg", "magic-the-gathering", "card-renderer", "card-image", "custom-cards"],
+  "author": "domainellipticlanguage",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@napi-rs/canvas": "^0.1.92"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.3",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "esbuild": "^0.27.4",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "sst": "^4.0.6",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}
