@@ -20,8 +20,9 @@ const ASSETS_DIR = path.resolve(__dirname, '..', 'assets', 'symbols');
 const SOURCE_SVG = path.join(LOGO_DIR, 'logo-transparent.svg');
 
 // ---------------------------------------------------------------------------
-// Extract path data from source SVG
+// Path extraction & manipulation
 // ---------------------------------------------------------------------------
+
 function extractPaths(svgContent: string): string[] {
   const pathRegex = /<path\s+d="([^"]+)"/g;
   const paths: string[] = [];
@@ -33,14 +34,33 @@ function extractPaths(svgContent: string): string[] {
 }
 
 /**
- * Approximate bounding box of all paths by scanning M/m (moveto) commands
- * and bare coordinate pairs. Good enough for gradient placement.
+ * Prepare paths for set-symbol use:
+ *  - Keep only the two main shapes (flame body + bowl) for a clean read at
+ *    small sizes. Drops stones and detached flame wisps.
+ *  - Strip sub-paths (relative `m` after `z`) to make the bowl solid.
+ */
+function prepareSetSymbolPaths(paths: string[]): string[] {
+  // Only keep large, significant paths (>500 chars). This selects the main
+  // flame body and the bowl, dropping small flame wisps and stones.
+  const MIN_PATH_LENGTH = 500;
+
+  return paths
+    .filter((d) => d.length >= MIN_PATH_LENGTH)
+    .map((d) => {
+      // Strip sub-paths so compound shapes (bowl) fill solid
+      const subPathIdx = d.search(/z\s+m/i);
+      return subPathIdx >= 0 ? d.substring(0, subPathIdx + 1) : d;
+    });
+}
+
+/**
+ * Approximate bounding box by scanning absolute M (moveto) commands only.
+ * Lowercase m is relative and would give wrong values.
  */
 function estimateBounds(paths: string[]): { minX: number; maxX: number; minY: number; maxY: number } {
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
   for (const d of paths) {
-    // Match the starting "M x y" and any subsequent absolute coordinates
-    const moveRe = /M\s*(-?\d+)\s+(-?\d+)/gi;
+    const moveRe = /M\s*(-?\d+)\s+(-?\d+)/g; // uppercase M only
     let m: RegExpExecArray | null;
     while ((m = moveRe.exec(d)) !== null) {
       const x = Number(m[1]), y = Number(m[2]);
@@ -59,19 +79,16 @@ function estimateBounds(paths: string[]): { minX: number; maxX: number; minY: nu
 interface GradientStop { offset: string; color: string }
 
 interface RarityStyle {
-  fill: string;          // fill for the main shape
-  detailFill: string;    // fill for the outline/detail stroke
+  fill: string;
   gradient?: { id: string; stops: GradientStop[] };
 }
 
 const RARITIES: Record<string, RarityStyle> = {
   common: {
     fill: '#1a1a1a',
-    detailFill: '#000000',
   },
   uncommon: {
     fill: 'url(#grad)',
-    detailFill: '#000000',
     gradient: {
       id: 'grad',
       stops: [
@@ -83,7 +100,6 @@ const RARITIES: Record<string, RarityStyle> = {
   },
   rare: {
     fill: 'url(#grad)',
-    detailFill: '#000000',
     gradient: {
       id: 'grad',
       stops: [
@@ -95,7 +111,6 @@ const RARITIES: Record<string, RarityStyle> = {
   },
   mythic: {
     fill: 'url(#grad)',
-    detailFill: '#000000',
     gradient: {
       id: 'grad',
       stops: [
@@ -107,6 +122,10 @@ const RARITIES: Record<string, RarityStyle> = {
   },
 };
 
+// Stroke width in the raw path coordinate space (0–20000).
+// 700 gives the heavy, chunky outlines real MTG set symbols are known for.
+const SET_SYMBOL_STROKE_WIDTH = 700;
+
 // ---------------------------------------------------------------------------
 // Generate a set-symbol SVG for a given rarity
 // ---------------------------------------------------------------------------
@@ -115,13 +134,9 @@ function buildSetSymbolSvg(
   style: RarityStyle,
   bounds: { minX: number; maxX: number; minY: number; maxY: number },
 ): string {
-  // The source SVG paths are in raw coordinate space (0-20000 range) and
-  // rendered via transform="translate(0,2000) scale(0.1,-0.1)".
-  //
-  // gradientUnits="userSpaceOnUse" resolves in the coordinate system of
-  // the *element referencing the gradient*. Since fill is on the <g>,
-  // and the <g> has the transform, the gradient coords are in the
-  // pre-transform space (the 0-20000 raw coords).
+  // Gradient spans the full width of the design in the raw (pre-transform)
+  // coordinate space. gradientUnits="userSpaceOnUse" resolves inside the <g>'s
+  // local coordinate system (after the group's transform establishes it).
   const gWidth = bounds.maxX - bounds.minX;
   const gCenterY = (bounds.minY + bounds.maxY) / 2;
 
@@ -139,13 +154,16 @@ function buildSetSymbolSvg(
     .map((d) => `    <path d="${d}"/>`)
     .join('\n');
 
-  // Two layers like real MTG set symbols:
-  // 1) Filled shape with rarity color (slightly thicker stroke for outline)
-  // 2) Detail outlines in black on top
+  // Use the full original viewBox. Computing tight bounds from path data is
+  // unreliable without a full SVG parser (curves extend beyond M coordinates).
+  // The card renderer controls on-card size via its layout constants.
+
+  // paint-order="stroke fill" draws the thick black stroke behind the
+  // colored fill, producing the heavy outline MTG set symbols are known for.
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 2000 2000">
 ${gradientDef}  <g transform="translate(0.000000,2000.000000) scale(0.100000,-0.100000)"
-     fill="${style.fill}" stroke="${style.detailFill}" stroke-width="200"
+     fill="${style.fill}" stroke="#000000" stroke-width="${SET_SYMBOL_STROKE_WIDTH}"
      paint-order="stroke fill" stroke-linejoin="round">
 ${pathElements}
   </g>
@@ -161,15 +179,12 @@ async function svgToPng(
   size: number,
   background?: string,
 ): Promise<Buffer> {
-  // Supersample: rasterize SVG at 4x then scale down for anti-aliasing
   const ssScale = 4;
   const ssSize = size * ssScale;
 
-  // If source is a file path, read and patch dimensions for hi-res rasterization
   let svgData: Buffer;
   if (typeof svgSource === 'string') {
     let svgStr = fs.readFileSync(svgSource, 'utf-8');
-    // Replace width/height for hi-res rasterization
     svgStr = svgStr
       .replace(/width="[^"]*"/, `width="${ssSize}"`)
       .replace(/height="[^"]*"/, `height="${ssSize}"`);
@@ -180,7 +195,6 @@ async function svgToPng(
 
   const img = await loadImage(svgData);
 
-  // Draw at supersampled size
   const bigCanvas = createCanvas(ssSize, ssSize);
   const bigCtx = bigCanvas.getContext('2d');
   if (background) {
@@ -189,7 +203,6 @@ async function svgToPng(
   }
   bigCtx.drawImage(img, 0, 0, ssSize, ssSize);
 
-  // Scale down to target size
   const canvas = createCanvas(size, size);
   const ctx = canvas.getContext('2d');
   ctx.drawImage(bigCanvas, 0, 0, size, size);
@@ -202,31 +215,34 @@ async function svgToPng(
 // ---------------------------------------------------------------------------
 async function main() {
   const svgContent = fs.readFileSync(SOURCE_SVG, 'utf-8');
-  const paths = extractPaths(svgContent);
+  const rawPaths = extractPaths(svgContent);
 
-  if (paths.length === 0) {
+  if (rawPaths.length === 0) {
     console.error('No paths found in source SVG');
     process.exit(1);
   }
 
-  console.log(`Found ${paths.length} paths in source SVG`);
+  console.log(`Found ${rawPaths.length} paths in source SVG`);
 
-  // Compute bounding box for gradient placement (in raw path coordinate space)
-  const bounds = estimateBounds(paths);
-  console.log(`  bounds: x ${bounds.minX}-${bounds.maxX}, y ${bounds.minY}-${bounds.maxY}`);
+  // Prepare paths for set symbol use (strip sub-paths to make bowl solid)
+  const setPaths = prepareSetSymbolPaths(rawPaths);
+
+  // Compute bounding box for gradient placement (raw coordinate space)
+  const bounds = estimateBounds(setPaths);
+  console.log(`  bounds: x ${bounds.minX}–${bounds.maxX}, y ${bounds.minY}–${bounds.maxY}`);
 
   // Ensure output dirs exist
   fs.mkdirSync(ASSETS_DIR, { recursive: true });
 
   // --- Set symbol SVGs ---
   for (const [rarity, style] of Object.entries(RARITIES)) {
-    const svg = buildSetSymbolSvg(paths, style, bounds);
+    const svg = buildSetSymbolSvg(setPaths, style, bounds);
     const outPath = path.join(ASSETS_DIR, `set-${rarity}.svg`);
     fs.writeFileSync(outPath, svg, 'utf-8');
     console.log(`  wrote ${path.relative(process.cwd(), outPath)}`);
   }
 
-  // --- PNG logos from source SVG (supersampled) ---
+  // --- PNG logos from source SVG (supersampled, unchanged) ---
   const logos: { name: string; size: number; bg?: string }[] = [
     { name: 'logo.png', size: 512 },
     { name: 'logo-256.png', size: 256 },

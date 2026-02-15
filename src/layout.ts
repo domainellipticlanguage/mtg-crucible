@@ -25,7 +25,7 @@ export const STD_LAYOUT = {
   rules:     { x: 0.086, y: 1780/2814, w: 0.828, h: 0.2875, size: 0.0362, font: 'MPlantin' },
   pt:        { x: 0.7928, y: 0.902, w: 0.1367, h: 0.0372, size: 0.0372, font: 'Beleren Bold SmCaps' },
   ptBox:     { x: 0.7573, y: 0.8848, w: 0.188, h: 0.0733 },
-  setSymbol: { x: 1862/2010, y: 0.5910, w: 0.12, h: 0.0410 },
+  setSymbol: { x: 1862/2010, y: 0.5910, w: 0.12, h: 0.0700 },
   crown:     { x: 44/2010, y: 53/2814, w: 1922/2010, h: 493/2814 },
 };
 
