@@ -26,7 +26,7 @@ const png = await renderFromText(`
 writeFileSync('crucible-of-legends.png', png);
 ```
 
-![Crucible of Legends](logo/crucible-of-legends.png)
+<img src="logo/crucible-of-legends.png" alt="Crucible of Legends" width="300">
 
 ## API
 
