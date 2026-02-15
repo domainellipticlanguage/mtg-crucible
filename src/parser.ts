@@ -1,6 +1,8 @@
 import type { CardData, PlaneswalkerData, SagaData, BattleData, CardInput } from './types';
 
 const MANA_COST_REGEX = /^(.+?)\s+((?:\{[^}]+\})+)$/;
+const ART_REGEX = /^Art:\s*(https?:\/\/\S+)$/i;
+const RARITY_REGEX = /^Rarity:\s*(common|uncommon|rare|mythic(?:\s+rare)?)$/i;
 const PT_REGEX = /^([*\d+]+)\/([*\d+]+)$/;
 const LOYALTY_REGEX = /^Loyalty:\s*(\S+)$/i;
 const DEFENSE_REGEX = /^Defense:\s*(\S+)$/i;
@@ -50,25 +52,45 @@ export function parseCard(text: string): CardInput {
     name = lines[0];
   }
 
-  // Line 2: Type line
-  const typeLine = lines[1];
+  // Optional metadata lines between name and type (Art:, Rarity:)
+  let artUrl: string | undefined;
+  let rarity: 'common' | 'uncommon' | 'rare' | 'mythic' | undefined;
+  let nextLine = 1;
+  while (nextLine < lines.length) {
+    const artMatch = lines[nextLine].match(ART_REGEX);
+    if (artMatch) { artUrl = artMatch[1]; nextLine++; continue; }
+    const rarityMatch = lines[nextLine].match(RARITY_REGEX);
+    if (rarityMatch) {
+      const raw = rarityMatch[1].toLowerCase();
+      rarity = (raw === 'mythic rare' ? 'mythic' : raw) as typeof rarity;
+      nextLine++; continue;
+    }
+    break;
+  }
+
+  // Type line
+  const typeLine = lines[nextLine];
   const isLegendary = typeLine.toLowerCase().includes('legendary');
   const frameColor = deriveFrameColor(manaCost, typeLine);
 
   // Remaining lines: body
-  const bodyLines = lines.slice(2);
+  const bodyLines = lines.slice(nextLine + 1);
   const lowerType = typeLine.toLowerCase();
 
+  let card: CardInput;
   if (lowerType.includes('planeswalker')) {
-    return parsePlaneswalker(name, manaCost, typeLine, isLegendary, frameColor, bodyLines);
+    card = parsePlaneswalker(name, manaCost, typeLine, isLegendary, frameColor, bodyLines);
+  } else if (lowerType.includes('saga')) {
+    card = parseSaga(name, manaCost, typeLine, isLegendary, frameColor, bodyLines);
+  } else if (lowerType.includes('battle')) {
+    card = parseBattle(name, manaCost, typeLine, frameColor, bodyLines);
+  } else {
+    card = parseStandard(name, manaCost, typeLine, isLegendary, frameColor, bodyLines);
   }
-  if (lowerType.includes('saga')) {
-    return parseSaga(name, manaCost, typeLine, isLegendary, frameColor, bodyLines);
-  }
-  if (lowerType.includes('battle')) {
-    return parseBattle(name, manaCost, typeLine, frameColor, bodyLines);
-  }
-  return parseStandard(name, manaCost, typeLine, isLegendary, frameColor, bodyLines);
+
+  if (artUrl) card.artUrl = artUrl;
+  card.rarity = rarity ?? 'rare';
+  return card;
 }
 
 function parseStandard(

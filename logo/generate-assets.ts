@@ -80,18 +80,19 @@ interface GradientStop { offset: string; color: string }
 
 interface RarityStyle {
   fill: string;
-  stroke: string;
+  /** Push overlapping shapes apart in Y (raw coord space) so they read
+   *  as distinct pieces. Flame moves up, bowl moves down. */
+  separateY?: number;
   gradient?: { id: string; stops: GradientStop[] };
 }
 
 const RARITIES: Record<string, RarityStyle> = {
   common: {
     fill: '#1a1a1a',
-    stroke: '#ffffff',
+    separateY: 300,
   },
   uncommon: {
     fill: 'url(#grad)',
-    stroke: '#000000',
     gradient: {
       id: 'grad',
       stops: [
@@ -103,7 +104,6 @@ const RARITIES: Record<string, RarityStyle> = {
   },
   rare: {
     fill: 'url(#grad)',
-    stroke: '#000000',
     gradient: {
       id: 'grad',
       stops: [
@@ -115,7 +115,6 @@ const RARITIES: Record<string, RarityStyle> = {
   },
   mythic: {
     fill: 'url(#grad)',
-    stroke: '#000000',
     gradient: {
       id: 'grad',
       stops: [
@@ -155,20 +154,34 @@ function buildSetSymbolSvg(
   </defs>\n`
     : '';
 
-  const pathElements = paths
-    .map((d) => `    <path d="${d}"/>`)
-    .join('\n');
-
-  // Use the full original viewBox. Computing tight bounds from path data is
-  // unreliable without a full SVG parser (curves extend beyond M coordinates).
-  // The card renderer controls on-card size via its layout constants.
+  let pathElements: string;
+  if (style.separateY) {
+    // Push overlapping shapes apart vertically. Determine each path's
+    // center Y so the higher shape (flame) moves up and the lower (bowl)
+    // moves down.
+    const centers = paths.map((d) => {
+      const b = estimateBounds([d]);
+      return (b.minY + b.maxY) / 2;
+    });
+    const avgY = centers.reduce((a, b) => a + b, 0) / centers.length;
+    pathElements = paths
+      .map((d, i) => {
+        const dy = centers[i] >= avgY ? style.separateY : -style.separateY;
+        return `      <g transform="translate(0,${dy})"><path d="${d}"/></g>`;
+      })
+      .join('\n');
+  } else {
+    pathElements = paths
+      .map((d) => `      <path d="${d}"/>`)
+      .join('\n');
+  }
 
   // paint-order="stroke fill" draws the thick black stroke behind the
   // colored fill, producing the heavy outline MTG set symbols are known for.
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 2000 2000">
 ${gradientDef}  <g transform="translate(0.000000,2000.000000) scale(0.100000,-0.100000)"
-     fill="${style.fill}" stroke="${style.stroke}" stroke-width="${SET_SYMBOL_STROKE_WIDTH}"
+     fill="${style.fill}" stroke="#000000" stroke-width="${SET_SYMBOL_STROKE_WIDTH}"
      paint-order="stroke fill" stroke-linejoin="round">
 ${pathElements}
   </g>

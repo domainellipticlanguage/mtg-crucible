@@ -7,7 +7,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { renderCard } from '../src';
+import { renderCard, renderFromText } from '../src';
 import type { CardData, PlaneswalkerData, SagaData, BattleData } from '../src';
 
 const OUT = '/tmp/mtg-crucible-spike';
@@ -17,6 +17,13 @@ async function main() {
   let idx = 1;
 
   function fname(name: string) { return path.join(OUT, `${String(idx++).padStart(2, '0')}-${name}.png`); }
+
+  fs.writeFileSync(fname('lightning-bolt'), await renderCard({
+    name: 'Lightning Bolt', manaCost: '{R}', typeLine: 'Instant',
+    rulesText: 'Lightning Bolt deals 3 damage to any target.',
+    flavorText: '"The sparkmage shrieked, calling on the rage of the storms of his youth. To his surprise, the sky responded with a fierce energy he had never thought to see again."',
+    frameColor: 'r', rarity: 'uncommon', artist: 'Christopher Moeller', collectorNumber: '141',
+  }));
 
   // 1. Instant — Lightning Bolt
   console.log('Rendering Lightning Bolt (Instant)...');
@@ -154,6 +161,16 @@ async function main() {
     defense: '3',
   };
   fs.writeFileSync(fname('invasion-gobakhan'), await renderCard(gobakhan));
+
+  // 14. README example — Crucible of Legends (via renderFromText)
+  console.log('Rendering Crucible of Legends (renderFromText)...');
+  fs.writeFileSync(fname('crucible-of-legends'), await renderFromText(`
+    Crucible of Legends {3}
+    Rarity: Mythic Rare
+    Legendary Artifact
+    Whenever a legendary creature you control dies, return it to your hand at the beginning of the next end step.
+    *Every great story begins in the fire.*
+  `));
 
   console.log(`\nDone! ${idx - 1} cards rendered to ${OUT}`);
 }

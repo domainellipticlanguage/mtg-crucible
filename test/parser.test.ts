@@ -13,6 +13,7 @@ describe('parseCard', () => {
       manaCost: '{R}',
       typeLine: 'Instant',
       frameColor: 'r',
+      rarity: 'rare',
       rulesText: 'Lightning Bolt deals 3 damage to any target.',
     });
   });
@@ -28,6 +29,7 @@ describe('parseCard', () => {
       manaCost: '{1}{G}',
       typeLine: 'Creature \u2014 Bear',
       frameColor: 'g',
+      rarity: 'rare',
       power: '2',
       toughness: '2',
     });
@@ -82,6 +84,7 @@ describe('parseCard', () => {
       name: 'Command Tower',
       typeLine: 'Land',
       frameColor: 'l',
+      rarity: 'rare',
       rulesText: "{T}: Add one mana of any color in your commander's color identity.",
     });
   });
@@ -272,6 +275,87 @@ describe('parseCard', () => {
       frameColor: 'w',
       defense: '3',
       rulesText: "When Invasion of Gobakhan enters the battlefield, look at target opponent's hand.",
+    });
+  });
+
+  it('parses Art: URL between name and type line', () => {
+    const card = parseCard(`
+      Archangel Avacyn {3}{W}{W}
+      Art: https://cards.scryfall.io/art_crop/front/7/f/7f4893ef.jpg
+      Legendary Creature \u2014 Angel
+      Flash
+      Flying, vigilance
+      4/4
+    `);
+    expect(card).toMatchObject({
+      name: 'Archangel Avacyn',
+      artUrl: 'https://cards.scryfall.io/art_crop/front/7/f/7f4893ef.jpg',
+      typeLine: 'Legendary Creature \u2014 Angel',
+      isLegendary: true,
+      power: '4',
+      toughness: '4',
+    });
+  });
+
+  it('works without Art: line', () => {
+    const card = parseCard(`
+      Lightning Bolt {R}
+      Instant
+      Lightning Bolt deals 3 damage to any target.
+    `);
+    expect((card as any).artUrl).toBeUndefined();
+  });
+
+  it('parses Rarity: metadata', () => {
+    const card = parseCard(`
+      Sol Ring {1}
+      Rarity: Uncommon
+      Artifact
+      {T}: Add {C}{C}.
+    `);
+    expect(card).toMatchObject({
+      name: 'Sol Ring',
+      rarity: 'uncommon',
+      typeLine: 'Artifact',
+    });
+  });
+
+  it('parses "Mythic Rare" and normalizes to mythic', () => {
+    const card = parseCard(`
+      Questing Beast {2}{G}{G}
+      Rarity: Mythic Rare
+      Legendary Creature \u2014 Beast
+      Vigilance, deathtouch, haste
+      4/4
+    `);
+    expect(card).toMatchObject({ rarity: 'mythic' });
+  });
+
+  it('accepts shorthand "mythic" case-insensitively', () => {
+    const card = parseCard(`
+      Questing Beast {2}{G}{G}
+      Rarity: mythic
+      Legendary Creature \u2014 Beast
+      Vigilance, deathtouch, haste
+      4/4
+    `);
+    expect(card).toMatchObject({ rarity: 'mythic' });
+  });
+
+  it('parses Art: and Rarity: together in any order', () => {
+    const card = parseCard(`
+      Archangel Avacyn {3}{W}{W}
+      Rarity: Mythic Rare
+      Art: https://cards.scryfall.io/art_crop/front/7/f/7f4893ef.jpg
+      Legendary Creature \u2014 Angel
+      Flash
+      4/4
+    `);
+    expect(card).toMatchObject({
+      name: 'Archangel Avacyn',
+      rarity: 'mythic',
+      artUrl: 'https://cards.scryfall.io/art_crop/front/7/f/7f4893ef.jpg',
+      typeLine: 'Legendary Creature \u2014 Angel',
     });
   });
 
