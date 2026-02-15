@@ -170,7 +170,7 @@ async function main() {
     Rarity: Mythic Rare
     Legendary Artifact
     Whenever a legendary creature you control dies, return it to your hand at the beginning of the next end step.
-    *Every great story begins in the fire.*
+    *Every great story begins with fire.*
   `));
 
   console.log(`\nDone! ${idx - 1} cards rendered to ${OUT}`);
