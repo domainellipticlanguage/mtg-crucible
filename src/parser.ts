@@ -6,7 +6,12 @@ const LOYALTY_REGEX = /^Loyalty:\s*(\S+)$/i;
 const DEFENSE_REGEX = /^Defense:\s*(\S+)$/i;
 const PW_ABILITY_REGEX = /^([+-]?\d+):\s*(.+)$/;
 const SAGA_CHAPTER_REGEX = /^((?:I{1,3}|IV|V|VI)(?:\s*,\s*(?:I{1,3}|IV|V|VI))*)\s*[—–-]\s*(.+)$/;
-const FLAVOR_SEPARATOR = '---';
+const FLAVOR_REGEX = /^\*(.+)\*$/;
+
+function isFlavorLine(line: string): boolean {
+  const m = line.match(FLAVOR_REGEX);
+  return m !== null && /[a-zA-Z]/.test(m[1]);
+}
 
 function deriveFrameColor(manaCost: string | undefined, typeLine: string): string {
   const lower = typeLine.toLowerCase();
@@ -76,6 +81,14 @@ function parseStandard(
   let flavorText: string | undefined;
   let lines = [...bodyLines];
 
+  // Scan from end: consecutive *...*-wrapped lines are flavor text
+  let flavorStart = lines.length;
+  while (flavorStart > 0 && isFlavorLine(lines[flavorStart - 1])) {
+    flavorStart--;
+  }
+  const flavorLines = lines.slice(flavorStart);
+  lines = lines.slice(0, flavorStart);
+
   // Only check P/T if type line suggests a creature/vehicle
   const lowerType = typeLine.toLowerCase();
   if ((lowerType.includes('creature') || lowerType.includes('vehicle')) && lines.length > 0) {
@@ -87,15 +100,10 @@ function parseStandard(
     }
   }
 
-  // Check for flavor separator
-  const sepIdx = lines.indexOf(FLAVOR_SEPARATOR);
-  if (sepIdx !== -1) {
-    const rulesLines = lines.slice(0, sepIdx);
-    const flavorLines = lines.slice(sepIdx + 1);
-    if (rulesLines.length > 0) rulesText = rulesLines.join('\n');
-    if (flavorLines.length > 0) flavorText = flavorLines.join('\n');
-  } else if (lines.length > 0) {
-    rulesText = lines.join('\n');
+  const rulesLines = lines;
+  if (rulesLines.length > 0) rulesText = rulesLines.join('\n');
+  if (flavorLines.length > 0) {
+    flavorText = flavorLines.map(l => l.match(FLAVOR_REGEX)![1]).join('\n');
   }
 
   const card: CardData = { name, typeLine, frameColor };

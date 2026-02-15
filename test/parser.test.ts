@@ -136,13 +136,12 @@ describe('parseCard', () => {
     });
   });
 
-  it('parses rules + flavor with --- separator', () => {
+  it('parses flavor text wrapped in *asterisks*', () => {
     const card = parseCard(`
       Lightning Bolt {R}
       Instant
       Lightning Bolt deals 3 damage to any target.
-      ---
-      "The sparkmage shrieked."
+      *"The sparkmage shrieked."*
     `);
     expect(card).toMatchObject({
       rulesText: 'Lightning Bolt deals 3 damage to any target.',
@@ -155,12 +154,28 @@ describe('parseCard', () => {
       Wrath of God {2}{W}{W}
       Sorcery
       Destroy all creatures. They can't be regenerated.
-      ---
-      "Legend speaks of the Creators' rage"
-      "at their most prized creation."
+      *"Legend speaks of the Creators' rage"*
+      *"at their most prized creation."*
     `);
     expect(card).toMatchObject({
+      rulesText: "Destroy all creatures. They can't be regenerated.",
       flavorText: '"Legend speaks of the Creators\' rage"\n"at their most prized creation."',
+    });
+  });
+
+  it('does not treat mid-rules *reminder text* as flavor', () => {
+    const card = parseCard(`
+      Questing Beast {2}{G}{G}
+      Legendary Creature \u2014 Beast
+      Vigilance, deathtouch, haste
+      *(Deathtouch means any damage this deals is enough.)*
+      Questing Beast can't be blocked by creatures with power 2 or less.
+      4/4
+      *"The beast never rests."*
+    `);
+    expect(card).toMatchObject({
+      rulesText: "Vigilance, deathtouch, haste\n*(Deathtouch means any damage this deals is enough.)*\nQuesting Beast can't be blocked by creatures with power 2 or less.",
+      flavorText: '"The beast never rests."',
     });
   });
 

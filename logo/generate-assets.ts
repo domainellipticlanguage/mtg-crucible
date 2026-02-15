@@ -4,9 +4,9 @@
  *
  * Outputs:
  *   assets/symbols/set-{common,uncommon,rare,mythic}.svg  – set symbols for card rendering
- *   logo/logo.png                                         – 512px white-on-transparent logo
- *   logo/logo-256.png                                     – 256px white-on-transparent logo
- *   logo/logo-dark.png                                    – 512px white-on-dark logo (for READMEs)
+ *   logo/logo.png                                         – 1024px white-on-transparent logo
+ *   logo/logo-256.png                                     – 512px white-on-transparent logo
+ *   logo/logo-dark.png                                    – 1024px white-on-dark logo (for READMEs)
  *
  * Usage:
  *   npx tsx logo/generate-assets.ts
@@ -80,15 +80,18 @@ interface GradientStop { offset: string; color: string }
 
 interface RarityStyle {
   fill: string;
+  stroke: string;
   gradient?: { id: string; stops: GradientStop[] };
 }
 
 const RARITIES: Record<string, RarityStyle> = {
   common: {
     fill: '#1a1a1a',
+    stroke: '#ffffff',
   },
   uncommon: {
     fill: 'url(#grad)',
+    stroke: '#000000',
     gradient: {
       id: 'grad',
       stops: [
@@ -100,6 +103,7 @@ const RARITIES: Record<string, RarityStyle> = {
   },
   rare: {
     fill: 'url(#grad)',
+    stroke: '#000000',
     gradient: {
       id: 'grad',
       stops: [
@@ -111,6 +115,7 @@ const RARITIES: Record<string, RarityStyle> = {
   },
   mythic: {
     fill: 'url(#grad)',
+    stroke: '#000000',
     gradient: {
       id: 'grad',
       stops: [
@@ -163,7 +168,7 @@ function buildSetSymbolSvg(
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 2000 2000">
 ${gradientDef}  <g transform="translate(0.000000,2000.000000) scale(0.100000,-0.100000)"
-     fill="${style.fill}" stroke="#000000" stroke-width="${SET_SYMBOL_STROKE_WIDTH}"
+     fill="${style.fill}" stroke="${style.stroke}" stroke-width="${SET_SYMBOL_STROKE_WIDTH}"
      paint-order="stroke fill" stroke-linejoin="round">
 ${pathElements}
   </g>
@@ -244,9 +249,9 @@ async function main() {
 
   // --- PNG logos from source SVG (supersampled, unchanged) ---
   const logos: { name: string; size: number; bg?: string }[] = [
-    { name: 'logo.png', size: 512 },
-    { name: 'logo-256.png', size: 256 },
-    { name: 'logo-dark.png', size: 512, bg: '#1a1a1a' },
+    { name: 'logo.png', size: 1024 },
+    { name: 'logo-256.png', size: 512 },
+    { name: 'logo-dark.png', size: 1024, bg: '#1a1a1a' },
   ];
 
   for (const { name, size, bg } of logos) {

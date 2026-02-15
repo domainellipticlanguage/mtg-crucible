@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 2000 2000">
   <g transform="translate(0.000000,2000.000000) scale(0.100000,-0.100000)"
-     fill="#1a1a1a" stroke="#000000" stroke-width="700"
+     fill="#1a1a1a" stroke="#ffffff" stroke-width="700"
      paint-order="stroke fill" stroke-linejoin="round">
     <path d="M14266 16913 c-18 -414 -78 -717 -210 -1059 -90 -237 -110 -277 -231
 -479 -358 -600 -891 -1003 -1553 -1175 -150 -40 -305 -57 -607 -70 -320 -13
