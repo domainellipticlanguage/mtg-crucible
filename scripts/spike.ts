@@ -166,6 +166,7 @@ async function main() {
   console.log('Rendering Crucible of Legends (renderFromText)...');
   fs.writeFileSync(fname('crucible-of-legends'), await renderFromText(`
     Crucible of Legends {3}
+    Art: https://raw.githubusercontent.com/nathanfdunn/mtg-crucible/refs/heads/main/logo/banner-image.png
     Rarity: Mythic Rare
     Legendary Artifact
     Whenever a legendary creature you control dies, return it to your hand at the beginning of the next end step.

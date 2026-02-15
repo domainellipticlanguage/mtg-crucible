@@ -16,6 +16,7 @@ import { writeFileSync } from 'fs';
 
 const png = await renderFromText(`
   Crucible of Legends {3}
+  Art: https://raw.githubusercontent.com/nathanfdunn/mtg-crucible/refs/heads/main/logo/banner-image.png
   Rarity: Mythic Rare
   Legendary Artifact
   Whenever a legendary creature you control dies, return it to your hand at the beginning of the next end step.
@@ -24,6 +25,8 @@ const png = await renderFromText(`
 
 writeFileSync('crucible-of-legends.png', png);
 ```
+
+![Crucible of Legends](logo/crucible-of-legends.png)
 
 ## API
 
@@ -56,11 +59,13 @@ Cards are defined in a plain text format inspired by official text spoilers.
 
 ```
 Name {mana cost}
+Art: <art url> (Optional)
+Rarity: <rarity> (Optional)
 Type Line
 Rules text line 1
 Rules text line 2
 Power/Toughness
-*"Flavor text"*
+*Flavor text*
 ```
 
 Each line of rules text becomes a separate paragraph on the rendered card. Mana symbols use curly brace notation: `{W}`, `{U}`, `{B}`, `{R}`, `{G}`, `{C}`, `{T}`, `{1}`, `{2}`, etc. Hybrid and phyrexian mana are supported: `{G/U}`, `{G/P}`.
@@ -73,11 +78,10 @@ Flavor text is wrapped in `*asterisks*` and must come after P/T (at the very end
 Wrath of God {2}{W}{W}
 Sorcery
 Destroy all creatures. They can't be regenerated.
-*"Legend speaks of the Creators' rage"*
-*"at their most prized creation."*
+*Legend speaks of the Creators' rage at their most prized creation.*
 ```
 
-Reminder text `*(like this)*` in the middle of rules text is preserved as rules text, not treated as flavor.
+Reminder text `(like this)` in the middle of rules text is preserved as rules text, not treated as flavor.
 
 ### Art URL (optional)
 
@@ -175,3 +179,11 @@ npm run spike     # render test cards to output/
 - Improve set symbol generation with logo
 - Fix missing rarity on sagas
 - Test limits of parser leniency
+- Test reminder text without asterisks
+- Test multiple lines of flavor text
+- Reconsider splitting into multiple render apis
+- Investigate card dimensions
+- reconsider the frame enum
+- Update readme examples to be custom
+- Add a carddata example to quickstart
+- Add logo somewhere
