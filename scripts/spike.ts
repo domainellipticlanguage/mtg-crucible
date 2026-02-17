@@ -8,7 +8,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { renderCard, renderFromText } from '../src';
-import type { CardData, PlaneswalkerData, SagaData, BattleData } from '../src';
+import type { CardData, PlaneswalkerData, SagaData, BattleData, ClassData } from '../src';
 
 const OUT = '/tmp/mtg-crucible-spike';
 
@@ -172,6 +172,22 @@ async function main() {
     Whenever a legendary creature you control dies, return it to your hand at the beginning of the next end step.
     *Every great story begins with fire.*
   `));
+
+  // 15. Class enchantment — Barbarian Class
+  console.log('Rendering Barbarian Class (Class Enchantment)...');
+  const barbarianClass: ClassData = {
+    name: 'Barbarian Class', manaCost: '{R}',
+    typeLine: 'Enchantment \u2014 Class',
+    frameColor: 'r', rarity: 'rare',
+    artist: 'Lie Setiawan', collectorNumber: '131',
+    reminder: '(Gain the next level as a sorcery to add its ability.)',
+    levels: [
+      { cost: '', name: '', text: 'If you would roll one or more dice, instead roll that many dice plus one and ignore the lowest roll.' },
+      { cost: '{1}{R}', name: 'Level 2', text: 'Whenever you roll one or more dice, target creature you control gets +2/+0 and gains menace until end of turn.' },
+      { cost: '{2}{R}', name: 'Level 3', text: 'Creatures you control have haste.' },
+    ],
+  };
+  fs.writeFileSync(fname('barbarian-class'), await renderCard(barbarianClass));
 
   console.log(`\nDone! ${idx - 1} cards rendered to ${OUT}`);
 }

@@ -187,3 +187,29 @@ npm run spike     # render test cards to output/
 - Update readme examples to be custom
 - Add a carddata example to quickstart
 - Add logo somewhere
+- Add Class enchantment to spike
+- Support Level Up https://scryfall.com/card/c13/43/echo-mage
+    - note how this affect P/T assumptions...
+- Support more hybrid mana
+    - Phyrexian hybrid
+    - colorless/color hybrid
+    - 2/color hybrid
+- Optimize asset size
+    - procedurally generate textures + frames
+- Support multi-cards
+    - Enchantment Rooms
+        - https://scryfall.com/card/dsk/43/bottomless-pool-locker-room
+    - Fuse cards
+    - Adventures
+    - MDFC
+    - Kamigawa flip cards
+    - Flip cards (Werewolf, etc.)
+- Support Varying P/T
+    - Leveler Cards
+    - Prototype
+- Support Mutate
+- Test harness
+
+## Won't do
+- Support devoid borders
+- Support various borders

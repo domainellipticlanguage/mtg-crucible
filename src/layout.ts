@@ -66,6 +66,20 @@ export const SAGA_LAYOUT = {
   chapterFont: 0.0324,
 };
 
+// Class layout (packClass.js)
+export const CLASS_LAYOUT = {
+  art:       { x: 0.0753, y: 0.1124, w: 0.4247, h: 0.7253 },
+  name:      { x: 0.0854, y: 0.0522, w: 0.8292, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
+  mana:      { y: 0.0613, w: 0.9292, size: 71/1638, shadowX: -0.001, shadowY: 0.0029 },
+  type:      { x: 0.0854, y: 0.8481, w: 0.8292, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
+  level:     { x: 0.5093, y: 0.1129, w: 0.404, size: 0.0305 },
+  levelCost: { size: 0.0277 },
+  levelName: { size: 0.0281 },
+  headerGap: 0.0481,
+  maxY:      0.8368,
+  setSymbol: { x: 0.9227, y: 0.8739, w: 0.12, h: 0.0700 },
+};
+
 // Battle layout (packBattle.js)
 export const BTL_LAYOUT = {
   art:     { x: 167/2100, y: 60/1500, w: 1873/2100, h: 1371/1500 },

@@ -28,8 +28,13 @@ export interface BattleData extends CardData {
   defense: string;
 }
 
+export interface ClassData extends CardData {
+  levels: { cost: string; name: string; text: string }[];
+  reminder?: string;
+}
+
 export type RichToken =
   | { type: 'text'; value: string }
   | { type: 'symbol'; value: string };
 
-export type CardInput = CardData | PlaneswalkerData | SagaData | BattleData;
+export type CardInput = CardData | PlaneswalkerData | SagaData | BattleData | ClassData;

@@ -375,4 +375,64 @@ describe('parseCard', () => {
       toughness: '1+*',
     });
   });
+
+  it('parses a class enchantment with 3 levels', () => {
+    const card = parseCard(`
+      Barbarian Class {R}
+      Enchantment \u2014 Class
+      If you would roll one or more dice, instead roll that many dice plus one and ignore the lowest roll.
+      {1}{R}: Level 2
+      Whenever you roll one or more dice, target creature you control gets +2/+0 and gains menace until end of turn.
+      {2}{R}: Level 3
+      Creatures you control have haste.
+    `);
+    expect(card).toMatchObject({
+      name: 'Barbarian Class',
+      manaCost: '{R}',
+      frameColor: 'r',
+      levels: [
+        { cost: '', name: '', text: 'If you would roll one or more dice, instead roll that many dice plus one and ignore the lowest roll.' },
+        { cost: '{1}{R}', name: 'Level 2', text: 'Whenever you roll one or more dice, target creature you control gets +2/+0 and gains menace until end of turn.' },
+        { cost: '{2}{R}', name: 'Level 3', text: 'Creatures you control have haste.' },
+      ],
+    });
+  });
+
+  it('extracts reminder text from class level 0', () => {
+    const card = parseCard(`
+      Barbarian Class {R}
+      Enchantment \u2014 Class
+      *(Gain the next level as a sorcery to add its ability.)*
+      If you would roll one or more dice, instead roll that many dice plus one and ignore the lowest roll.
+      {1}{R}: Level 2
+      Whenever you roll one or more dice, target creature you control gets +2/+0 and gains menace until end of turn.
+      {2}{R}: Level 3
+      Creatures you control have haste.
+    `);
+    expect(card).toMatchObject({
+      reminder: '(Gain the next level as a sorcery to add its ability.)',
+      levels: [
+        { cost: '', name: '', text: 'If you would roll one or more dice, instead roll that many dice plus one and ignore the lowest roll.' },
+        { cost: '{1}{R}', name: 'Level 2' },
+        { cost: '{2}{R}', name: 'Level 3' },
+      ],
+    });
+  });
+
+  it('parses class level cost and name correctly', () => {
+    const card = parseCard(`
+      Wizard Class {U}
+      Enchantment \u2014 Class
+      You may look at the top card of your library any time.
+      {2}{U}: Level 2
+      When this Class becomes level 2, draw two cards.
+      {4}{U}: Level 3
+      You have no maximum hand size.
+    `);
+    const levels = (card as any).levels;
+    expect(levels).toHaveLength(3);
+    expect(levels[0]).toEqual({ cost: '', name: '', text: 'You may look at the top card of your library any time.' });
+    expect(levels[1]).toEqual({ cost: '{2}{U}', name: 'Level 2', text: 'When this Class becomes level 2, draw two cards.' });
+    expect(levels[2]).toEqual({ cost: '{4}{U}', name: 'Level 3', text: 'You have no maximum hand size.' });
+  });
 });

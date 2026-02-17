@@ -1,4 +1,4 @@
-import type { CardData, PlaneswalkerData, SagaData, BattleData, CardInput } from './types';
+import type { CardData, PlaneswalkerData, SagaData, BattleData, ClassData, CardInput } from './types';
 
 const MANA_COST_REGEX = /^(.+?)\s+((?:\{[^}]+\})+)$/;
 const ART_REGEX = /^Art:\s*(https?:\/\/\S+)$/i;
@@ -8,6 +8,7 @@ const LOYALTY_REGEX = /^Loyalty:\s*(\S+)$/i;
 const DEFENSE_REGEX = /^Defense:\s*(\S+)$/i;
 const PW_ABILITY_REGEX = /^([+-]?\d+):\s*(.+)$/;
 const SAGA_CHAPTER_REGEX = /^((?:I{1,3}|IV|V|VI)(?:\s*,\s*(?:I{1,3}|IV|V|VI))*)\s*[—–-]\s*(.+)$/;
+const CLASS_LEVEL_REGEX = /^((?:\{[^}]+\})+):\s*(Level\s+\d+)$/;
 const FLAVOR_REGEX = /^\*(.+)\*$/;
 
 function isFlavorLine(line: string): boolean {
@@ -80,6 +81,8 @@ export function parseCard(text: string): CardInput {
   let card: CardInput;
   if (lowerType.includes('planeswalker')) {
     card = parsePlaneswalker(name, manaCost, typeLine, isLegendary, frameColor, bodyLines);
+  } else if (lowerType.includes('class')) {
+    card = parseClass(name, manaCost, typeLine, isLegendary, frameColor, bodyLines);
   } else if (lowerType.includes('saga')) {
     card = parseSaga(name, manaCost, typeLine, isLegendary, frameColor, bodyLines);
   } else if (lowerType.includes('battle')) {
@@ -200,5 +203,57 @@ function parseBattle(
   const card: BattleData = { name, typeLine, frameColor, defense };
   if (manaCost) card.manaCost = manaCost;
   if (rulesLines.length > 0) card.rulesText = rulesLines.join('\n');
+  return card;
+}
+
+function parseClass(
+  name: string, manaCost: string | undefined, typeLine: string,
+  isLegendary: boolean, frameColor: string, bodyLines: string[],
+): ClassData {
+  const levels: { cost: string; name: string; text: string }[] = [];
+  let currentCost = '';
+  let currentName = '';
+  let currentTextLines: string[] = [];
+
+  for (const line of bodyLines) {
+    const levelMatch = line.match(CLASS_LEVEL_REGEX);
+    if (levelMatch) {
+      // Flush previous level
+      levels.push({ cost: currentCost, name: currentName, text: currentTextLines.join('\n') });
+      currentCost = levelMatch[1];
+      currentName = levelMatch[2];
+      currentTextLines = [];
+    } else {
+      currentTextLines.push(line);
+    }
+  }
+
+  // Flush final level
+  levels.push({ cost: currentCost, name: currentName, text: currentTextLines.join('\n') });
+
+  // Extract reminder text from level 0 — lines wrapped in *(...)* are italic reminder text
+  let reminder: string | undefined;
+  if (levels.length > 0) {
+    const level0Lines = levels[0].text.split('\n');
+    const reminderLines: string[] = [];
+    const abilityLines: string[] = [];
+    for (const line of level0Lines) {
+      if (reminderLines.length === 0 && abilityLines.length === 0 && /^\*\(.*\)\*$/.test(line.trim())) {
+        // Strip the outer * wrapper, keep parens
+        reminderLines.push(line.trim().slice(1, -1));
+      } else {
+        abilityLines.push(line);
+      }
+    }
+    if (reminderLines.length > 0) {
+      reminder = reminderLines.join('\n');
+      levels[0].text = abilityLines.join('\n');
+    }
+  }
+
+  const card: ClassData = { name, typeLine, frameColor, levels };
+  if (manaCost) card.manaCost = manaCost;
+  if (isLegendary) card.isLegendary = true;
+  if (reminder) card.reminder = reminder;
   return card;
 }
