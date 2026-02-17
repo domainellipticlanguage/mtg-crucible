@@ -209,6 +209,9 @@ npm run spike     # render test cards to output/
     - Prototype
 - Support Mutate
 - Test harness
+- Downsample everything - it's excessive right now
+    - 744 × 1039 and jpeg to match mtg.design
+    - 672 × 936 to match scryfall
 
 ## Won't do
 - Support devoid borders
