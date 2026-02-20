@@ -212,6 +212,12 @@ npm run spike     # render test cards to output/
 - Downsample everything - it's excessive right now
     - 744 × 1039 and jpeg to match mtg.design
     - 672 × 936 to match scryfall
+- Finalize the schema
+- Support color indicator
+
+flip cards are in effect just transform cards
+- can infer flip cards by lack of color indicator...although what about lands...
+
 
 ## Won't do
 - Support devoid borders
