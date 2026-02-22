@@ -222,3 +222,97 @@ flip cards are in effect just transform cards
 ## Won't do
 - Support devoid borders
 - Support various borders
+
+We have a major design decision to make. I want your input to evaluate options, and most importantly to suggest any options I might have missed. And any evaluation dimensions I might have missed. Look at the project to get familiarized.
+
+# Major Design Decision
+How to support templated abilities
+Examples: Planeswalkers, Sagas, Cases, Classes, Levelers, Prototype
+
+# Evaluation Dimensions
+* Queryability (translating to a database)
+* Ability to build the object manually in code
+* Ability for an LLM to construct the object
+* Ability to construct the object via a form
+* Extensability (MTG added Cases and Classes for only a single set. Likely there will be other one-off templates)
+
+# Option 1
+Just put everything in `oracleText`
+
+
+# Option 2
+An interface like this which has everything as a separate field
+```
+export interface CardData {
+  // Will be inferred if not provided
+  cardTemplate?: CardTemplate;
+  // Will be inferred if not provided
+  frameColor?: FrameColor;
+
+  name: string;
+  manaCost?: string;
+  supertypes?: Supertype[]; // e.g. legendary
+  types?: Type[];
+  subtypes?: string[];
+  // Todo move to cardgrouping?
+  rarity?: Rarity;
+
+  colorIndicator?: Color[];
+  // TODO primary rules text?
+  rulesText?: string;
+
+  power?: string;
+  toughness?: string;
+
+  artUrl?: string;
+  
+  flavorText?: string;
+
+  // For planeswalkers
+  loyaltyAbilities?: { cost: string; text: string }[];
+  startingLoyalty?: string;
+
+  // For sagas
+  sagaChapters?: { chapterNumbers: number[]; text: string }[];
+
+
+  // For battles
+  battleDefense?: string;
+
+  // For Class enchantments.
+  classLevels?: {level: number; cost: string; text: string}[];
+
+  // For levelers e.g. Brimstone Mage
+  creatureLevels?: {level: number[]; rulesText: string; power: string; toughness: string}[];
+  prototype?: {manaCost: string; power: string; toughness: string};
+  // Can provide this and stuff gets parsed instead...
+  oracleText?: string;
+  
+  // TODO should name this something else
+  childCardData?: CardData;
+
+  // TODO do we really want this?
+  collectorNumber?: string;
+  artist?: string;
+  setCode?: string;
+  // isLegendary?: boolean;
+}
+```
+
+# Option 3
+A union type instead of individuals fields i.e.
+
+"templatedAbilities": CreatureLevels | ClassLevels | SagaChapters
+
+where each of those types is separately defined
+
+# Option 4
+Group all the fields under something like
+
+"templatedAbilities": {
+    "prototype": ...,
+    "classLevels": ...,
+}
+
+# Variants
+Could split out planeswalker abilities since those seem more fundamental. Could keep those on a separate field.

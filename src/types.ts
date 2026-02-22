@@ -1,5 +1,16 @@
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'mythic';
-export type CardTemplate = 'normal' | 'planeswalker' | 'saga' | 'battle' | 'class' | 'flip';
+
+export type CompositeFace = 'flip' | 'fuse' | 'split' | 'adventure' | 'aftermath' | 'room';
+// flip = https://scryfall.com/card/chk/93/student-of-elements-tobita-master-of-winds
+// fuse = https://scryfall.com/card/dgm/134/turn-burn
+// split = https://scryfall.com/card/dmr/210/assault-battery
+// - just does not have fuse...worth a separate category for? Think we could infer this...
+// adventure = https://scryfall.com/card/dsc/172/beanstalk-giant-fertile-footsteps
+// aftermath = https://scryfall.com/card/hou/152/appeal-authority
+// room = https://scryfall.com/card/dsk/43/bottomless-pool-locker-room
+
+
+export type CardTemplate = 'normal' | 'planeswalker' | 'saga' | 'battle' | 'class' | CompositeFace;
 
 export type Color = 'white' | 'blue' | 'black' | 'red' | 'green';
 export type FrameColor = Color | 'artifact' | 'multicolor' | 'vehicle' | 'land';
@@ -11,11 +22,7 @@ export type Subtype = string;
 export type SubCardRelationship = 
   'transform' |     // wherewolves
   'modal_dfc' |     // modal lands
-  'adventure' |     // adventure
-  'flip' |          // Kamigawa flip
-  // in scryfall, both of these are 'split'
-  'fuse' |          // Fuse spells
-  'room';           // room
+  CompositeFace;
 
 
 // export type NumericSymbol = number | 'X' | '*' | (string & {});
@@ -65,11 +72,13 @@ export interface CardData {
 
   name: string;
   manaCost?: string;
-  supertypes?: Supertype[];
+  supertypes?: Supertype[]; // e.g. legendary
   types?: Type[];
   subtypes?: string[];
   // Todo move to cardgrouping?
   rarity?: Rarity;
+
+  colorIndicator?: Color[];
   // TODO primary rules text?
   rulesText?: string;
 
@@ -100,16 +109,16 @@ export interface CardData {
   // Can provide this and stuff gets parsed instead...
   oracleText?: string;
   
+  // TODO should name this something else
+  childCardData?: CardData;
 
+  // TODO do we really want this?
   collectorNumber?: string;
   artist?: string;
   setCode?: string;
   // isLegendary?: boolean;
 }
 
-export interface ClassData extends CardData {
-  reminder?: string;
-}
 
 // export type RichToken =
 //   | { type: 'text'; value: string }
