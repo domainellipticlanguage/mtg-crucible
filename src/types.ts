@@ -102,15 +102,15 @@ export interface CardData {
 
   // For Class enchantments.
   classLevels?: {level: number; cost: string; text: string}[];
-
+  caseConditions?: {toSolve: string, solved: string;};
   // For levelers e.g. Brimstone Mage
   creatureLevels?: {level: number[]; rulesText: string; power: string; toughness: string}[];
   prototype?: {manaCost: string; power: string; toughness: string};
   // Can provide this and stuff gets parsed instead...
   oracleText?: string;
   
-  // TODO should name this something else
-  childCardData?: CardData;
+  // // TODO should name this something else
+  // childCardData?: CardData;
 
   // TODO do we really want this?
   collectorNumber?: string;
@@ -118,6 +118,8 @@ export interface CardData {
   setCode?: string;
   // isLegendary?: boolean;
 }
+
+
 
 
 // export type RichToken =

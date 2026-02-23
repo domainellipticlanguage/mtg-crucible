@@ -1,0 +1,8 @@
+diff --git a/README.md b/README.md
+index 94aa0e1..81e68df 100644
+--- a/README.md
++++ b/README.md
+@@ -223,96 +223,35 @@ flip cards are in effect just transform cards
+ - Support devoid borders
+ - Support various borders
+ 

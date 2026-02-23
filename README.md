@@ -223,96 +223,35 @@ flip cards are in effect just transform cards
 - Support devoid borders
 - Support various borders
 
-We have a major design decision to make. I want your input to evaluate options, and most importantly to suggest any options I might have missed. And any evaluation dimensions I might have missed. Look at the project to get familiarized.
 
-# Major Design Decision
-How to support templated abilities
-Examples: Planeswalkers, Sagas, Cases, Classes, Levelers, Prototype
+  Option 5 (card-level discriminated union) is the strongest fit for your
+  project because:
 
-# Evaluation Dimensions
-* Queryability (translating to a database)
-* Ability to build the object manually in code
-* Ability for an LLM to construct the object
-* Ability to construct the object via a form
-* Extensability (MTG added Cases and Classes for only a single set. Likely there will be other one-off templates)
+  1. You already have it partially — separate renderers and data types per
+  template. This formalizes what's already there.
+- Yeah I actually want to get away from that. I want a consumer of this library to be able to do
+renderCard({...})
+without having to match up the right render function to their object. I mean yeah there can be a general purpose renderer that dispatches the correct subrenderer based on type. But eh... idk
 
-# Option 1
-Just put everything in `oracleText`
+    4. LLM-friendly — "set template: 'saga' and fill in the saga-specific fields"
+  is unambiguous. LLMs don't have to reason about which of 15 optional fields to
+   populate.
+   - really? is that really easier for the llm than flat fields?
 
+  Dimension: Queryability
+  5: Card-level union: Good (discriminant on card)
 
-# Option 2
-An interface like this which has everything as a separate field
-```
-export interface CardData {
-  // Will be inferred if not provided
-  cardTemplate?: CardTemplate;
-  // Will be inferred if not provided
-  frameColor?: FrameColor;
-
-  name: string;
-  manaCost?: string;
-  supertypes?: Supertype[]; // e.g. legendary
-  types?: Type[];
-  subtypes?: string[];
-  // Todo move to cardgrouping?
-  rarity?: Rarity;
-
-  colorIndicator?: Color[];
-  // TODO primary rules text?
-  rulesText?: string;
-
-  power?: string;
-  toughness?: string;
-
-  artUrl?: string;
-  
-  flavorText?: string;
-
-  // For planeswalkers
-  loyaltyAbilities?: { cost: string; text: string }[];
-  startingLoyalty?: string;
-
-  // For sagas
-  sagaChapters?: { chapterNumbers: number[]; text: string }[];
+-I'm not sure how this would work.
 
 
-  // For battles
-  battleDefense?: string;
+> Revised take: Given your priorities — especially the unified renderCard API and LLM
+  construction — the real contest is between Option 2 (flat) vs Option 4 (grouped).
+  They're close, but the key difference:
 
-  // For Class enchantments.
-  classLevels?: {level: number; cost: string; text: string}[];
+  I hate to call this out, but you just said unified renderCard was not a differentiator
 
-  // For levelers e.g. Brimstone Mage
-  creatureLevels?: {level: number[]; rulesText: string; power: string; toughness: string}[];
-  prototype?: {manaCost: string; power: string; toughness: string};
-  // Can provide this and stuff gets parsed instead...
-  oracleText?: string;
-  
-  // TODO should name this something else
-  childCardData?: CardData;
+What gives me pause is that I am doing a lot of work to support these weird one-off uncommon templates that people forget about after the set comes out.
+Idk.
 
-  // TODO do we really want this?
-  collectorNumber?: string;
-  artist?: string;
-  setCode?: string;
-  // isLegendary?: boolean;
-}
-```
 
-# Option 3
-A union type instead of individuals fields i.e.
-
-"templatedAbilities": CreatureLevels | ClassLevels | SagaChapters
-
-where each of those types is separately defined
-
-# Option 4
-Group all the fields under something like
-
-"templatedAbilities": {
-    "prototype": ...,
-    "classLevels": ...,
-}
-
-# Variants
-Could split out planeswalker abilities since those seem more fundamental. Could keep those on a separate field.
+Also Option 3 does have a bit more type safety than option 4. But idk maybe someone wants the freedom to make a Saga Planeswalker and somehow make that make sense.
