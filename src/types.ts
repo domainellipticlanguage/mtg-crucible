@@ -20,6 +20,7 @@ export type Type = 'creature' | 'instant' | 'sorcery' | 'enchantment' | 'artifac
 export type Subtype = string;
 
 export type SubCardRelationship = 
+  'none' |
   'transform' |     // wherewolves
   'modal_dfc' |     // modal lands
   CompositeFace;
