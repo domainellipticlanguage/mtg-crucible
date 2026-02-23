@@ -1,16 +1,6 @@
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'mythic';
 
-export type CompositeFace = 'flip' | 'fuse' | 'split' | 'adventure' | 'aftermath' | 'room';
-// flip = https://scryfall.com/card/chk/93/student-of-elements-tobita-master-of-winds
-// fuse = https://scryfall.com/card/dgm/134/turn-burn
-// split = https://scryfall.com/card/dmr/210/assault-battery
-// - just does not have fuse...worth a separate category for? Think we could infer this...
-// adventure = https://scryfall.com/card/dsc/172/beanstalk-giant-fertile-footsteps
-// aftermath = https://scryfall.com/card/hou/152/appeal-authority
-// room = https://scryfall.com/card/dsk/43/bottomless-pool-locker-room
-
-
-export type CardTemplate = 'normal' | 'planeswalker' | 'saga' | 'battle' | 'class' | CompositeFace;
+export type CardTemplate = 'normal' | 'planeswalker' | 'saga' | 'battle' | 'class';
 
 export type Color = 'white' | 'blue' | 'black' | 'red' | 'green';
 export type FrameColor = Color | 'artifact' | 'multicolor' | 'vehicle' | 'land';
@@ -19,11 +9,15 @@ export type Type = 'creature' | 'instant' | 'sorcery' | 'enchantment' | 'artifac
 // Too many to list. All creatures. All land types. Shrine, Saga, etc.
 export type Subtype = string;
 
-export type SubCardRelationship = 
-  'none' |
-  'transform' |     // wherewolves
-  'modal_dfc' |     // modal lands
-  CompositeFace;
+export type LinkType =
+  | 'transform'     // werewolves
+  | 'modal_dfc'     // modal lands
+  | 'flip'          // https://scryfall.com/card/chk/93/student-of-elements-tobita-master-of-winds
+  | 'fuse'          // https://scryfall.com/card/dgm/134/turn-burn
+  | 'split'         // https://scryfall.com/card/dmr/210/assault-battery
+  | 'adventure'     // https://scryfall.com/card/dsc/172/beanstalk-giant-fertile-footsteps
+  | 'aftermath'     // https://scryfall.com/card/hou/152/appeal-authority
+  | 'room';         // https://scryfall.com/card/dsk/43/bottomless-pool-locker-room
 
 
 // export type NumericSymbol = number | 'X' | '*' | (string & {});
@@ -64,7 +58,44 @@ export type SubCardRelationship =
 //   setCode?: string;
 
 // }
-// fully-structured format
+export interface PlaneswalkerAbilities {
+  kind: 'planeswalker';
+  loyaltyAbilities: { cost: string; text: string }[];
+}
+
+export interface SagaAbilities {
+  kind: 'saga';
+  chapters: { chapterNumbers: number[]; text: string }[];
+}
+
+export interface ClassAbilities {
+  kind: 'class';
+  classLevels: { level: number; cost: string; text: string }[];
+}
+
+export interface LevelerAbilities {
+  kind: 'leveler';
+  creatureLevels: { level: number[]; rulesText: string; power: string; toughness: string }[];
+}
+
+export interface CaseAbilities {
+  kind: 'case';
+  caseConditions: { toSolve: string; solved: string };
+}
+
+export interface PrototypeAbilities {
+  kind: 'prototype';
+  prototype: { manaCost: string; power: string; toughness: string };
+}
+
+export type StructuredAbilities =
+  | PlaneswalkerAbilities
+  | SagaAbilities
+  | ClassAbilities
+  | LevelerAbilities
+  | CaseAbilities
+  | PrototypeAbilities;
+
 export interface CardData {
   // Will be inferred if not provided
   cardTemplate?: CardTemplate;
@@ -80,8 +111,8 @@ export interface CardData {
   rarity?: Rarity;
 
   colorIndicator?: Color[];
-  // TODO primary rules text?
-  rulesText?: string;
+  unstructuredAbilities?: string;
+  structuredAbilities?: StructuredAbilities;
 
   power?: string;
   toughness?: string;
@@ -90,28 +121,13 @@ export interface CardData {
   
   flavorText?: string;
 
-  // For planeswalkers
-  loyaltyAbilities?: { cost: string; text: string }[];
   startingLoyalty?: string;
-
-  // For sagas
-  sagaChapters?: { chapterNumbers: number[]; text: string }[];
-
-
-  // For battles
   battleDefense?: string;
 
-  // For Class enchantments.
-  classLevels?: {level: number; cost: string; text: string}[];
-  caseConditions?: {toSolve: string, solved: string;};
-  // For levelers e.g. Brimstone Mage
-  creatureLevels?: {level: number[]; rulesText: string; power: string; toughness: string}[];
-  prototype?: {manaCost: string; power: string; toughness: string};
-  // Can provide this and stuff gets parsed instead...
   oracleText?: string;
-  
-  // // TODO should name this something else
-  // childCardData?: CardData;
+
+  linkedCard?: CardData;
+  linkType?: LinkType;
 
   // TODO do we really want this?
   collectorNumber?: string;
