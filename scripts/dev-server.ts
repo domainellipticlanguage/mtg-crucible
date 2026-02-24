@@ -57,6 +57,7 @@ Whenever a legendary creature you control dies, return it to your hand at the be
   <div class="output-panel">
     <h2>Output</h2>
     <div id="output"><span style="color:#666">Click Render to see output</span></div>
+    <div id="timing" style="margin-top:0.5rem;font-size:0.8rem;color:#888"></div>
   </div>
 </div>
 <script>
@@ -66,8 +67,11 @@ async function doRender() {
   const output = document.getElementById('output');
   const btn = document.getElementById('renderBtn');
 
+  const timing = document.getElementById('timing');
   btn.disabled = true;
   output.innerHTML = '<div class="spinner"></div>';
+  timing.textContent = '';
+  const t0 = performance.now();
 
   try {
     const res = await fetch('/render', {
@@ -75,6 +79,7 @@ async function doRender() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text, mode }),
     });
+    const serverMs = res.headers.get('X-Render-Time-Ms');
 
     if (!res.ok) {
       const err = await res.text();
@@ -90,6 +95,9 @@ async function doRender() {
       const json = await res.json();
       output.innerHTML = '<pre>' + escapeHtml(JSON.stringify(json.cardData, null, 2)) + '</pre>';
     }
+
+    const totalMs = Math.round(performance.now() - t0);
+    timing.textContent = 'Total: ' + totalMs + 'ms' + (serverMs ? ' (server: ' + serverMs + 'ms)' : '');
   } catch (e) {
     output.innerHTML = '<pre class="error">Error: ' + escapeHtml(e.message) + '</pre>';
   } finally {
@@ -106,6 +114,7 @@ function escapeHtml(s) {
 document.getElementById('cardText').addEventListener('keydown', (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') doRender();
 });
+
 </script>
 </body>
 </html>`;
@@ -124,13 +133,16 @@ const server = http.createServer(async (req, res) => {
     const { text, mode } = body as { text: string; mode: 'json' | 'image' };
 
     try {
+      const t0 = performance.now();
       if (mode === 'json') {
         const cardData = parseCard(text);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
+        const ms = Math.round(performance.now() - t0);
+        res.writeHead(200, { 'Content-Type': 'application/json', 'X-Render-Time-Ms': String(ms) });
         res.end(JSON.stringify({ cardData }));
       } else {
         const rendered = await renderCard(text);
-        res.writeHead(200, { 'Content-Type': 'image/png', 'Content-Length': rendered.frontFace.length });
+        const ms = Math.round(performance.now() - t0);
+        res.writeHead(200, { 'Content-Type': 'image/png', 'Content-Length': rendered.frontFace.length, 'X-Render-Time-Ms': String(ms) });
         res.end(rendered.frontFace);
       }
     } catch (err: any) {
