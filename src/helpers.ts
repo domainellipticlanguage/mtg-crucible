@@ -2,8 +2,29 @@ import { loadImage, GlobalFonts, type SKRSContext2D } from '@napi-rs/canvas';
 import * as fs from 'fs';
 import * as path from 'path';
 import https from 'https';
-import type { CardData } from './types';
+import type { CardData, FrameColor } from './types';
 import { ASSETS_DIR } from './layout';
+
+const FRAME_COLOR_CODES: Record<FrameColor, string> = {
+  white: 'w', blue: 'u', black: 'b', red: 'r', green: 'g',
+  multicolor: 'm', artifact: 'a', vehicle: 'v', land: 'l',
+};
+
+export function frameColorCode(fc: FrameColor | undefined): string {
+  return fc ? FRAME_COLOR_CODES[fc] ?? 'a' : 'a';
+}
+
+export function getTypeLine(card: CardData): string {
+  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+  const parts: string[] = [];
+  if (card.supertypes) parts.push(...card.supertypes.map(capitalize));
+  if (card.types) parts.push(...card.types.map(capitalize));
+  let line = parts.join(' ');
+  if (card.subtypes && card.subtypes.length > 0) {
+    line += ' \u2014 ' + card.subtypes.join(' ');
+  }
+  return line;
+}
 import { loadManaSymbol, parseManaString, preloadAllSymbols } from './symbols';
 
 let initialized = false;

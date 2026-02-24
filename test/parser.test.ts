@@ -11,10 +11,10 @@ describe('parseCard', () => {
     expect(card).toEqual({
       name: 'Lightning Bolt',
       manaCost: '{R}',
-      typeLine: 'Instant',
-      frameColor: 'r',
+      types: ['instant'],
+      frameColor: 'red',
       rarity: 'rare',
-      rulesText: 'Lightning Bolt deals 3 damage to any target.',
+      oracleText: 'Lightning Bolt deals 3 damage to any target.',
     });
   });
 
@@ -27,8 +27,9 @@ describe('parseCard', () => {
     expect(card).toEqual({
       name: 'Grizzly Bears',
       manaCost: '{1}{G}',
-      typeLine: 'Creature \u2014 Bear',
-      frameColor: 'g',
+      types: ['creature'],
+      subtypes: ['Bear'],
+      frameColor: 'green',
       rarity: 'rare',
       power: '2',
       toughness: '2',
@@ -46,11 +47,13 @@ describe('parseCard', () => {
     expect(card).toMatchObject({
       name: 'Questing Beast',
       manaCost: '{2}{G}{G}',
-      isLegendary: true,
-      frameColor: 'g',
+      supertypes: ['legendary'],
+      types: ['creature'],
+      subtypes: ['Beast'],
+      frameColor: 'green',
       power: '4',
       toughness: '4',
-      rulesText: "Vigilance, deathtouch, haste\nQuesting Beast can't be blocked by creatures with power 2 or less.",
+      oracleText: "Vigilance, deathtouch, haste\nQuesting Beast can't be blocked by creatures with power 2 or less.",
     });
   });
 
@@ -65,13 +68,14 @@ describe('parseCard', () => {
     expect(card).toMatchObject({
       name: 'Najeela, the Blade-Blossom',
       manaCost: '{2}{R}',
-      typeLine: 'Legendary Creature \u2014 Human Warrior',
-      isLegendary: true,
-      frameColor: 'r',
+      supertypes: ['legendary'],
+      types: ['creature'],
+      subtypes: ['Human', 'Warrior'],
+      frameColor: 'red',
       power: '3',
       toughness: '2',
     });
-    expect((card as any).rulesText).toContain('{W}{U}{B}{R}{G}:');
+    expect(card.oracleText).toContain('{W}{U}{B}{R}{G}:');
   });
 
   it('parses a land (no mana cost)', () => {
@@ -82,10 +86,10 @@ describe('parseCard', () => {
     `);
     expect(card).toEqual({
       name: 'Command Tower',
-      typeLine: 'Land',
-      frameColor: 'l',
+      types: ['land'],
+      frameColor: 'land',
       rarity: 'rare',
-      rulesText: "{T}: Add one mana of any color in your commander's color identity.",
+      oracleText: "{T}: Add one mana of any color in your commander's color identity.",
     });
   });
 
@@ -98,7 +102,7 @@ describe('parseCard', () => {
       3/3
     `);
     expect(card).toMatchObject({
-      frameColor: 'v',
+      frameColor: 'vehicle',
       power: '3',
       toughness: '3',
     });
@@ -113,8 +117,8 @@ describe('parseCard', () => {
       7/5
     `);
     expect(card).toMatchObject({
-      frameColor: 'm',
-      isLegendary: true,
+      frameColor: 'multicolor',
+      supertypes: ['legendary'],
     });
   });
 
@@ -124,7 +128,7 @@ describe('parseCard', () => {
       Artifact
       {T}: Add {C}{C}.
     `);
-    expect(card).toMatchObject({ frameColor: 'a' });
+    expect(card).toMatchObject({ frameColor: 'artifact' });
   });
 
   it('derives color from phyrexian mana', () => {
@@ -135,7 +139,7 @@ describe('parseCard', () => {
     `);
     expect(card).toMatchObject({
       manaCost: '{3}{G/P}',
-      frameColor: 'g',
+      frameColor: 'green',
     });
   });
 
@@ -147,7 +151,7 @@ describe('parseCard', () => {
       *"The sparkmage shrieked."*
     `);
     expect(card).toMatchObject({
-      rulesText: 'Lightning Bolt deals 3 damage to any target.',
+      oracleText: 'Lightning Bolt deals 3 damage to any target.',
       flavorText: '"The sparkmage shrieked."',
     });
   });
@@ -161,7 +165,7 @@ describe('parseCard', () => {
       *"at their most prized creation."*
     `);
     expect(card).toMatchObject({
-      rulesText: "Destroy all creatures. They can't be regenerated.",
+      oracleText: "Destroy all creatures. They can't be regenerated.",
       flavorText: '"Legend speaks of the Creators\' rage"\n"at their most prized creation."',
     });
   });
@@ -177,7 +181,7 @@ describe('parseCard', () => {
       *"The beast never rests."*
     `);
     expect(card).toMatchObject({
-      rulesText: "Vigilance, deathtouch, haste\n*(Deathtouch means any damage this deals is enough.)*\nQuesting Beast can't be blocked by creatures with power 2 or less.",
+      oracleText: "Vigilance, deathtouch, haste\n*(Deathtouch means any damage this deals is enough.)*\nQuesting Beast can't be blocked by creatures with power 2 or less.",
       flavorText: '"The beast never rests."',
     });
   });
@@ -189,7 +193,7 @@ describe('parseCard', () => {
       Create a 1/1 white Soldier creature token.
     `);
     expect(card).toMatchObject({
-      rulesText: 'Create a 1/1 white Soldier creature token.',
+      oracleText: 'Create a 1/1 white Soldier creature token.',
     });
     expect((card as any).power).toBeUndefined();
   });
@@ -206,14 +210,19 @@ describe('parseCard', () => {
     expect(card).toMatchObject({
       name: 'Liliana of the Veil',
       manaCost: '{1}{B}{B}',
-      isLegendary: true,
-      frameColor: 'b',
+      supertypes: ['legendary'],
+      types: ['planeswalker'],
+      subtypes: ['Liliana'],
+      frameColor: 'black',
       startingLoyalty: '3',
-      abilities: [
-        { cost: '+1', text: 'Each player discards a card.' },
-        { cost: '-2', text: 'Target player sacrifices a creature.' },
-        { cost: '-6', text: 'Separate all permanents target player controls into two piles.' },
-      ],
+      structuredAbilities: {
+        kind: 'planeswalker',
+        loyaltyAbilities: [
+          { cost: '+1', text: 'Each player discards a card.' },
+          { cost: '-2', text: 'Target player sacrifices a creature.' },
+          { cost: '-6', text: 'Separate all permanents target player controls into two piles.' },
+        ],
+      },
     });
   });
 
@@ -225,10 +234,13 @@ describe('parseCard', () => {
       -2: Look at the top four cards of your library. You may reveal a noncreature, nonland card and put it into your hand. Put the rest on the bottom in a random order.
       Loyalty: 5
     `);
-    expect((card as any).abilities).toEqual([
-      { cost: '', text: "Each opponent can't draw more than one card each turn." },
-      { cost: '-2', text: 'Look at the top four cards of your library. You may reveal a noncreature, nonland card and put it into your hand. Put the rest on the bottom in a random order.' },
-    ]);
+    expect(card.structuredAbilities).toEqual({
+      kind: 'planeswalker',
+      loyaltyAbilities: [
+        { cost: '', text: "Each opponent can't draw more than one card each turn." },
+        { cost: '-2', text: 'Look at the top four cards of your library. You may reveal a noncreature, nonland card and put it into your hand. Put the rest on the bottom in a random order.' },
+      ],
+    });
   });
 
   it('parses a saga', () => {
@@ -241,12 +253,15 @@ describe('parseCard', () => {
     `);
     expect(card).toMatchObject({
       name: 'The Eldest Reborn',
-      frameColor: 'b',
-      chapters: [
-        { count: 1, text: 'Each opponent sacrifices a creature or planeswalker.' },
-        { count: 1, text: 'Each opponent discards a card.' },
-        { count: 1, text: 'Put target creature or planeswalker card from a graveyard onto the battlefield under your control.' },
-      ],
+      frameColor: 'black',
+      structuredAbilities: {
+        kind: 'saga',
+        chapters: [
+          { chapterNumbers: [1], text: 'Each opponent sacrifices a creature or planeswalker.' },
+          { chapterNumbers: [2], text: 'Each opponent discards a card.' },
+          { chapterNumbers: [3], text: 'Put target creature or planeswalker card from a graveyard onto the battlefield under your control.' },
+        ],
+      },
     });
   });
 
@@ -257,10 +272,13 @@ describe('parseCard', () => {
       I, II \u2014 Create a 1/1 red Goblin creature token.
       III \u2014 Creatures you control get +2/+0 until end of turn.
     `);
-    expect((card as any).chapters).toEqual([
-      { count: 2, text: 'Create a 1/1 red Goblin creature token.' },
-      { count: 1, text: 'Creatures you control get +2/+0 until end of turn.' },
-    ]);
+    expect(card.structuredAbilities).toEqual({
+      kind: 'saga',
+      chapters: [
+        { chapterNumbers: [1, 2], text: 'Create a 1/1 red Goblin creature token.' },
+        { chapterNumbers: [3], text: 'Creatures you control get +2/+0 until end of turn.' },
+      ],
+    });
   });
 
   it('parses a battle', () => {
@@ -272,9 +290,9 @@ describe('parseCard', () => {
     `);
     expect(card).toMatchObject({
       name: 'Invasion of Gobakhan',
-      frameColor: 'w',
-      defense: '3',
-      rulesText: "When Invasion of Gobakhan enters the battlefield, look at target opponent's hand.",
+      frameColor: 'white',
+      battleDefense: '3',
+      oracleText: "When Invasion of Gobakhan enters the battlefield, look at target opponent's hand.",
     });
   });
 
@@ -290,8 +308,9 @@ describe('parseCard', () => {
     expect(card).toMatchObject({
       name: 'Archangel Avacyn',
       artUrl: 'https://cards.scryfall.io/art_crop/front/7/f/7f4893ef.jpg',
-      typeLine: 'Legendary Creature \u2014 Angel',
-      isLegendary: true,
+      supertypes: ['legendary'],
+      types: ['creature'],
+      subtypes: ['Angel'],
       power: '4',
       toughness: '4',
     });
@@ -316,7 +335,7 @@ describe('parseCard', () => {
     expect(card).toMatchObject({
       name: 'Sol Ring',
       rarity: 'uncommon',
-      typeLine: 'Artifact',
+      types: ['artifact'],
     });
   });
 
@@ -355,7 +374,9 @@ describe('parseCard', () => {
       name: 'Archangel Avacyn',
       rarity: 'mythic',
       artUrl: 'https://cards.scryfall.io/art_crop/front/7/f/7f4893ef.jpg',
-      typeLine: 'Legendary Creature \u2014 Angel',
+      supertypes: ['legendary'],
+      types: ['creature'],
+      subtypes: ['Angel'],
     });
   });
 
@@ -389,16 +410,19 @@ describe('parseCard', () => {
     expect(card).toMatchObject({
       name: 'Barbarian Class',
       manaCost: '{R}',
-      frameColor: 'r',
-      levels: [
-        { cost: '', name: '', text: 'If you would roll one or more dice, instead roll that many dice plus one and ignore the lowest roll.' },
-        { cost: '{1}{R}', name: 'Level 2', text: 'Whenever you roll one or more dice, target creature you control gets +2/+0 and gains menace until end of turn.' },
-        { cost: '{2}{R}', name: 'Level 3', text: 'Creatures you control have haste.' },
-      ],
+      frameColor: 'red',
+      structuredAbilities: {
+        kind: 'class',
+        classLevels: [
+          { level: 1, cost: '', text: 'If you would roll one or more dice, instead roll that many dice plus one and ignore the lowest roll.' },
+          { level: 2, cost: '{1}{R}', text: 'Whenever you roll one or more dice, target creature you control gets +2/+0 and gains menace until end of turn.' },
+          { level: 3, cost: '{2}{R}', text: 'Creatures you control have haste.' },
+        ],
+      },
     });
   });
 
-  it('extracts reminder text from class level 0', () => {
+  it('extracts reminder text from class level 1', () => {
     const card = parseCard(`
       Barbarian Class {R}
       Enchantment \u2014 Class
@@ -410,12 +434,15 @@ describe('parseCard', () => {
       Creatures you control have haste.
     `);
     expect(card).toMatchObject({
-      reminder: '(Gain the next level as a sorcery to add its ability.)',
-      levels: [
-        { cost: '', name: '', text: 'If you would roll one or more dice, instead roll that many dice plus one and ignore the lowest roll.' },
-        { cost: '{1}{R}', name: 'Level 2' },
-        { cost: '{2}{R}', name: 'Level 3' },
-      ],
+      unstructuredAbilities: '(Gain the next level as a sorcery to add its ability.)',
+      structuredAbilities: {
+        kind: 'class',
+        classLevels: [
+          { level: 1, cost: '', text: 'If you would roll one or more dice, instead roll that many dice plus one and ignore the lowest roll.' },
+          { level: 2, cost: '{1}{R}' },
+          { level: 3, cost: '{2}{R}' },
+        ],
+      },
     });
   });
 
@@ -429,10 +456,10 @@ describe('parseCard', () => {
       {4}{U}: Level 3
       You have no maximum hand size.
     `);
-    const levels = (card as any).levels;
-    expect(levels).toHaveLength(3);
-    expect(levels[0]).toEqual({ cost: '', name: '', text: 'You may look at the top card of your library any time.' });
-    expect(levels[1]).toEqual({ cost: '{2}{U}', name: 'Level 2', text: 'When this Class becomes level 2, draw two cards.' });
-    expect(levels[2]).toEqual({ cost: '{4}{U}', name: 'Level 3', text: 'You have no maximum hand size.' });
+    const cls = card.structuredAbilities as any;
+    expect(cls.classLevels).toHaveLength(3);
+    expect(cls.classLevels[0]).toEqual({ level: 1, cost: '', text: 'You may look at the top card of your library any time.' });
+    expect(cls.classLevels[1]).toEqual({ level: 2, cost: '{2}{U}', text: 'When this Class becomes level 2, draw two cards.' });
+    expect(cls.classLevels[2]).toEqual({ level: 3, cost: '{4}{U}', text: 'You have no maximum hand size.' });
   });
 });

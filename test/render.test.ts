@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { renderCard } from '../src';
-import type { PlaneswalkerData, SagaData, BattleData } from '../src';
+import type { CardData } from '../src';
 
 // PNG magic bytes: 89 50 4E 47 0D 0A 1A 0A
 const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -16,9 +16,9 @@ function pngDimensions(buf: Buffer): { width: number; height: number } {
 describe('renderCard', () => {
   it('renders a standard card as a valid PNG', async () => {
     const buf = await renderCard({
-      name: 'Lightning Bolt', manaCost: '{R}', typeLine: 'Instant',
-      rulesText: 'Lightning Bolt deals 3 damage to any target.',
-      frameColor: 'r', rarity: 'uncommon',
+      name: 'Lightning Bolt', manaCost: '{R}', types: ['instant'],
+      oracleText: 'Lightning Bolt deals 3 damage to any target.',
+      frameColor: 'red', rarity: 'uncommon',
     });
     expect(Buffer.isBuffer(buf)).toBe(true);
     expect(buf.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
@@ -29,8 +29,8 @@ describe('renderCard', () => {
 
   it('renders a creature with P/T', async () => {
     const buf = await renderCard({
-      name: 'Grizzly Bears', manaCost: '{1}{G}', typeLine: 'Creature \u2014 Bear',
-      power: '2', toughness: '2', frameColor: 'g', rarity: 'common',
+      name: 'Grizzly Bears', manaCost: '{1}{G}', types: ['creature'], subtypes: ['Bear'],
+      power: '2', toughness: '2', frameColor: 'green', rarity: 'common',
     });
     expect(buf.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
     expect(pngDimensions(buf)).toEqual({ width: 2010, height: 2814 });
@@ -39,9 +39,9 @@ describe('renderCard', () => {
   it('renders a legendary creature with crown', async () => {
     const buf = await renderCard({
       name: 'Questing Beast', manaCost: '{2}{G}{G}',
-      typeLine: 'Legendary Creature \u2014 Beast',
-      rulesText: 'Vigilance, deathtouch, haste',
-      power: '4', toughness: '4', frameColor: 'g', rarity: 'mythic', isLegendary: true,
+      supertypes: ['legendary'], types: ['creature'], subtypes: ['Beast'],
+      oracleText: 'Vigilance, deathtouch, haste',
+      power: '4', toughness: '4', frameColor: 'green', rarity: 'mythic',
     });
     expect(buf.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
     expect(buf.length).toBeGreaterThan(10000);
@@ -49,43 +49,46 @@ describe('renderCard', () => {
 
   it('renders a vehicle with white P/T text', async () => {
     const buf = await renderCard({
-      name: 'Smuggler\'s Copter', manaCost: '{2}', typeLine: 'Artifact \u2014 Vehicle',
-      rulesText: 'Flying\nCrew 1',
-      power: '3', toughness: '3', frameColor: 'v', rarity: 'rare',
+      name: 'Smuggler\'s Copter', manaCost: '{2}', types: ['artifact'], subtypes: ['Vehicle'],
+      oracleText: 'Flying\nCrew 1',
+      power: '3', toughness: '3', frameColor: 'vehicle', rarity: 'rare',
     });
     expect(buf.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
   });
 
   it('renders rules text with inline mana symbols', async () => {
     const buf = await renderCard({
-      name: 'Sol Ring', manaCost: '{1}', typeLine: 'Artifact',
-      rulesText: '{T}: Add {C}{C}.',
-      frameColor: 'a', rarity: 'uncommon',
+      name: 'Sol Ring', manaCost: '{1}', types: ['artifact'],
+      oracleText: '{T}: Add {C}{C}.',
+      frameColor: 'artifact', rarity: 'uncommon',
     });
     expect(buf.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
   });
 
   it('renders rules + flavor text with divider', async () => {
     const buf = await renderCard({
-      name: 'Lightning Bolt', manaCost: '{R}', typeLine: 'Instant',
-      rulesText: 'Lightning Bolt deals 3 damage to any target.',
+      name: 'Lightning Bolt', manaCost: '{R}', types: ['instant'],
+      oracleText: 'Lightning Bolt deals 3 damage to any target.',
       flavorText: '"The sparkmage shrieked."',
-      frameColor: 'r', rarity: 'uncommon',
+      frameColor: 'red', rarity: 'uncommon',
     });
     expect(buf.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
   });
 
   it('renders a planeswalker at 1500x2100', async () => {
-    const card: PlaneswalkerData = {
+    const card: CardData = {
       name: 'Liliana of the Veil', manaCost: '{1}{B}{B}',
-      typeLine: 'Legendary Planeswalker \u2014 Liliana',
-      frameColor: 'b', rarity: 'mythic', isLegendary: true,
+      supertypes: ['legendary'], types: ['planeswalker'], subtypes: ['Liliana'],
+      frameColor: 'black', rarity: 'mythic',
       startingLoyalty: '3',
-      abilities: [
-        { cost: '+1', text: 'Each player discards a card.' },
-        { cost: '-2', text: 'Target player sacrifices a creature.' },
-        { cost: '-6', text: 'Separate all permanents target player controls into two piles. That player sacrifices all permanents in the pile of their choice.' },
-      ],
+      structuredAbilities: {
+        kind: 'planeswalker',
+        loyaltyAbilities: [
+          { cost: '+1', text: 'Each player discards a card.' },
+          { cost: '-2', text: 'Target player sacrifices a creature.' },
+          { cost: '-6', text: 'Separate all permanents target player controls into two piles. That player sacrifices all permanents in the pile of their choice.' },
+        ],
+      },
     };
     const buf = await renderCard(card);
     expect(buf.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
@@ -93,15 +96,18 @@ describe('renderCard', () => {
   });
 
   it('renders a saga at 1500x2100', async () => {
-    const card: SagaData = {
+    const card: CardData = {
       name: 'The Eldest Reborn', manaCost: '{4}{B}',
-      typeLine: 'Enchantment \u2014 Saga',
-      frameColor: 'b', rarity: 'uncommon',
-      chapters: [
-        { count: 1, text: 'Each opponent sacrifices a creature or planeswalker.' },
-        { count: 1, text: 'Each opponent discards a card.' },
-        { count: 1, text: 'Put target creature or planeswalker card from a graveyard onto the battlefield under your control.' },
-      ],
+      types: ['enchantment'], subtypes: ['Saga'],
+      frameColor: 'black', rarity: 'uncommon',
+      structuredAbilities: {
+        kind: 'saga',
+        chapters: [
+          { chapterNumbers: [1], text: 'Each opponent sacrifices a creature or planeswalker.' },
+          { chapterNumbers: [2], text: 'Each opponent discards a card.' },
+          { chapterNumbers: [3], text: 'Put target creature or planeswalker card from a graveyard onto the battlefield under your control.' },
+        ],
+      },
     };
     const buf = await renderCard(card);
     expect(buf.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
@@ -109,12 +115,12 @@ describe('renderCard', () => {
   });
 
   it('renders a battle at 2814x2010 (landscape)', async () => {
-    const card: BattleData = {
+    const card: CardData = {
       name: 'Invasion of Gobakhan', manaCost: '{1}{W}',
-      typeLine: 'Battle \u2014 Siege',
-      rulesText: 'When Invasion of Gobakhan enters the battlefield, look at target opponent\'s hand.',
-      frameColor: 'w', rarity: 'rare',
-      defense: '3',
+      types: ['battle'], subtypes: ['Siege'],
+      oracleText: 'When Invasion of Gobakhan enters the battlefield, look at target opponent\'s hand.',
+      frameColor: 'white', rarity: 'rare',
+      battleDefense: '3',
     };
     const buf = await renderCard(card);
     expect(buf.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
@@ -124,18 +130,18 @@ describe('renderCard', () => {
   it('renders a gold multicolor legendary', async () => {
     const buf = await renderCard({
       name: 'Maelstrom Wanderer', manaCost: '{5}{U}{R}{G}',
-      typeLine: 'Legendary Creature \u2014 Elemental',
-      rulesText: 'Creatures you control have haste.\nCascade, cascade',
-      power: '7', toughness: '5', frameColor: 'm', rarity: 'mythic', isLegendary: true,
+      supertypes: ['legendary'], types: ['creature'], subtypes: ['Elemental'],
+      oracleText: 'Creatures you control have haste.\nCascade, cascade',
+      power: '7', toughness: '5', frameColor: 'multicolor', rarity: 'mythic',
     });
     expect(buf.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
   });
 
   it('renders phyrexian mana in cost and rules', async () => {
     const buf = await renderCard({
-      name: 'Birthing Pod', manaCost: '{3}{G/P}', typeLine: 'Artifact',
-      rulesText: '{1}{G/P}, {T}, Sacrifice a creature: Search your library.',
-      frameColor: 'a', rarity: 'rare',
+      name: 'Birthing Pod', manaCost: '{3}{G/P}', types: ['artifact'],
+      oracleText: '{1}{G/P}, {T}, Sacrifice a creature: Search your library.',
+      frameColor: 'artifact', rarity: 'rare',
     });
     expect(buf.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
   });

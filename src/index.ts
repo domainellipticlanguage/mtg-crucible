@@ -1,4 +1,4 @@
-import type { CardInput, BattleData, PlaneswalkerData, SagaData, ClassData } from './types';
+import type { CardData } from './types';
 import { ensureInitialized } from './helpers';
 import { renderStandard } from './renderers/standard';
 import { renderPlaneswalker } from './renderers/planeswalker';
@@ -7,7 +7,7 @@ import { renderBattle } from './renderers/battle';
 import { renderClass } from './renderers/class';
 import { parseCard } from './parser';
 
-export type { CardData, PlaneswalkerData, SagaData, BattleData, ClassData, CardInput } from './types';
+export type { CardData, RenderedCard, StructuredAbilities, PlaneswalkerAbilities, SagaAbilities, ClassAbilities } from './types';
 export { renderStandard } from './renderers/standard';
 export { renderPlaneswalker } from './renderers/planeswalker';
 export { renderSaga } from './renderers/saga';
@@ -15,12 +15,12 @@ export { renderBattle } from './renderers/battle';
 export { renderClass } from './renderers/class';
 export { parseCard } from './parser';
 
-export async function renderCard(card: CardInput): Promise<Buffer> {
+export async function renderCard(card: CardData): Promise<Buffer> {
   await ensureInitialized();
-  if ('defense' in card) return renderBattle(card as BattleData);
-  if ('levels' in card) return renderClass(card as ClassData);
-  if ('abilities' in card) return renderPlaneswalker(card as PlaneswalkerData);
-  if ('chapters' in card) return renderSaga(card as SagaData);
+  if (card.structuredAbilities?.kind === 'planeswalker') return renderPlaneswalker(card);
+  if (card.structuredAbilities?.kind === 'saga') return renderSaga(card);
+  if (card.structuredAbilities?.kind === 'class') return renderClass(card);
+  if (card.battleDefense) return renderBattle(card);
   return renderStandard(card);
 }
 

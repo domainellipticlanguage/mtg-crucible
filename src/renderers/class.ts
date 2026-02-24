@@ -1,9 +1,9 @@
 import { createCanvas, loadImage, type SKRSContext2D } from '@napi-rs/canvas';
 import * as fs from 'fs';
 import * as path from 'path';
-import type { ClassData } from '../types';
+import type { CardData, ClassAbilities } from '../types';
 import { PW_W, PW_H, CLASS_LAYOUT, ASSETS_DIR, FONT_HEIGHT_RATIO } from '../layout';
-import { drawArt, drawCorners, drawSetSymbol, drawBottomInfo, drawManaCost } from '../helpers';
+import { drawArt, drawCorners, drawSetSymbol, drawBottomInfo, drawManaCost, getTypeLine, frameColorCode } from '../helpers';
 import { drawSingleLineText, drawWrappedText, drawRichLine, wrapParagraphs, computeHeight } from '../text';
 
 /** Measure how tall text would be at a given size without drawing. */
@@ -17,11 +17,14 @@ function measureTextHeight(
   return computeHeight(lines, textSize, textSize * 0.35);
 }
 
-export async function renderClass(card: ClassData): Promise<Buffer> {
+export async function renderClass(card: CardData): Promise<Buffer> {
   const cw = PW_W, ch = PW_H;
   const canvas = createCanvas(cw, ch);
   const ctx = canvas.getContext('2d');
   const L = CLASS_LAYOUT;
+  const fc = frameColorCode(card.frameColor);
+  const cls = card.structuredAbilities as ClassAbilities;
+  const classLevels = cls.classLevels;
 
   // Background
   ctx.fillStyle = '#1a1a1a';
@@ -31,7 +34,7 @@ export async function renderClass(card: ClassData): Promise<Buffer> {
   if (card.artUrl) await drawArt(ctx, card.artUrl, L.art, cw, ch);
 
   // Frame
-  const framePath = path.join(ASSETS_DIR, 'frames', 'class', `${card.frameColor}.png`);
+  const framePath = path.join(ASSETS_DIR, 'frames', 'class', `${fc}.png`);
   if (fs.existsSync(framePath)) ctx.drawImage(await loadImage(framePath), 0, 0, cw, ch);
 
   // Header divider image
@@ -52,16 +55,16 @@ export async function renderClass(card: ClassData): Promise<Buffer> {
   const costSize = L.levelCost.size * ch;
   const nameSize = L.levelName.size * ch;
 
-  const levelCount = card.levels.length;
+  const levelCount = classLevels.length;
   const headerCount = levelCount - 1;
 
-  // Calculate space taken by reminder text + bar in level 0 (if present)
+  // Calculate space taken by reminder text + bar in level 1 (if present)
   let reminderH = 0; // normalized
   const reminderSize = textSize * 0.8; // smaller than ability text
   const barHeight = 8; // pixels
   const barSpacing = textSize * 0.5; // pixels
-  if (card.reminder) {
-    const rh = measureTextHeight(ctx, card.reminder, levelW, reminderSize, 'MPlantin Italic');
+  if (card.unstructuredAbilities) {
+    const rh = measureTextHeight(ctx, card.unstructuredAbilities, levelW, reminderSize, 'MPlantin Italic');
     reminderH = (rh + barHeight + barSpacing * 2) / ch;
   }
 
@@ -70,7 +73,7 @@ export async function renderClass(card: ClassData): Promise<Buffer> {
   const availableN = maxY - startY - headerSpace - reminderH;
 
   // Measure each level's natural text height at base size to determine proportional allocation
-  const naturalHeights = card.levels.map(level =>
+  const naturalHeights = classLevels.map(level =>
     measureTextHeight(ctx, level.text, levelW, textSize),
   );
   const totalNatural = naturalHeights.reduce((a, b) => a + b, 0);
@@ -84,17 +87,17 @@ export async function renderClass(card: ClassData): Promise<Buffer> {
   let lastY = startY; // normalized
 
   for (let i = 0; i < levelCount; i++) {
-    const level = card.levels[i];
+    const level = classLevels[i];
 
-    // Level 0: render reminder text + bar before the ability text
-    if (i === 0 && card.reminder) {
+    // Level 1: render reminder text + bar before the ability text
+    if (i === 0 && card.unstructuredAbilities) {
       const reminderResult = drawWrappedText(
-        ctx, card.reminder,
+        ctx, card.unstructuredAbilities,
         levelX, lastY * ch, levelW, reminderH * ch,
         'MPlantin Italic', reminderSize,
         { fontFamily: 'MPlantin Italic' },
       );
-      const reminderUsedH = reminderResult.usedHeight || measureTextHeight(ctx, card.reminder, levelW, reminderSize, 'MPlantin Italic');
+      const reminderUsedH = reminderResult.usedHeight || measureTextHeight(ctx, card.unstructuredAbilities, levelW, reminderSize, 'MPlantin Italic');
 
       // Horizontal bar separator
       const barY = lastY * ch + reminderUsedH + barSpacing;
@@ -131,12 +134,13 @@ export async function renderClass(card: ClassData): Promise<Buffer> {
       drawRichLine(ctx, level.cost + ':', levelX, labelBaselineY, costSize);
 
       // Level name (right-aligned)
+      const levelName = `Level ${level.level}`;
       ctx.font = `${nameSize}px "Beleren Bold"`;
       ctx.fillStyle = 'black';
       ctx.textBaseline = 'alphabetic';
-      const nameW = ctx.measureText(level.name).width;
+      const nameW = ctx.measureText(levelName).width;
       ctx.textAlign = 'left';
-      drawRichLine(ctx, level.name, levelX + costW - nameW, labelBaselineY, nameSize);
+      drawRichLine(ctx, levelName, levelX + costW - nameW, labelBaselineY, nameSize);
     }
 
     // Determine this level's text box height
@@ -156,9 +160,9 @@ export async function renderClass(card: ClassData): Promise<Buffer> {
   }
 
   // Name, mana, type
-  drawSingleLineText(ctx, card.name, L.name.x * cw, L.name.y * ch, L.name.w * cw, L.name.h * ch, L.name.font, L.name.size * ch);
+  drawSingleLineText(ctx, card.name ?? '', L.name.x * cw, L.name.y * ch, L.name.w * cw, L.name.h * ch, L.name.font, L.name.size * ch);
   if (card.manaCost) await drawManaCost(ctx, card.manaCost, cw, ch, L.mana);
-  drawSingleLineText(ctx, card.typeLine, L.type.x * cw, L.type.y * ch, L.type.w * cw, L.type.h * ch, L.type.font, L.type.size * ch);
+  drawSingleLineText(ctx, getTypeLine(card), L.type.x * cw, L.type.y * ch, L.type.w * cw, L.type.h * ch, L.type.font, L.type.size * ch);
 
   // Set symbol
   await drawSetSymbol(ctx, card.rarity || 'common', L.setSymbol, ch, cw);

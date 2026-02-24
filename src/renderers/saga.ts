@@ -1,9 +1,9 @@
 import { createCanvas, loadImage } from '@napi-rs/canvas';
 import * as fs from 'fs';
 import * as path from 'path';
-import type { SagaData } from '../types';
+import type { CardData, SagaAbilities } from '../types';
 import { PW_W, PW_H, SAGA_LAYOUT, ASSETS_DIR } from '../layout';
-import { drawArt, drawCorners, drawBottomInfo, drawManaCost } from '../helpers';
+import { drawArt, drawCorners, drawBottomInfo, drawManaCost, getTypeLine, frameColorCode } from '../helpers';
 import { drawSingleLineText, drawWrappedText, fillTextHeavy } from '../text';
 
 function romanNumeral(n: number): string {
@@ -14,11 +14,14 @@ function romanNumeral(n: number): string {
   }
 }
 
-export async function renderSaga(card: SagaData): Promise<Buffer> {
+export async function renderSaga(card: CardData): Promise<Buffer> {
   const cw = PW_W, ch = PW_H;
   const canvas = createCanvas(cw, ch);
   const ctx = canvas.getContext('2d');
   const L = SAGA_LAYOUT;
+  const fc = frameColorCode(card.frameColor);
+  const saga = card.structuredAbilities as SagaAbilities;
+  const chapters = saga.chapters;
 
   // Background
   ctx.fillStyle = '#1a1a1a';
@@ -28,17 +31,16 @@ export async function renderSaga(card: SagaData): Promise<Buffer> {
   if (card.artUrl) await drawArt(ctx, card.artUrl, L.art, cw, ch);
 
   // Frame
-  const framePath = path.join(ASSETS_DIR, 'frames', 'saga', `${card.frameColor}.png`);
+  const framePath = path.join(ASSETS_DIR, 'frames', 'saga', `${fc}.png`);
   if (fs.existsSync(framePath)) ctx.drawImage(await loadImage(framePath), 0, 0, cw, ch);
 
   // Chapter numbers and dividers
-  const chapterCount = card.chapters.length;
+  const chapterCount = chapters.length;
   const actualAbilityH = Math.min(L.ability.h, 0.55 / chapterCount);
 
   const chapterImg = await loadImage(path.join(ASSETS_DIR, 'frames', 'saga', 'sagaChapter.png'));
   const dividerImg = await loadImage(path.join(ASSETS_DIR, 'frames', 'saga', 'sagaDivider.png'));
 
-  let sagaCount = 1;
   const chapterFontSize = ch * L.chapterFont;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
@@ -60,7 +62,8 @@ export async function renderSaga(card: SagaData): Promise<Buffer> {
     const numY = abilityY + (abilityH - numH) / 2;
     const numTextX = numX + L.chapter.textOffX * cw;
     const numTextY = numY + L.chapter.textOffY * ch;
-    const chapCount = card.chapters[i].count;
+    const chapterNumbers = chapters[i].chapterNumbers;
+    const chapCount = chapterNumbers.length;
 
     // Set font for chapter numerals (use bold since we don't have plantinsemibold)
     ctx.font = `bold ${chapterFontSize}px "MPlantin"`;
@@ -69,36 +72,39 @@ export async function renderSaga(card: SagaData): Promise<Buffer> {
 
     if (chapCount === 1) {
       ctx.drawImage(chapterImg, numX, numY, numW, numH);
-      fillTextHeavy(ctx, romanNumeral(sagaCount), numTextX - ctx.measureText(romanNumeral(sagaCount)).width / 2, numTextY, 0.6);
-      sagaCount++;
+      const label = romanNumeral(chapterNumbers[0]);
+      fillTextHeavy(ctx, label, numTextX - ctx.measureText(label).width / 2, numTextY, 0.6);
     } else if (chapCount === 2) {
       const spread = L.chapterSpread * ch;
       ctx.drawImage(chapterImg, numX, numY - spread, numW, numH);
       ctx.drawImage(chapterImg, numX, numY + spread, numW, numH);
-      fillTextHeavy(ctx, romanNumeral(sagaCount), numTextX - ctx.measureText(romanNumeral(sagaCount)).width / 2, numTextY - spread, 0.6);
-      fillTextHeavy(ctx, romanNumeral(sagaCount + 1), numTextX - ctx.measureText(romanNumeral(sagaCount + 1)).width / 2, numTextY + spread, 0.6);
-      sagaCount += 2;
+      const label0 = romanNumeral(chapterNumbers[0]);
+      const label1 = romanNumeral(chapterNumbers[1]);
+      fillTextHeavy(ctx, label0, numTextX - ctx.measureText(label0).width / 2, numTextY - spread, 0.6);
+      fillTextHeavy(ctx, label1, numTextX - ctx.measureText(label1).width / 2, numTextY + spread, 0.6);
     } else if (chapCount === 3) {
       const spread = 2 * L.chapterSpread * ch;
       ctx.drawImage(chapterImg, numX, numY - spread, numW, numH);
       ctx.drawImage(chapterImg, numX, numY, numW, numH);
       ctx.drawImage(chapterImg, numX, numY + spread, numW, numH);
-      fillTextHeavy(ctx, romanNumeral(sagaCount), numTextX - ctx.measureText(romanNumeral(sagaCount)).width / 2, numTextY - spread, 0.6);
-      fillTextHeavy(ctx, romanNumeral(sagaCount + 1), numTextX - ctx.measureText(romanNumeral(sagaCount + 1)).width / 2, numTextY, 0.6);
-      fillTextHeavy(ctx, romanNumeral(sagaCount + 2), numTextX - ctx.measureText(romanNumeral(sagaCount + 2)).width / 2, numTextY + spread, 0.6);
-      sagaCount += 3;
+      const label0 = romanNumeral(chapterNumbers[0]);
+      const label1 = romanNumeral(chapterNumbers[1]);
+      const label2 = romanNumeral(chapterNumbers[2]);
+      fillTextHeavy(ctx, label0, numTextX - ctx.measureText(label0).width / 2, numTextY - spread, 0.6);
+      fillTextHeavy(ctx, label1, numTextX - ctx.measureText(label1).width / 2, numTextY, 0.6);
+      fillTextHeavy(ctx, label2, numTextX - ctx.measureText(label2).width / 2, numTextY + spread, 0.6);
     }
 
     // Ability text
-    drawWrappedText(ctx, card.chapters[i].text,
+    drawWrappedText(ctx, chapters[i].text,
       L.ability.x * cw, abilityY, L.ability.w * cw, abilityH,
       L.ability.font, L.ability.size * ch);
   }
 
   // Name, mana, type
-  drawSingleLineText(ctx, card.name, L.name.x*cw, L.name.y*ch, L.name.w*cw, L.name.h*ch, L.name.font, L.name.size*ch);
+  drawSingleLineText(ctx, card.name ?? '', L.name.x*cw, L.name.y*ch, L.name.w*cw, L.name.h*ch, L.name.font, L.name.size*ch);
   if (card.manaCost) await drawManaCost(ctx, card.manaCost, cw, ch, L.mana);
-  drawSingleLineText(ctx, card.typeLine, L.type.x*cw, L.type.y*ch, L.type.w*cw, L.type.h*ch, L.type.font, L.type.size*ch);
+  drawSingleLineText(ctx, getTypeLine(card), L.type.x*cw, L.type.y*ch, L.type.w*cw, L.type.h*ch, L.type.font, L.type.size*ch);
 
   drawBottomInfo(ctx, card, cw, ch);
   drawCorners(ctx, cw, ch);

@@ -1,5 +1,5 @@
 import type { SKRSContext2D } from '@napi-rs/canvas';
-import type { RichToken } from './types';
+export type RichToken = { type: 'text' | 'symbol'; value: string };
 import { FONT_HEIGHT_RATIO } from './layout';
 import { getManaSymbolSync } from './symbols';
 

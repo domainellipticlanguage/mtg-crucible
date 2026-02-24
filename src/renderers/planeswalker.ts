@@ -1,16 +1,19 @@
 import { createCanvas, loadImage } from '@napi-rs/canvas';
 import * as fs from 'fs';
 import * as path from 'path';
-import type { PlaneswalkerData } from '../types';
+import type { CardData, PlaneswalkerAbilities } from '../types';
 import { PW_W, PW_H, PW_LAYOUT, ASSETS_DIR } from '../layout';
-import { drawArt, drawCorners, drawBottomInfo, drawManaCost } from '../helpers';
+import { drawArt, drawCorners, drawBottomInfo, drawManaCost, getTypeLine, frameColorCode } from '../helpers';
 import { drawSingleLineText, drawWrappedText } from '../text';
 
-export async function renderPlaneswalker(card: PlaneswalkerData): Promise<Buffer> {
+export async function renderPlaneswalker(card: CardData): Promise<Buffer> {
   const cw = PW_W, ch = PW_H;
   const canvas = createCanvas(cw, ch);
   const ctx = canvas.getContext('2d');
   const L = PW_LAYOUT;
+  const fc = frameColorCode(card.frameColor);
+  const pw = card.structuredAbilities as PlaneswalkerAbilities;
+  const abilities = pw.loyaltyAbilities;
 
   // Background
   ctx.fillStyle = '#1a1a1a';
@@ -20,7 +23,7 @@ export async function renderPlaneswalker(card: PlaneswalkerData): Promise<Buffer
   if (card.artUrl) await drawArt(ctx, card.artUrl, L.art, cw, ch);
 
   // Ability background shading (pre-frame)
-  const abilityCount = card.abilities.length;
+  const abilityCount = abilities.length;
   const abilityStartY = L.ability.y;
   const abilityH = L.totalAbilityH / abilityCount;
 
@@ -48,7 +51,7 @@ export async function renderPlaneswalker(card: PlaneswalkerData): Promise<Buffer
   }
 
   // Frame
-  const framePath = path.join(ASSETS_DIR, 'frames', 'planeswalker', `${card.frameColor}.png`);
+  const framePath = path.join(ASSETS_DIR, 'frames', 'planeswalker', `${fc}.png`);
   if (fs.existsSync(framePath)) ctx.drawImage(await loadImage(framePath), 0, 0, cw, ch);
 
   // Loyalty cost icons (post-frame)
@@ -65,7 +68,7 @@ export async function renderPlaneswalker(card: PlaneswalkerData): Promise<Buffer
 
   for (let i = 0; i < abilityCount; i++) {
     const iconY = iconYPositions[i] * ch;
-    const cost = card.abilities[i].cost;
+    const cost = abilities[i].cost;
 
     if (cost.includes('+')) {
       const ic = L.plusIcon;
@@ -89,16 +92,16 @@ export async function renderPlaneswalker(card: PlaneswalkerData): Promise<Buffer
     const ah = abilityH * ch;
     const ax = L.ability.x * cw;
     const aw = L.ability.w * cw;
-    drawWrappedText(ctx, card.abilities[i].text, ax, ay, aw, ah, L.ability.font, L.ability.size * ch);
+    drawWrappedText(ctx, abilities[i].text, ax, ay, aw, ah, L.ability.font, L.ability.size * ch);
   }
 
   // Name, mana, type
-  drawSingleLineText(ctx, card.name, L.name.x*cw, L.name.y*ch, L.name.w*cw, L.name.h*ch, L.name.font, L.name.size*ch);
+  drawSingleLineText(ctx, card.name ?? '', L.name.x*cw, L.name.y*ch, L.name.w*cw, L.name.h*ch, L.name.font, L.name.size*ch);
   if (card.manaCost) await drawManaCost(ctx, card.manaCost, cw, ch, L.mana);
-  drawSingleLineText(ctx, card.typeLine, L.type.x*cw, L.type.y*ch, L.type.w*cw, L.type.h*ch, L.type.font, L.type.size*ch);
+  drawSingleLineText(ctx, getTypeLine(card), L.type.x*cw, L.type.y*ch, L.type.w*cw, L.type.h*ch, L.type.font, L.type.size*ch);
 
   // Starting loyalty
-  drawSingleLineText(ctx, card.startingLoyalty, L.loyalty.x*cw, L.loyalty.y*ch, L.loyalty.w*cw, L.loyalty.h*ch, L.loyalty.font, L.loyalty.size*ch, 'center', 'white');
+  drawSingleLineText(ctx, card.startingLoyalty ?? '0', L.loyalty.x*cw, L.loyalty.y*ch, L.loyalty.w*cw, L.loyalty.h*ch, L.loyalty.font, L.loyalty.size*ch, 'center', 'white');
 
   drawBottomInfo(ctx, card, cw, ch);
   drawCorners(ctx, cw, ch);
