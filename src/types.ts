@@ -129,19 +129,18 @@ export interface CardData {
   linkedCard?: CardData;
   linkType?: LinkType;
 
-  // TODO do we really want this?
   collectorNumber?: string;
   artist?: string;
   setCode?: string;
   designer?: string;
-  // isLegendary?: boolean;
 }
 
 
 
-
-// export type RichToken =
-//   | { type: 'text'; value: string }
-//   | { type: 'symbol'; value: string };
-
-// export type CardInput = CardData | PlaneswalkerData | SagaData | BattleData | ClassData;
+export interface RenderedCard {
+  frontFace: Buffer;
+  frontFaceOrientation: 'horizontal' | 'vertical';
+  backFace?: Buffer;
+  backFaceOrientation?: 'horizontal' | 'vertical';
+  normalizedCardData: CardData;
+}

@@ -257,3 +257,14 @@ Idk.
 
 
 Also Option 3 does have a bit more type safety than option 4. But idk maybe someone wants the freedom to make a Saga Planeswalker and somehow make that make sense.
+
+# API's
+```typescript
+renderCard(cardData: CardData): RenderedCard
+
+renderCard(text: string): RenderedCard
+
+parseCard(text: string): CardData
+
+normalizeCard(cardData: CardData): CardData
+```
