@@ -4,7 +4,7 @@ import * as path from 'path';
 import type { CardData, SagaAbilities } from '../types';
 import { PW_W, PW_H, SAGA_LAYOUT, ASSETS_DIR } from '../layout';
 import { drawArt, drawCorners, drawBottomInfo, drawManaCost, getTypeLine, frameColorCode } from '../helpers';
-import { drawSingleLineText, drawWrappedText, fillTextHeavy } from '../text';
+import { drawSingleLineText, drawWrappedText, fillTextHeavy, wrapParagraphs, computeHeight } from '../text';
 
 function romanNumeral(n: number): string {
   switch(n) {
@@ -36,7 +36,44 @@ export async function renderSaga(card: CardData): Promise<Buffer> {
 
   // Chapter numbers and dividers
   const chapterCount = chapters.length;
-  const actualAbilityH = Math.min(L.ability.h, 0.55 / chapterCount);
+
+  // Measure and render reminder text if present (e.g. saga lore counter reminder)
+  let reminderOffsetN = 0; // normalized offset for chapter start
+  const reminderSize = L.ability.size * ch * 0.85;
+  if (card.unstructuredAbilities) {
+    const reminderX = L.ability.x * cw;
+    const reminderW = L.ability.w * cw;
+    ctx.font = `${reminderSize}px "MPlantin Italic"`;
+    const reminderParas = card.unstructuredAbilities.split('\n').filter(p => p.trim());
+    const reminderLines = wrapParagraphs(ctx, reminderParas, reminderW, reminderSize);
+    const reminderH = computeHeight(reminderLines, reminderSize, reminderSize * 0.35);
+    const reminderPadding = reminderSize * 0.5;
+    reminderOffsetN = (reminderH + reminderPadding) / ch;
+
+    drawWrappedText(ctx, card.unstructuredAbilities,
+      reminderX, L.ability.y * ch, reminderW, reminderH + reminderPadding,
+      'MPlantin Italic', reminderSize, { fontFamily: 'MPlantin Italic' });
+  }
+
+  const chapterStartYN = L.ability.y + reminderOffsetN;
+  const chapterEndYN = L.type.y - 0.015;
+  const totalAvailableH = (chapterEndYN - chapterStartYN) * ch;
+
+  // Measure natural text height for each chapter to distribute space proportionally
+  const textSize = L.ability.size * ch;
+  const abilityW = L.ability.w * cw;
+  ctx.font = `${textSize}px "${L.ability.font}"`;
+  const minChapterH = L.chapter.h * ch + textSize * 0.5;
+  const naturalHeights: number[] = [];
+  for (const chapter of chapters) {
+    const paras = chapter.text.split('\n').filter((p: string) => p.trim());
+    const lines = wrapParagraphs(ctx, paras, abilityW, textSize);
+    const textH = computeHeight(lines, textSize, textSize * 0.35);
+    naturalHeights.push(Math.max(minChapterH, textH + textSize * 0.8));
+  }
+  const totalNatural = naturalHeights.reduce((a, b) => a + b, 0);
+  const scale = totalAvailableH / totalNatural;
+  const chapterHeights = naturalHeights.map(h => h * scale);
 
   const chapterImg = await loadImage(path.join(ASSETS_DIR, 'frames', 'saga', 'sagaChapter.png'));
   const dividerImg = await loadImage(path.join(ASSETS_DIR, 'frames', 'saga', 'sagaDivider.png'));
@@ -46,9 +83,10 @@ export async function renderSaga(card: CardData): Promise<Buffer> {
   ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = 'black';
 
+  let curY = chapterStartYN * ch;
   for (let i = 0; i < chapterCount; i++) {
-    const abilityY = (L.ability.y + i * actualAbilityH) * ch;
-    const abilityH = actualAbilityH * ch;
+    const abilityY = curY;
+    const abilityH = chapterHeights[i];
     const sagaX = L.saga.x * cw;
     const sagaW = L.saga.w * cw;
 
@@ -99,6 +137,8 @@ export async function renderSaga(card: CardData): Promise<Buffer> {
     drawWrappedText(ctx, chapters[i].text,
       L.ability.x * cw, abilityY, L.ability.w * cw, abilityH,
       L.ability.font, L.ability.size * ch);
+
+    curY += abilityH;
   }
 
   // Name, mana, type

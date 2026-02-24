@@ -58,7 +58,7 @@ export const SAGA_LAYOUT = {
   name:      { x: 0.0854, y: 0.0522, w: 0.8292, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
   mana:      { y: 0.0613, w: 0.9292, size: 71/1638, shadowX: -0.001, shadowY: 0.0029 },
   type:      { x: 0.0854, y: 0.8481, w: 0.8292, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
-  ability:   { x: 0.1334, y: 0.2896, w: 0.35, h: 0.1786, size: 0.0305, font: 'MPlantin' },
+  ability:   { x: 0.1334, y: 0.14, w: 0.35, h: 0.1786, size: 0.0305, font: 'MPlantin' },
   saga:      { x: 0.1, w: 0.3947 },
   chapter:   { w: 0.0787, h: 0.0629, textOffX: 0.0394, textOffY: 0.0429, xOff: -0.0614 },
   divider:   { h: 0.0029 },

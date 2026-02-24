@@ -72,7 +72,7 @@ function romanToNumber(roman: string): number {
 }
 
 function parseTypeLine(typeLine: string): { supertypes: Supertype[]; types: Type[]; subtypes: string[] } {
-  const [left, right] = typeLine.split(/\s*[—–]\s*/);
+  const [left, right] = typeLine.split(/\s+[—–-]\s+|\s*[—–]\s*/);
   const subtypes = right ? right.split(/\s+/) : [];
   const supertypes: Supertype[] = [];
   const types: Type[] = [];
@@ -233,7 +233,7 @@ function parseStandard(
   if (supertypes.length > 0) card.supertypes = supertypes;
   if (types.length > 0) card.types = types;
   if (subtypes.length > 0) card.subtypes = subtypes;
-  if (manaCost) card.manaCost = normalizeManaSymbols(manaCost);
+  if (manaCost) card.manaCost = manaCost;
   if (oracleText) card.oracleText = oracleText;
   if (flavorText) card.flavorText = flavorText;
   if (power !== undefined) card.power = power;
@@ -268,7 +268,7 @@ function parsePlaneswalker(
   if (supertypes.length > 0) card.supertypes = supertypes;
   if (types.length > 0) card.types = types;
   if (subtypes.length > 0) card.subtypes = subtypes;
-  if (manaCost) card.manaCost = normalizeManaSymbols(manaCost);
+  if (manaCost) card.manaCost = manaCost;
   return card;
 }
 
@@ -294,7 +294,7 @@ function parseSaga(
   if (supertypes.length > 0) card.supertypes = supertypes;
   if (types.length > 0) card.types = types;
   if (subtypes.length > 0) card.subtypes = subtypes;
-  if (manaCost) card.manaCost = normalizeManaSymbols(manaCost);
+  if (manaCost) card.manaCost = manaCost;
   return card;
 }
 

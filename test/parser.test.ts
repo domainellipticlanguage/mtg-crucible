@@ -477,6 +477,7 @@ describe('parseCard', () => {
       Activated abilities can't be activated.
     `);
     expect(card).toMatchObject({
+      name: 'The Immortal Sun',
       manaCost: '{6}',
       artUrl: 'https://example.com/art.png',
       rarity: 'mythic',
@@ -530,6 +531,31 @@ Deal 2 damage to any target.\r
     expect(card.colorIndicator).toEqual(['white', 'blue', 'black', 'red', 'green']);
   });
 
+  it('parses Scryfall-style color indicator with "and" and oxford commas', () => {
+    expect(parseCard(`
+      Ancestral Vision
+      Color Indicator: Blue
+      Sorcery
+      Draw three cards.
+    `).colorIndicator).toEqual(['blue']);
+
+    expect(parseCard(`
+      Archangel Avacyn
+      Color Indicator: White and Red
+      Legendary Creature \u2014 Angel
+      Flying
+      4/4
+    `).colorIndicator).toEqual(['white', 'red']);
+
+    expect(parseCard(`
+      Nicol Bolas
+      Color Indicator: Blue, Black, and Red
+      Legendary Creature \u2014 Elder Dragon
+      Flying
+      7/7
+    `).colorIndicator).toEqual(['blue', 'black', 'red']);
+  });
+
   it('does not emit empty class levels when headers are missing', () => {
     const card = parseCard(`
       Future Class {1}{U}
@@ -544,5 +570,28 @@ Deal 2 damage to any target.\r
       { level: 2, cost: '{1}{U}', text: 'Draw a card.' },
       { level: 3, cost: '{3}{U}', text: 'Scry 2, then draw a card.' },
     ]);
+  });
+
+  it('accepts plain hyphens in type lines for easy typing', () => {
+    const card = parseCard(`
+      Grizzly Bears {1}{G}
+      Creature - Bear
+      2/2
+    `);
+    expect(card).toMatchObject({
+      types: ['creature'],
+      subtypes: ['Bear'],
+    });
+  });
+
+  it('does not split compound subtypes on hyphens without spaces', () => {
+    const card = parseCard(`
+      The Thirteenth Doctor {1}{G}{U}
+      Legendary Creature - Time-Lord Doctor
+      2/2
+    `);
+    expect(card).toMatchObject({
+      subtypes: ['Time-Lord', 'Doctor'],
+    });
   });
 });
