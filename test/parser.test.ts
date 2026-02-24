@@ -462,4 +462,87 @@ describe('parseCard', () => {
     expect(cls.classLevels[1]).toEqual({ level: 2, cost: '{2}{U}', text: 'When this Class becomes level 2, draw two cards.' });
     expect(cls.classLevels[2]).toEqual({ level: 3, cost: '{4}{U}', text: 'You have no maximum hand size.' });
   });
+
+  it('captures extended metadata like artist, set, collector number, designer, and color indicator', () => {
+    const card = parseCard(`
+      \u200BThe Immortal Sun {6}
+      Art: https://example.com/art.png
+      Rarity: mythic
+      Artist: Victor Adame Minguez
+      Set: rix
+      Collector Number: 180
+      Designer: MTG Team
+      Color Indicator: white blue
+      Legendary Artifact
+      Activated abilities can't be activated.
+    `);
+    expect(card).toMatchObject({
+      manaCost: '{6}',
+      artUrl: 'https://example.com/art.png',
+      rarity: 'mythic',
+      artist: 'Victor Adame Minguez',
+      setCode: 'RIX',
+      collectorNumber: '180',
+      designer: 'MTG Team',
+      colorIndicator: ['white', 'blue'],
+    });
+  });
+
+  it('normalizes lowercase mana symbols and handles CRLF newlines', () => {
+    const card = parseCard(`Smoldering Egg {1}{r}
+Instant\r
+\r
+Deal 2 damage to any target.\r
+`);
+    expect(card).toMatchObject({
+      manaCost: '{1}{R}',
+      types: ['instant'],
+      oracleText: 'Deal 2 damage to any target.',
+    });
+  });
+
+  it('ignores metadata lines it does not understand and keeps blank line separation safe', () => {
+    const card = parseCard(`
+      Example Card {1}{G}
+      Flavor: Citrus
+      Legendary Creature \u2014 Dryad
+
+      Reach
+      2/4
+    `);
+    expect(card).toMatchObject({
+      name: 'Example Card',
+      types: ['creature'],
+      oracleText: 'Reach',
+      power: '2',
+      toughness: '4',
+    });
+  });
+
+  it('parses color indicator metadata even without mana cost', () => {
+    const card = parseCard(`
+      O-Kagachi, Ghost of Vengeance
+      Color Indicator: white blue black red green
+      Legendary Creature \u2014 Dragon Spirit
+      Flying, trample
+      6/6
+    `);
+    expect(card.colorIndicator).toEqual(['white', 'blue', 'black', 'red', 'green']);
+  });
+
+  it('does not emit empty class levels when headers are missing', () => {
+    const card = parseCard(`
+      Future Class {1}{U}
+      Enchantment \u2014 Class
+      {1}{U}: Level 2
+      Draw a card.
+      {3}{U}: Level 3
+      Scry 2, then draw a card.
+    `);
+    const cls = card.structuredAbilities as any;
+    expect(cls.classLevels).toEqual([
+      { level: 2, cost: '{1}{U}', text: 'Draw a card.' },
+      { level: 3, cost: '{3}{U}', text: 'Scry 2, then draw a card.' },
+    ]);
+  });
 });

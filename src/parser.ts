@@ -1,8 +1,13 @@
-import type { CardData, FrameColor, Supertype, Type } from './types';
+import type { CardData, Color, FrameColor, Supertype, Type } from './types';
 
 const MANA_COST_REGEX = /^(.+?)\s+((?:\{[^}]+\})+)$/;
 const ART_REGEX = /^Art:\s*(https?:\/\/\S+)$/i;
 const RARITY_REGEX = /^Rarity:\s*(common|uncommon|rare|mythic(?:\s+rare)?)$/i;
+const ARTIST_REGEX = /^Artist:\s*(.+)$/i;
+const SET_REGEX = /^Set:\s*([A-Za-z0-9]+)$/i;
+const COLLECTOR_REGEX = /^Collector(?:\s+(?:Number|No\.?))?:\s*(.+)$/i;
+const DESIGNER_REGEX = /^Designer:\s*(.+)$/i;
+const COLOR_INDICATOR_REGEX = /^Color Indicator:\s*(.+)$/i;
 const PT_REGEX = /^([*\d+]+)\/([*\d+]+)$/;
 const LOYALTY_REGEX = /^Loyalty:\s*(\S+)$/i;
 const DEFENSE_REGEX = /^Defense:\s*(\S+)$/i;
@@ -11,8 +16,47 @@ const SAGA_CHAPTER_REGEX = /^((?:I{1,3}|IV|V|VI)(?:\s*,\s*(?:I{1,3}|IV|V|VI))*)\
 const CLASS_LEVEL_REGEX = /^((?:\{[^}]+\})+):\s*(Level\s+\d+)$/;
 const FLAVOR_REGEX = /^\*(.+)\*$/;
 
+const ZERO_WIDTH_REGEX = /[\u200B-\u200D\uFEFF]/g;
 const SUPERTYPES = new Set<string>(['legendary', 'basic', 'snow', 'world']);
 const TYPES = new Set<string>(['creature', 'instant', 'sorcery', 'enchantment', 'artifact', 'planeswalker', 'land', 'battle']);
+const COLOR_ALIASES: Record<string, Color> = {
+  w: 'white', white: 'white',
+  u: 'blue', blue: 'blue',
+  b: 'black', black: 'black',
+  r: 'red', red: 'red',
+  g: 'green', green: 'green',
+};
+
+function stripZeroWidth(text: string): string {
+  return text.replace(ZERO_WIDTH_REGEX, '');
+}
+
+function normalizeManaSymbols(value: string | undefined): string | undefined {
+  if (!value) return value;
+  return value.replace(/\{([^}]+)\}/g, (_, inner: string) => `{${inner.trim().toUpperCase()}}`);
+}
+
+function normalizeLines(text: string): string[] {
+  return text
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .map(line => stripZeroWidth(line).trim())
+    .filter(line => line.length > 0);
+}
+
+function parseColorIndicator(raw: string): Color[] | undefined {
+  const tokens = raw
+    .split(/[\s,\/]+/)
+    .map(token => token.trim().toLowerCase())
+    .filter(Boolean);
+  if (tokens.length === 0) return undefined;
+  const colors: Color[] = [];
+  for (const token of tokens) {
+    const color = COLOR_ALIASES[token];
+    if (color && !colors.includes(color)) colors.push(color);
+  }
+  return colors.length > 0 ? colors : undefined;
+}
 
 function isFlavorLine(line: string): boolean {
   const m = line.match(FLAVOR_REGEX);
@@ -64,7 +108,7 @@ function deriveFrameColor(manaCost: string | undefined, typeLine: string): Frame
 }
 
 export function parseCard(text: string): CardData {
-  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  const lines = normalizeLines(text);
 
   if (lines.length < 2) {
     throw new Error('Card text must have at least a name line and type line');
@@ -76,7 +120,7 @@ export function parseCard(text: string): CardData {
   const nameMatch = lines[0].match(MANA_COST_REGEX);
   if (nameMatch) {
     name = nameMatch[1].trim();
-    manaCost = nameMatch[2];
+    manaCost = normalizeManaSymbols(nameMatch[2]);
   } else {
     name = lines[0];
   }
@@ -84,16 +128,36 @@ export function parseCard(text: string): CardData {
   // Optional metadata lines between name and type (Art:, Rarity:)
   let artUrl: string | undefined;
   let rarity: 'common' | 'uncommon' | 'rare' | 'mythic' | undefined;
+  let artist: string | undefined;
+  let setCode: string | undefined;
+  let collectorNumber: string | undefined;
+  let designer: string | undefined;
+  let colorIndicator: Color[] | undefined;
   let nextLine = 1;
   while (nextLine < lines.length) {
-    const artMatch = lines[nextLine].match(ART_REGEX);
+    const current = lines[nextLine];
+    const artMatch = current.match(ART_REGEX);
     if (artMatch) { artUrl = artMatch[1]; nextLine++; continue; }
-    const rarityMatch = lines[nextLine].match(RARITY_REGEX);
+    const rarityMatch = current.match(RARITY_REGEX);
     if (rarityMatch) {
       const raw = rarityMatch[1].toLowerCase();
       rarity = (raw === 'mythic rare' ? 'mythic' : raw) as typeof rarity;
       nextLine++; continue;
     }
+    const artistMatch = current.match(ARTIST_REGEX);
+    if (artistMatch) { artist = artistMatch[1].trim(); nextLine++; continue; }
+    const setMatch = current.match(SET_REGEX);
+    if (setMatch) { setCode = setMatch[1].toUpperCase(); nextLine++; continue; }
+    const collectorMatch = current.match(COLLECTOR_REGEX);
+    if (collectorMatch) { collectorNumber = collectorMatch[1].trim(); nextLine++; continue; }
+    const designerMatch = current.match(DESIGNER_REGEX);
+    if (designerMatch) { designer = designerMatch[1].trim(); nextLine++; continue; }
+    const colorIndicatorMatch = current.match(COLOR_INDICATOR_REGEX);
+    if (colorIndicatorMatch) {
+      colorIndicator = parseColorIndicator(colorIndicatorMatch[1]) || colorIndicator;
+      nextLine++; continue;
+    }
+    if (/^[A-Za-z][A-Za-z0-9\/\s]+:\s*/.test(current)) { nextLine++; continue; }
     break;
   }
 
@@ -121,6 +185,11 @@ export function parseCard(text: string): CardData {
 
   if (artUrl) card.artUrl = artUrl;
   card.rarity = rarity ?? 'rare';
+  if (artist) card.artist = artist;
+  if (setCode) card.setCode = setCode;
+  if (collectorNumber) card.collectorNumber = collectorNumber;
+  if (designer) card.designer = designer;
+  if (colorIndicator && colorIndicator.length > 0) card.colorIndicator = colorIndicator;
   return card;
 }
 
@@ -164,7 +233,7 @@ function parseStandard(
   if (supertypes.length > 0) card.supertypes = supertypes;
   if (types.length > 0) card.types = types;
   if (subtypes.length > 0) card.subtypes = subtypes;
-  if (manaCost) card.manaCost = manaCost;
+  if (manaCost) card.manaCost = normalizeManaSymbols(manaCost);
   if (oracleText) card.oracleText = oracleText;
   if (flavorText) card.flavorText = flavorText;
   if (power !== undefined) card.power = power;
@@ -199,7 +268,7 @@ function parsePlaneswalker(
   if (supertypes.length > 0) card.supertypes = supertypes;
   if (types.length > 0) card.types = types;
   if (subtypes.length > 0) card.subtypes = subtypes;
-  if (manaCost) card.manaCost = manaCost;
+  if (manaCost) card.manaCost = normalizeManaSymbols(manaCost);
   return card;
 }
 
@@ -225,7 +294,7 @@ function parseSaga(
   if (supertypes.length > 0) card.supertypes = supertypes;
   if (types.length > 0) card.types = types;
   if (subtypes.length > 0) card.subtypes = subtypes;
-  if (manaCost) card.manaCost = manaCost;
+  if (manaCost) card.manaCost = normalizeManaSymbols(manaCost);
   return card;
 }
 
@@ -256,30 +325,42 @@ function parseClass(
   supertypes: Supertype[], types: Type[], subtypes: string[],
   frameColor: FrameColor, bodyLines: string[],
 ): CardData {
+  type PendingLevel = { level: number; cost: string; textLines: string[] };
   const classLevels: { level: number; cost: string; text: string }[] = [];
-  let currentCost = '';
-  let currentLevel = 1;
-  let currentTextLines: string[] = [];
+  let pending: PendingLevel = { level: 1, cost: '', textLines: [] };
+  let haveExplicitLevel = false;
+
+  const pushPending = () => {
+    const text = pending.textLines.join('\n').trim();
+    classLevels.push({
+      level: pending.level,
+      cost: normalizeManaSymbols(pending.cost) ?? '',
+      text,
+    });
+  };
 
   for (const line of bodyLines) {
     const levelMatch = line.match(CLASS_LEVEL_REGEX);
     if (levelMatch) {
-      // Flush previous level
-      classLevels.push({ level: currentLevel, cost: currentCost, text: currentTextLines.join('\n') });
-      currentCost = levelMatch[1];
-      currentLevel = parseInt(levelMatch[2].replace(/\D/g, '')) || currentLevel + 1;
-      currentTextLines = [];
+      if (haveExplicitLevel || pending.textLines.length > 0) pushPending();
+      haveExplicitLevel = true;
+      pending = {
+        level: parseInt(levelMatch[2].replace(/\D/g, ''), 10) || pending.level + 1,
+        cost: levelMatch[1],
+        textLines: [],
+      };
     } else {
-      currentTextLines.push(line);
+      pending.textLines.push(line);
     }
   }
 
-  // Flush final level
-  classLevels.push({ level: currentLevel, cost: currentCost, text: currentTextLines.join('\n') });
+  if (haveExplicitLevel || pending.textLines.length > 0) {
+    pushPending();
+  }
 
   // Extract reminder text from level 1 — lines wrapped in *(...)* are italic reminder text
   let unstructuredAbilities: string | undefined;
-  if (classLevels.length > 0) {
+  if (classLevels.length > 0 && classLevels[0].level === 1 && classLevels[0].text) {
     const level0Lines = classLevels[0].text.split('\n');
     const reminderLines: string[] = [];
     const abilityLines: string[] = [];

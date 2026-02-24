@@ -54,6 +54,7 @@ For direct control, each renderer is also exported:
 ## Text Format
 
 Cards are defined in a plain text format inspired by official text spoilers.
+For the full grammar, metadata reference, and corner cases, see [docs/text-format.md](docs/text-format.md).
 
 ### Standard cards
 
@@ -245,7 +246,6 @@ getArtDimensions(cardTemplate: CardTemplate): { widthPixels: number; heightPixel
 Note: IF you need to refer to any borders and assets, you cannot do that yet. they are downloading. But at some point you will be able to refer to Card Conjurer
 
 1. [X] Fix everything to use the new apis and types. i.e. fix the build
-1. Harden the text parser
+1. [X (supposedly)] Harden the text parser
 1. Create test framework whereby the AI can query scryfall for the text, json, art crop, and rendered card. Then we render our own card (using the scryfall art crop for art), then we concatenate our card with the scryfall card and the AI can view them side by side in a single image to allow for excruciating detail comparison.
 1. Add support for composite cards. In the text format as well
-
