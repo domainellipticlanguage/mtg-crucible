@@ -254,7 +254,7 @@ async function compareCard(name: string, set?: string): Promise<string> {
 
   // Render our version
   console.log(`  Rendering our version...`);
-  const ourPng = await renderCard(cardData);
+  const { frontFace: ourPng } = await renderCard(cardData);
 
   // Fetch Scryfall's rendered PNG
   await sleep(100); // respect rate limit

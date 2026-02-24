@@ -84,13 +84,12 @@ function parseTypeLine(typeLine: string): { supertypes: Supertype[]; types: Type
   return { supertypes, types, subtypes };
 }
 
-function deriveFrameColor(manaCost: string | undefined, typeLine: string): FrameColor {
-  const lower = typeLine.toLowerCase();
-  if (lower.includes('vehicle')) return 'vehicle';
-  if (lower.includes('land') && !manaCost) return 'land';
+export function deriveFrameColor(card: Pick<CardData, 'subtypes' | 'types' | 'manaCost'>): FrameColor {
+  if (card.subtypes?.some(s => s.toLowerCase() === 'vehicle')) return 'vehicle';
+  if (card.types?.includes('land') && !card.manaCost) return 'land';
 
   const colors = new Set<string>();
-  const symbols = manaCost?.match(/\{([^}]+)\}/g) || [];
+  const symbols = card.manaCost?.match(/\{([^}]+)\}/g) || [];
   for (const sym of symbols) {
     const inner = sym.slice(1, -1).toUpperCase();
     for (const c of ['W', 'U', 'B', 'R', 'G']) {
@@ -164,7 +163,7 @@ export function parseCard(text: string): CardData {
   // Type line
   const typeLine = lines[nextLine];
   const { supertypes, types, subtypes } = parseTypeLine(typeLine);
-  const frameColor = deriveFrameColor(manaCost, typeLine);
+  const frameColor = deriveFrameColor({ subtypes, types, manaCost });
 
   // Remaining lines: body
   const bodyLines = lines.slice(nextLine + 1);

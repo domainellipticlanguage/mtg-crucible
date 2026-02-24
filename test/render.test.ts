@@ -15,7 +15,7 @@ function pngDimensions(buf: Buffer): { width: number; height: number } {
 
 describe('renderCard', () => {
   it('renders a standard card as a valid PNG', async () => {
-    const buf = await renderCard({
+    const { frontFace: buf } = await renderCard({
       name: 'Lightning Bolt', manaCost: '{R}', types: ['instant'],
       oracleText: 'Lightning Bolt deals 3 damage to any target.',
       frameColor: 'red', rarity: 'uncommon',
@@ -28,7 +28,7 @@ describe('renderCard', () => {
   });
 
   it('renders a creature with P/T', async () => {
-    const buf = await renderCard({
+    const { frontFace: buf } = await renderCard({
       name: 'Grizzly Bears', manaCost: '{1}{G}', types: ['creature'], subtypes: ['Bear'],
       power: '2', toughness: '2', frameColor: 'green', rarity: 'common',
     });
@@ -37,7 +37,7 @@ describe('renderCard', () => {
   });
 
   it('renders a legendary creature with crown', async () => {
-    const buf = await renderCard({
+    const { frontFace: buf } = await renderCard({
       name: 'Questing Beast', manaCost: '{2}{G}{G}',
       supertypes: ['legendary'], types: ['creature'], subtypes: ['Beast'],
       oracleText: 'Vigilance, deathtouch, haste',
@@ -48,7 +48,7 @@ describe('renderCard', () => {
   });
 
   it('renders a vehicle with white P/T text', async () => {
-    const buf = await renderCard({
+    const { frontFace: buf } = await renderCard({
       name: 'Smuggler\'s Copter', manaCost: '{2}', types: ['artifact'], subtypes: ['Vehicle'],
       oracleText: 'Flying\nCrew 1',
       power: '3', toughness: '3', frameColor: 'vehicle', rarity: 'rare',
@@ -57,7 +57,7 @@ describe('renderCard', () => {
   });
 
   it('renders rules text with inline mana symbols', async () => {
-    const buf = await renderCard({
+    const { frontFace: buf } = await renderCard({
       name: 'Sol Ring', manaCost: '{1}', types: ['artifact'],
       oracleText: '{T}: Add {C}{C}.',
       frameColor: 'artifact', rarity: 'uncommon',
@@ -66,7 +66,7 @@ describe('renderCard', () => {
   });
 
   it('renders rules + flavor text with divider', async () => {
-    const buf = await renderCard({
+    const { frontFace: buf } = await renderCard({
       name: 'Lightning Bolt', manaCost: '{R}', types: ['instant'],
       oracleText: 'Lightning Bolt deals 3 damage to any target.',
       flavorText: '"The sparkmage shrieked."',
@@ -90,7 +90,7 @@ describe('renderCard', () => {
         ],
       },
     };
-    const buf = await renderCard(card);
+    const { frontFace: buf } = await renderCard(card);
     expect(buf.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
     expect(pngDimensions(buf)).toEqual({ width: 1500, height: 2100 });
   });
@@ -109,7 +109,7 @@ describe('renderCard', () => {
         ],
       },
     };
-    const buf = await renderCard(card);
+    const { frontFace: buf } = await renderCard(card);
     expect(buf.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
     expect(pngDimensions(buf)).toEqual({ width: 1500, height: 2100 });
   });
@@ -122,13 +122,13 @@ describe('renderCard', () => {
       frameColor: 'white', rarity: 'rare',
       battleDefense: '3',
     };
-    const buf = await renderCard(card);
+    const { frontFace: buf } = await renderCard(card);
     expect(buf.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
     expect(pngDimensions(buf)).toEqual({ width: 2814, height: 2010 });
   });
 
   it('renders a gold multicolor legendary', async () => {
-    const buf = await renderCard({
+    const { frontFace: buf } = await renderCard({
       name: 'Maelstrom Wanderer', manaCost: '{5}{U}{R}{G}',
       supertypes: ['legendary'], types: ['creature'], subtypes: ['Elemental'],
       oracleText: 'Creatures you control have haste.\nCascade, cascade',
@@ -138,7 +138,7 @@ describe('renderCard', () => {
   });
 
   it('renders phyrexian mana in cost and rules', async () => {
-    const buf = await renderCard({
+    const { frontFace: buf } = await renderCard({
       name: 'Birthing Pod', manaCost: '{3}{G/P}', types: ['artifact'],
       oracleText: '{1}{G/P}, {T}, Sacrifice a creature: Search your library.',
       frameColor: 'artifact', rarity: 'rare',

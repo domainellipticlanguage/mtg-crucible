@@ -1,5 +1,5 @@
 import * as http from 'http';
-import { parseCard, renderFromText } from '../src';
+import { parseCard, renderCard } from '../src';
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 
@@ -129,9 +129,9 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ cardData }));
       } else {
-        const png = await renderFromText(text);
-        res.writeHead(200, { 'Content-Type': 'image/png', 'Content-Length': png.length });
-        res.end(png);
+        const rendered = await renderCard(text);
+        res.writeHead(200, { 'Content-Type': 'image/png', 'Content-Length': rendered.frontFace.length });
+        res.end(rendered.frontFace);
       }
     } catch (err: any) {
       res.writeHead(500, { 'Content-Type': 'text/plain' });

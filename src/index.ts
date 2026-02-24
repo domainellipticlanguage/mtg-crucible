@@ -1,11 +1,11 @@
-import type { CardData } from './types';
+import type { CardData, RenderedCard } from './types';
 import { ensureInitialized } from './helpers';
 import { renderStandard } from './renderers/standard';
 import { renderPlaneswalker } from './renderers/planeswalker';
 import { renderSaga } from './renderers/saga';
 import { renderBattle } from './renderers/battle';
 import { renderClass } from './renderers/class';
-import { parseCard } from './parser';
+import { parseCard, deriveFrameColor } from './parser';
 
 export type { CardData, RenderedCard, StructuredAbilities, PlaneswalkerAbilities, SagaAbilities, ClassAbilities } from './types';
 export { renderStandard } from './renderers/standard';
@@ -15,15 +15,32 @@ export { renderBattle } from './renderers/battle';
 export { renderClass } from './renderers/class';
 export { parseCard } from './parser';
 
-export async function renderCard(card: CardData): Promise<Buffer> {
-  await ensureInitialized();
-  if (card.structuredAbilities?.kind === 'planeswalker') return renderPlaneswalker(card);
-  if (card.structuredAbilities?.kind === 'saga') return renderSaga(card);
-  if (card.structuredAbilities?.kind === 'class') return renderClass(card);
-  if (card.battleDefense) return renderBattle(card);
-  return renderStandard(card);
+export function normalizeCard(card: CardData): CardData {
+  return {
+    ...card,
+    name: card.name ?? '',
+    rarity: card.rarity ?? 'rare',
+    frameColor: card.frameColor ?? deriveFrameColor(card),
+    collectorNumber: card.collectorNumber ?? '000',
+    setCode: card.setCode ?? 'CRU',
+  };
 }
 
-export async function renderFromText(text: string): Promise<Buffer> {
-  return renderCard(parseCard(text));
+export async function renderCard(input: CardData | string): Promise<RenderedCard> {
+  const card = typeof input === 'string' ? parseCard(input) : input;
+  const normalized = normalizeCard(card);
+
+  await ensureInitialized();
+  let frontFace: Buffer;
+  if (normalized.structuredAbilities?.kind === 'planeswalker') frontFace = await renderPlaneswalker(normalized);
+  else if (normalized.structuredAbilities?.kind === 'saga') frontFace = await renderSaga(normalized);
+  else if (normalized.structuredAbilities?.kind === 'class') frontFace = await renderClass(normalized);
+  else if (normalized.battleDefense) frontFace = await renderBattle(normalized);
+  else frontFace = await renderStandard(normalized);
+
+  return {
+    frontFace,
+    frontFaceOrientation: 'vertical',
+    normalizedCardData: normalized,
+  };
 }
