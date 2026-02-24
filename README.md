@@ -83,17 +83,19 @@ Destroy all creatures. They can't be regenerated.
 
 Reminder text `(like this)` in the middle of rules text is preserved as rules text, not treated as flavor.
 
-### Art URL (optional)
+### Extended Text Spoiler Format
 
-An art image URL can be specified between the name and type line:
+An art image URL can be specified between the name and type line, amont other things
 
 ```
 Archangel Avacyn {3}{W}{W}
 Art: https://cards.scryfall.io/art_crop/front/7/f/7f4893ef.jpg
+Rarity: Rare
 Legendary Creature — Angel
 Flash
 Flying, vigilance
 4/4
+*Some flavor text*
 ```
 
 ### Planeswalkers
@@ -174,6 +176,7 @@ npm run build     # compile TypeScript
 npm run spike     # render test cards to output/
 ```
 
+
 ## TODO
 
 - Improve set symbol generation with logo
@@ -181,12 +184,10 @@ npm run spike     # render test cards to output/
 - Test limits of parser leniency
 - Test reminder text without asterisks
 - Test multiple lines of flavor text
-- Reconsider splitting into multiple render apis
 - Investigate card dimensions
-- reconsider the frame enum
+- [X] Add blurb about Extended Text Spoiler format
 - Update readme examples to be custom
 - Add a carddata example to quickstart
-- Add logo somewhere
 - Add Class enchantment to spike
 - Support Level Up https://scryfall.com/card/c13/43/echo-mage
     - note how this affect P/T assumptions...
@@ -194,8 +195,6 @@ npm run spike     # render test cards to output/
     - Phyrexian hybrid
     - colorless/color hybrid
     - 2/color hybrid
-- Optimize asset size
-    - procedurally generate textures + frames
 - Support multi-cards
     - Enchantment Rooms
         - https://scryfall.com/card/dsk/43/bottomless-pool-locker-room
@@ -209,54 +208,24 @@ npm run spike     # render test cards to output/
     - Prototype
 - Support Mutate
 - Test harness
-- Downsample everything - it's excessive right now
-    - 744 × 1039 and jpeg to match mtg.design
-    - 672 × 936 to match scryfall
+- Optimize asset size
+    - Downsample everything - it's excessive right now
+        - 744 × 1039 and jpeg to match mtg.design
+        - 672 × 936 to match scryfall
+    - Alternatively, procedurally generate textures + frames
+    - Can we get away with a single frame/format to serve Class, Saga, Case?
+- Ponder if card template should be more coarse grained
 - Finalize the schema
 - Support color indicator
 - Support saga creature
 
 
-flip cards are in effect just transform cards
-- can infer flip cards by lack of color indicator...although what about lands...
-
-
 ## Won't do
 - Support devoid borders
 - Support various borders
+- Support nyx borders
+- Support hybrid mana borders
 
-
-  Option 5 (card-level discriminated union) is the strongest fit for your
-  project because:
-
-  1. You already have it partially — separate renderers and data types per
-  template. This formalizes what's already there.
-- Yeah I actually want to get away from that. I want a consumer of this library to be able to do
-renderCard({...})
-without having to match up the right render function to their object. I mean yeah there can be a general purpose renderer that dispatches the correct subrenderer based on type. But eh... idk
-
-    4. LLM-friendly — "set template: 'saga' and fill in the saga-specific fields"
-  is unambiguous. LLMs don't have to reason about which of 15 optional fields to
-   populate.
-   - really? is that really easier for the llm than flat fields?
-
-  Dimension: Queryability
-  5: Card-level union: Good (discriminant on card)
-
--I'm not sure how this would work.
-
-
-> Revised take: Given your priorities — especially the unified renderCard API and LLM
-  construction — the real contest is between Option 2 (flat) vs Option 4 (grouped).
-  They're close, but the key difference:
-
-  I hate to call this out, but you just said unified renderCard was not a differentiator
-
-What gives me pause is that I am doing a lot of work to support these weird one-off uncommon templates that people forget about after the set comes out.
-Idk.
-
-
-Also Option 3 does have a bit more type safety than option 4. But idk maybe someone wants the freedom to make a Saga Planeswalker and somehow make that make sense.
 
 # API's
 ```typescript
@@ -267,4 +236,14 @@ renderCard(text: string): RenderedCard
 parseCard(text: string): CardData
 
 normalizeCard(cardData: CardData): CardData
+
+// TODO maybe make a class and there should just be an aspectRatio property that does the division.
+getArtDimensions(cardTemplate: CardTemplate): { widthPixels: number; heightPixels: number; aspectRatioWidth: number; aspectRatioHeight: number; }
 ```
+
+# Plan
+1. Fix everything to use the new apis and types. i.e. fix the build
+1. Harden the text parser
+1. Create test framework whereby the AI can query scryfall for the text, json, art crop, and rendered card. Then we render our own card (using the scryfall art crop for art), then we concatenate our card with the scryfall card and the AI can view them side by side in a single image to allow for excruciating detail comparison.
+1. Add support for composite cards. In the text format as well
+
