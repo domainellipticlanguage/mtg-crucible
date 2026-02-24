@@ -242,6 +242,8 @@ getArtDimensions(cardTemplate: CardTemplate): { widthPixels: number; heightPixel
 ```
 
 # Plan
+Note: IF you need to refer to any borders and assets, you cannot do that yet. they are downloading. But at some point you will be able to refer to Card Conjurer
+
 1. Fix everything to use the new apis and types. i.e. fix the build
 1. Harden the text parser
 1. Create test framework whereby the AI can query scryfall for the text, json, art crop, and rendered card. Then we render our own card (using the scryfall art crop for art), then we concatenate our card with the scryfall card and the AI can view them side by side in a single image to allow for excruciating detail comparison.
