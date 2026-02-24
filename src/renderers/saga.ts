@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { CardData, SagaAbilities } from '../types';
 import { PW_W, PW_H, SAGA_LAYOUT, ASSETS_DIR } from '../layout';
-import { drawArt, drawCorners, drawBottomInfo, drawManaCost, getTypeLine, frameColorCode } from '../helpers';
+import { drawArt, drawCorners, drawBottomInfo, drawManaCost, getTypeLine, frameColorCode, drawColorIndicator } from '../helpers';
 import { drawSingleLineText, drawWrappedText, fillTextHeavy, wrapParagraphs, computeHeight } from '../text';
 
 function romanNumeral(n: number): string {
@@ -144,7 +144,9 @@ export async function renderSaga(card: CardData): Promise<Buffer> {
   // Name, mana, type
   drawSingleLineText(ctx, card.name ?? '', L.name.x*cw, L.name.y*ch, L.name.w*cw, L.name.h*ch, L.name.font, L.name.size*ch);
   if (card.manaCost) await drawManaCost(ctx, card.manaCost, cw, ch, L.mana);
-  drawSingleLineText(ctx, getTypeLine(card), L.type.x*cw, L.type.y*ch, L.type.w*cw, L.type.h*ch, L.type.font, L.type.size*ch);
+  const sagaTypeX = L.type.x * cw, sagaTypeY = L.type.y * ch, sagaTypeH = L.type.h * ch;
+  const sagaIndOff = drawColorIndicator(ctx, card.colorIndicator, sagaTypeX, sagaTypeY, sagaTypeH);
+  drawSingleLineText(ctx, getTypeLine(card), sagaTypeX + sagaIndOff, sagaTypeY, L.type.w * cw - sagaIndOff, sagaTypeH, L.type.font, L.type.size * ch);
 
   drawBottomInfo(ctx, card, cw, ch);
   drawCorners(ctx, cw, ch);

@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { CardData } from '../types';
 import { BTL_W, BTL_H, BTL_LAYOUT, ASSETS_DIR } from '../layout';
-import { drawArt, drawCorners, drawManaCost, getTypeLine, frameColorCode } from '../helpers';
+import { drawArt, drawCorners, drawManaCost, getTypeLine, frameColorCode, drawColorIndicator } from '../helpers';
 import { drawSingleLineText, drawWrappedText } from '../text';
 
 export async function renderBattle(card: CardData): Promise<Buffer> {
@@ -31,7 +31,9 @@ export async function renderBattle(card: CardData): Promise<Buffer> {
   if (card.manaCost) await drawManaCost(ctx, card.manaCost, cw, ch, L.mana);
 
   // Type line
-  drawSingleLineText(ctx, getTypeLine(card), L.type.x*cw, L.type.y*ch, L.type.w*cw, L.type.h*ch, L.type.font, L.type.size*ch);
+  const btlTypeX = L.type.x * cw, btlTypeY = L.type.y * ch, btlTypeH = L.type.h * ch;
+  const btlIndOff = drawColorIndicator(ctx, card.colorIndicator, btlTypeX, btlTypeY, btlTypeH);
+  drawSingleLineText(ctx, getTypeLine(card), btlTypeX + btlIndOff, btlTypeY, L.type.w * cw - btlIndOff, btlTypeH, L.type.font, L.type.size * ch);
 
   // Rules text
   if (card.oracleText) {

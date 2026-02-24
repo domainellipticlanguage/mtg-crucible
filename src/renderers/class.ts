@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { CardData, ClassAbilities } from '../types';
 import { PW_W, PW_H, CLASS_LAYOUT, ASSETS_DIR, FONT_HEIGHT_RATIO } from '../layout';
-import { drawArt, drawCorners, drawSetSymbol, drawBottomInfo, drawManaCost, getTypeLine, frameColorCode } from '../helpers';
+import { drawArt, drawCorners, drawSetSymbol, drawBottomInfo, drawManaCost, getTypeLine, frameColorCode, drawColorIndicator } from '../helpers';
 import { drawSingleLineText, drawWrappedText, drawRichLine, wrapParagraphs, computeHeight } from '../text';
 
 /** Measure how tall text would be at a given size without drawing. */
@@ -162,7 +162,9 @@ export async function renderClass(card: CardData): Promise<Buffer> {
   // Name, mana, type
   drawSingleLineText(ctx, card.name ?? '', L.name.x * cw, L.name.y * ch, L.name.w * cw, L.name.h * ch, L.name.font, L.name.size * ch);
   if (card.manaCost) await drawManaCost(ctx, card.manaCost, cw, ch, L.mana);
-  drawSingleLineText(ctx, getTypeLine(card), L.type.x * cw, L.type.y * ch, L.type.w * cw, L.type.h * ch, L.type.font, L.type.size * ch);
+  const clsTypeX = L.type.x * cw, clsTypeY = L.type.y * ch, clsTypeH = L.type.h * ch;
+  const clsIndOff = drawColorIndicator(ctx, card.colorIndicator, clsTypeX, clsTypeY, clsTypeH);
+  drawSingleLineText(ctx, getTypeLine(card), clsTypeX + clsIndOff, clsTypeY, L.type.w * cw - clsIndOff, clsTypeH, L.type.font, L.type.size * ch);
 
   // Set symbol
   await drawSetSymbol(ctx, card.rarity || 'common', L.setSymbol, ch, cw);

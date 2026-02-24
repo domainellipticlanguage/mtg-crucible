@@ -249,3 +249,8 @@ Note: IF you need to refer to any borders and assets, you cannot do that yet. th
 1. [X (supposedly)] Harden the text parser
 1. Create test framework whereby the AI can query scryfall for the text, json, art crop, and rendered card. Then we render our own card (using the scryfall art crop for art), then we concatenate our card with the scryfall card and the AI can view them side by side in a single image to allow for excruciating detail comparison.
 1. Add support for composite cards. In the text format as well
+
+# Decisions
+Card normalization - do we help them out with boilerplate reminder text for sagas and classes?
+Could we support hybrid borders via draw tools? linear gradient to shift between them?
+

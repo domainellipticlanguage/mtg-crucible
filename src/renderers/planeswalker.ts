@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { CardData, PlaneswalkerAbilities } from '../types';
 import { PW_W, PW_H, PW_LAYOUT, ASSETS_DIR } from '../layout';
-import { drawArt, drawCorners, drawBottomInfo, drawManaCost, getTypeLine, frameColorCode } from '../helpers';
+import { drawArt, drawCorners, drawBottomInfo, drawManaCost, getTypeLine, frameColorCode, drawColorIndicator } from '../helpers';
 import { drawSingleLineText, drawWrappedText } from '../text';
 
 export async function renderPlaneswalker(card: CardData): Promise<Buffer> {
@@ -98,7 +98,9 @@ export async function renderPlaneswalker(card: CardData): Promise<Buffer> {
   // Name, mana, type
   drawSingleLineText(ctx, card.name ?? '', L.name.x*cw, L.name.y*ch, L.name.w*cw, L.name.h*ch, L.name.font, L.name.size*ch);
   if (card.manaCost) await drawManaCost(ctx, card.manaCost, cw, ch, L.mana);
-  drawSingleLineText(ctx, getTypeLine(card), L.type.x*cw, L.type.y*ch, L.type.w*cw, L.type.h*ch, L.type.font, L.type.size*ch);
+  const pwTypeX = L.type.x * cw, pwTypeY = L.type.y * ch, pwTypeH = L.type.h * ch;
+  const pwIndOff = drawColorIndicator(ctx, card.colorIndicator, pwTypeX, pwTypeY, pwTypeH);
+  drawSingleLineText(ctx, getTypeLine(card), pwTypeX + pwIndOff, pwTypeY, L.type.w * cw - pwIndOff, pwTypeH, L.type.font, L.type.size * ch);
 
   // Starting loyalty
   drawSingleLineText(ctx, card.startingLoyalty ?? '0', L.loyalty.x*cw, L.loyalty.y*ch, L.loyalty.w*cw, L.loyalty.h*ch, L.loyalty.font, L.loyalty.size*ch, 'center', 'white');

@@ -2,7 +2,7 @@ import { loadImage, GlobalFonts, type SKRSContext2D } from '@napi-rs/canvas';
 import * as fs from 'fs';
 import * as path from 'path';
 import https from 'https';
-import type { CardData, FrameColor } from './types';
+import type { CardData, Color, FrameColor } from './types';
 import { ASSETS_DIR } from './layout';
 
 const FRAME_COLOR_CODES: Record<FrameColor, string> = {
@@ -25,6 +25,67 @@ export function getTypeLine(card: CardData): string {
   }
   return line;
 }
+
+const COLOR_HEX: Record<Color, string> = {
+  white: '#fcfeff',
+  blue: '#0075be',
+  black: '#272624',
+  red: '#ef3827',
+  green: '#007b43',
+};
+
+/**
+ * Draws a color indicator circle to the left of the type line.
+ * Returns the horizontal offset (in pixels) the type text should shift right.
+ * Returns 0 if the card has no color indicator.
+ */
+export function drawColorIndicator(
+  ctx: SKRSContext2D,
+  colors: Color[] | undefined,
+  x: number, y: number, h: number,
+): number {
+  if (!colors || colors.length === 0) return 0;
+
+  const diameter = h * 0.85;
+  const r = diameter / 2;
+  const cx = x + r;
+  const cy = y + h / 2;
+
+  ctx.save();
+
+  // Clip to circle
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.clip();
+
+  if (colors.length === 1) {
+    ctx.fillStyle = COLOR_HEX[colors[0]];
+    ctx.fillRect(cx - r, cy - r, diameter, diameter);
+  } else {
+    // Vertical gradient blending through the colors, top to bottom
+    const top = cy - r;
+    const grad = ctx.createLinearGradient(cx, top, cx, top + diameter);
+    for (let i = 0; i < colors.length; i++) {
+      grad.addColorStop(i / (colors.length - 1), COLOR_HEX[colors[i]]);
+    }
+    ctx.fillStyle = grad;
+    ctx.fillRect(cx - r, top, diameter, diameter);
+  }
+
+  ctx.restore();
+
+  // Dark outline (drawn outside the clip)
+  ctx.save();
+  ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+  ctx.lineWidth = r * 0.15;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+
+  return diameter + h * 0.2; // circle width + gap
+}
+
 import { loadManaSymbol, parseManaString, preloadAllSymbols } from './symbols';
 
 let initialized = false;

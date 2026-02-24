@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { CardData } from '../types';
 import { STD_W, STD_H, STD_LAYOUT, ASSETS_DIR } from '../layout';
-import { drawArt, drawCorners, drawSetSymbol, drawBottomInfo, drawManaCost, getTypeLine, frameColorCode } from '../helpers';
+import { drawArt, drawCorners, drawSetSymbol, drawBottomInfo, drawManaCost, getTypeLine, frameColorCode, drawColorIndicator } from '../helpers';
 import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor } from '../text';
 
 export async function renderStandard(card: CardData): Promise<Buffer> {
@@ -65,8 +65,12 @@ export async function renderStandard(card: CardData): Promise<Buffer> {
   // Mana cost
   if (card.manaCost) await drawManaCost(ctx, card.manaCost, cw, ch, L.mana);
 
-  // Type line
-  drawSingleLineText(ctx, getTypeLine(card), L.type.x*cw, L.type.y*ch, L.type.w*cw, L.type.h*ch, L.type.font, L.type.size*ch);
+  // Type line (with optional color indicator)
+  const typeX = L.type.x * cw;
+  const typeY = L.type.y * ch;
+  const typeH = L.type.h * ch;
+  const indicatorOffset = drawColorIndicator(ctx, card.colorIndicator, typeX, typeY, typeH);
+  drawSingleLineText(ctx, getTypeLine(card), typeX + indicatorOffset, typeY, L.type.w * cw - indicatorOffset, typeH, L.type.font, L.type.size * ch);
 
   // Rules + flavor
   const rx = L.rules.x*cw, ry = L.rules.y*ch, rw = L.rules.w*cw, rh = L.rules.h*ch, rs = L.rules.size*ch;
