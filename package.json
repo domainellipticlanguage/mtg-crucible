@@ -7,6 +7,7 @@
   "scripts": {
     "test": "vitest",
     "build": "tsc",
+    "dev": "npx tsx scripts/dev-server.ts",
     "spike": "npx tsx scripts/spike.ts",
     "generate-assets": "npx tsx logo/generate-assets.ts"
   },
