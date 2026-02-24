@@ -1,6 +1,6 @@
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'mythic';
 
-export type CardTemplate = 'normal' | 'planeswalker' | 'saga' | 'battle' | 'class';
+export type CardTemplate = 'normal' | 'planeswalker' | 'saga' | 'battle' | 'class' | 'saga_creature';
 
 export type Color = 'white' | 'blue' | 'black' | 'red' | 'green';
 export type FrameColor = Color | 'artifact' | 'multicolor' | 'vehicle' | 'land';
@@ -102,7 +102,7 @@ export interface CardData {
   // Will be inferred if not provided
   frameColor?: FrameColor;
 
-  name: string;
+  name?: string; // Will default to Untitled
   manaCost?: string;
   supertypes?: Supertype[]; // e.g. legendary
   types?: Type[];
@@ -133,6 +133,7 @@ export interface CardData {
   collectorNumber?: string;
   artist?: string;
   setCode?: string;
+  designer?: string;
   // isLegendary?: boolean;
 }
 

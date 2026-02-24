@@ -214,6 +214,8 @@ npm run spike     # render test cards to output/
     - 672 × 936 to match scryfall
 - Finalize the schema
 - Support color indicator
+- Support saga creature
+
 
 flip cards are in effect just transform cards
 - can infer flip cards by lack of color indicator...although what about lands...
