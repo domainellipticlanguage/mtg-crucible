@@ -219,7 +219,7 @@ npm run spike     # render test cards to output/
 - Finalize the schema
 - Support color indicator
 - Support saga creature
-
+- Support the MDFC / Transform triangle indicator.
 
 ## Won't do
 - Support devoid borders

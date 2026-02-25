@@ -92,16 +92,34 @@ export function drawColorIndicator(
     ctx.fillStyle = COLOR_HEX[colors[0]];
     ctx.fillRect(cx - r, cy - r, diameter, diameter);
   } else {
-    // Pie slices, starting from top (12 o'clock)
-    const sliceAngle = (Math.PI * 2) / colors.length;
-    const startOffset = -Math.PI / 2;
-    for (let i = 0; i < colors.length; i++) {
+    const n = colors.length;
+    const sliceAngle = (Math.PI * 2) / n;
+    // Per-count rotation: 2=45° CW from top, 3=60° CW, 4=45° CW, 5=36° CW
+    const rotations: Record<number, number> = {
+      2: Math.PI / 4 + Math.PI,  // 225°
+      3: Math.PI / 3,       // 60° CW
+      4: -Math.PI / 4,      // 45° CCW
+      5: -Math.PI / 5,      // 36° CCW
+    };
+    const startOffset = -Math.PI / 2 + (rotations[n] ?? 0);
+    for (let i = 0; i < n; i++) {
       ctx.fillStyle = COLOR_HEX[colors[i]];
       ctx.beginPath();
       ctx.moveTo(cx, cy);
       ctx.arc(cx, cy, r + 1, startOffset + i * sliceAngle, startOffset + (i + 1) * sliceAngle);
       ctx.closePath();
       ctx.fill();
+    }
+
+    // Spoke lines between wedges
+    ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+    ctx.lineWidth = Math.max(3, r * 0.06 + 2);
+    for (let i = 0; i < n; i++) {
+      const angle = startOffset + i * sliceAngle;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(angle) * (r + 1), cy + Math.sin(angle) * (r + 1));
+      ctx.stroke();
     }
   }
 
