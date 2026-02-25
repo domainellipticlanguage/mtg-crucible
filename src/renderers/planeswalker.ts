@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { CardData, PlaneswalkerAbilities } from '../types';
 import { PW_W, PW_H, PW_LAYOUT, ASSETS_DIR } from '../layout';
-import { drawArt, drawCorners, drawBottomInfo, drawManaCost, getTypeLine, frameColorCode, drawColorIndicator } from '../helpers';
+import { drawArt, drawCorners, drawBottomInfo, drawManaCost, getTypeLine, frameColorCode, drawColorIndicator, drawFrame } from '../helpers';
 import { drawSingleLineText, drawWrappedText } from '../text';
 
 export async function renderPlaneswalker(card: CardData): Promise<Buffer> {
@@ -50,9 +50,8 @@ export async function renderPlaneswalker(card: CardData): Promise<Buffer> {
     }
   }
 
-  // Frame
-  const framePath = path.join(ASSETS_DIR, 'frames', 'planeswalker', `${fc}.png`);
-  if (fs.existsSync(framePath)) ctx.drawImage(await loadImage(framePath), 0, 0, cw, ch);
+  // Frame (with accent compositing for colored lands/artifacts)
+  await drawFrame(ctx, 'planeswalker', card.frameColor, card.accentColor, cw, ch);
 
   // Loyalty cost icons (post-frame)
   const iconYPositions = L.abilityIconY[abilityCount] || L.abilityIconY[3];

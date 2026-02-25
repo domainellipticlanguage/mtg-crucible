@@ -131,7 +131,7 @@ describe('parseCard', () => {
     expect(card).toMatchObject({ frameColor: 'artifact' });
   });
 
-  it('derives color from phyrexian mana', () => {
+  it('derives artifact frame with accent from phyrexian mana', () => {
     const card = parseCard(`
       Birthing Pod {3}{G/P}
       Artifact
@@ -139,7 +139,8 @@ describe('parseCard', () => {
     `);
     expect(card).toMatchObject({
       manaCost: '{3}{G/P}',
-      frameColor: 'green',
+      frameColor: 'artifact',
+      accentColor: 'green',
     });
   });
 

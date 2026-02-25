@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { CardData, ClassAbilities } from '../types';
 import { PW_W, PW_H, CLASS_LAYOUT, ASSETS_DIR, FONT_HEIGHT_RATIO } from '../layout';
-import { drawArt, drawCorners, drawSetSymbol, drawBottomInfo, drawManaCost, getTypeLine, frameColorCode, drawColorIndicator } from '../helpers';
+import { drawArt, drawCorners, drawSetSymbol, drawBottomInfo, drawManaCost, getTypeLine, frameColorCode, drawColorIndicator, drawFrame } from '../helpers';
 import { drawSingleLineText, drawWrappedText, drawRichLine, wrapParagraphs, computeHeight } from '../text';
 
 /** Measure how tall text would be at a given size without drawing. */
@@ -33,9 +33,8 @@ export async function renderClass(card: CardData): Promise<Buffer> {
   // Art (left side)
   if (card.artUrl) await drawArt(ctx, card.artUrl, L.art, cw, ch);
 
-  // Frame
-  const framePath = path.join(ASSETS_DIR, 'frames', 'class', `${fc}.png`);
-  if (fs.existsSync(framePath)) ctx.drawImage(await loadImage(framePath), 0, 0, cw, ch);
+  // Frame (with accent compositing for colored lands/artifacts)
+  await drawFrame(ctx, 'class', card.frameColor, card.accentColor, cw, ch);
 
   // Header divider image
   const headerPath = path.join(ASSETS_DIR, 'frames', 'class', 'header.png');

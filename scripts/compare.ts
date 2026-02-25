@@ -90,17 +90,39 @@ function parseTypeLine(typeLine: string): { supertypes: Supertype[]; types: Type
   return { supertypes, types, subtypes };
 }
 
-function sfFrameColor(sf: any): FrameColor {
+const SF_COLOR_MAP: Record<string, Color> = { W: 'white', U: 'blue', B: 'black', R: 'red', G: 'green' };
+
+function sfFrameAndAccent(sf: any): { frameColor: FrameColor; accentColor?: Color | 'multicolor' } {
   const tl = sf.type_line.toLowerCase();
-  if (tl.includes('vehicle')) return 'vehicle';
-  if (tl.includes('land') && !sf.mana_cost) return 'land';
+  if (tl.includes('vehicle')) return { frameColor: 'vehicle' };
+
   const colors: string[] = sf.colors || [];
-  if (colors.length === 0) return 'artifact';
-  if (colors.length === 1) {
-    const map: Record<string, FrameColor> = { W: 'white', U: 'blue', B: 'black', R: 'red', G: 'green' };
-    return map[colors[0]] || 'artifact';
+
+  // Land with no mana cost
+  if (tl.includes('land') && !sf.mana_cost) {
+    // Colored land creatures (Dryad Arbor) — has colors
+    if (colors.length === 1) return { frameColor: SF_COLOR_MAP[colors[0]] || 'land' };
+    if (colors.length > 1) return { frameColor: 'multicolor' };
+
+    // Colorless land — derive accent from produced_mana or color_identity
+    const produced: string[] = sf.produced_mana || [];
+    const colorProduced = produced.filter((c: string) => SF_COLOR_MAP[c]);
+    if (colorProduced.length === 0) return { frameColor: 'land' };
+    if (colorProduced.length === 1) return { frameColor: 'land', accentColor: SF_COLOR_MAP[colorProduced[0]] };
+    return { frameColor: 'land', accentColor: 'multicolor' };
   }
-  return 'multicolor';
+
+  // Artifact type
+  if (tl.includes('artifact') && !tl.includes('creature')) {
+    if (colors.length === 0) return { frameColor: 'artifact' };
+    if (colors.length === 1) return { frameColor: 'artifact', accentColor: SF_COLOR_MAP[colors[0]] };
+    return { frameColor: 'artifact', accentColor: 'multicolor' };
+  }
+
+  // Normal cards
+  if (colors.length === 0) return { frameColor: 'artifact' };
+  if (colors.length === 1) return { frameColor: SF_COLOR_MAP[colors[0]] || 'artifact' };
+  return { frameColor: 'multicolor' };
 }
 
 // Planeswalker: parse "+1: ...\n−2: ...\n−6: ..." from oracle_text
@@ -164,12 +186,13 @@ function scryfallToCardData(sf: any): CardData {
   if (types.length > 0) card.types = types;
   if (subtypes.length > 0) card.subtypes = subtypes;
 
-  card.frameColor = sfFrameColor(sf);
+  const { frameColor, accentColor } = sfFrameAndAccent(sf);
+  card.frameColor = frameColor;
+  if (accentColor) card.accentColor = accentColor;
 
   // Color indicator (Scryfall uses single-letter codes: W, U, B, R, G)
   if (sf.color_indicator && sf.color_indicator.length > 0) {
-    const sfColorMap: Record<string, Color> = { W: 'white', U: 'blue', B: 'black', R: 'red', G: 'green' };
-    card.colorIndicator = sf.color_indicator.map((c: string) => sfColorMap[c]).filter(Boolean);
+    card.colorIndicator = sf.color_indicator.map((c: string) => SF_COLOR_MAP[c]).filter(Boolean);
   }
 
   // Use art_crop for rendering

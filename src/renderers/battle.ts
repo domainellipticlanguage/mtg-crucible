@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { CardData } from '../types';
 import { BTL_W, BTL_H, BTL_LAYOUT, ASSETS_DIR } from '../layout';
-import { drawArt, drawCorners, drawManaCost, getTypeLine, frameColorCode, drawColorIndicator } from '../helpers';
+import { drawArt, drawCorners, drawManaCost, getTypeLine, frameColorCode, drawColorIndicator, drawFrame } from '../helpers';
 import { drawSingleLineText, drawWrappedText } from '../text';
 
 export async function renderBattle(card: CardData): Promise<Buffer> {
@@ -20,9 +20,8 @@ export async function renderBattle(card: CardData): Promise<Buffer> {
   // Art
   if (card.artUrl) await drawArt(ctx, card.artUrl, L.art, cw, ch);
 
-  // Frame
-  const framePath = path.join(ASSETS_DIR, 'frames', 'battle', `${fc}.png`);
-  if (fs.existsSync(framePath)) ctx.drawImage(await loadImage(framePath), 0, 0, cw, ch);
+  // Frame (with accent compositing for colored lands/artifacts)
+  await drawFrame(ctx, 'battle', card.frameColor, card.accentColor, cw, ch);
 
   // Name
   drawSingleLineText(ctx, card.name ?? '', L.name.x*cw, L.name.y*ch, L.name.w*cw, L.name.h*ch, L.name.font, L.name.size*ch);

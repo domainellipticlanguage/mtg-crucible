@@ -215,16 +215,39 @@ npm run spike     # render test cards to output/
         - 672 × 936 to match scryfall
     - Alternatively, procedurally generate textures + frames
     - Can we get away with a single frame/format to serve Class, Saga, Case?
+    - Think we just need an AccentColor enum
 - Ponder if card template should be more coarse grained
 - Finalize the schema
 - Support color indicator
 - Support saga creature
 - Support the MDFC / Transform triangle indicator.
+- Figure out what default set/sequence/collection should be
+- Support {11} to {20}
+- Support untap symbol {Q}
+- Support two color accents & crowns - does CC have these?
+    - does not look like it...perhaps can use them as masks applied to other renders
+- Support the wedge for MDFC or transform cards
+
+## Bugs
 - Fix planeswalker ability spacing
+    - Four ability planeswalkers seem to have a different template?
 - Fix planeswalker templates to have transparency
+    - pretty sure our current setup can handle this
 - Revamp parser - Flavor Text: or Flavor:
 - More lenient parsing - we can ...
 - Fix planeswalker art render positioning
+- Fix common set logo
+- Fix colored artifacts using wrong border (do we support accents though?)
+- Fix land accents - why is command tower gold?
+    - Ok I think if it produces multiple colors, the accent changes. Colorless lands have no accent
+    - This complicates our enums...
+    - Archway of Innovation - example of other. Same with basics...
+    - Oh and dryad arbor
+- Reminder text does not get rendered in italics. (Anything in parens can be assumed to be reminder text)
+- Legendary crown is missing a shadow on the side
+- Asterisked text in flavor text should be normal faced, not italic
+- Nit: Saga reminder text could be formatted a little better
+
 
 ## Won't do
 - Support devoid borders

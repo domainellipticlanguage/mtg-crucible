@@ -16,11 +16,13 @@ export { renderClass } from './renderers/class';
 export { parseCard } from './parser';
 
 export function normalizeCard(card: CardData): CardData {
+  const derived = card.frameColor ? undefined : deriveFrameColor(card);
   return {
     ...card,
     name: card.name ?? '',
     rarity: card.rarity ?? 'rare',
-    frameColor: card.frameColor ?? deriveFrameColor(card),
+    frameColor: card.frameColor ?? derived?.frameColor,
+    accentColor: card.accentColor ?? derived?.accentColor,
     collectorNumber: card.collectorNumber ?? '000',
     setCode: card.setCode ?? 'CRU',
   };

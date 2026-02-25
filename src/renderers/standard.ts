@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { CardData } from '../types';
 import { STD_W, STD_H, STD_LAYOUT, ASSETS_DIR } from '../layout';
-import { drawArt, drawCorners, drawSetSymbol, drawBottomInfo, drawManaCost, getTypeLine, frameColorCode, drawColorIndicator } from '../helpers';
+import { drawArt, drawCorners, drawSetSymbol, drawBottomInfo, drawManaCost, getTypeLine, frameColorCode, drawColorIndicator, drawFrame } from '../helpers';
 import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor } from '../text';
 
 export async function renderStandard(card: CardData): Promise<Buffer> {
@@ -20,9 +20,8 @@ export async function renderStandard(card: CardData): Promise<Buffer> {
   // Art
   if (card.artUrl) await drawArt(ctx, card.artUrl, L.art, cw, ch);
 
-  // Frame
-  const framePath = path.join(ASSETS_DIR, 'frames', 'standard', `${fc}.png`);
-  if (fs.existsSync(framePath)) ctx.drawImage(await loadImage(framePath), 0, 0, cw, ch);
+  // Frame (with accent compositing for colored lands/artifacts)
+  await drawFrame(ctx, 'standard', card.frameColor, card.accentColor, cw, ch);
 
   // Legend crown
   if (card.supertypes?.includes('legendary')) {

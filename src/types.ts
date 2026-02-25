@@ -111,6 +111,9 @@ export interface CardData {
   cardTemplate?: CardTemplate;
   // Will be inferred if not provided
   frameColor?: FrameColor;
+  // Optional accent tint for land/artifact frames (e.g. blue land, green artifact)
+  // TODO should add colorless?
+  accentColor?: Color | 'multicolor';
 
   name?: string; // Will default to Untitled
   manaCost?: string;

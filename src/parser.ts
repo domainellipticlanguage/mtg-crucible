@@ -8,6 +8,7 @@ const SET_REGEX = /^Set:\s*([A-Za-z0-9]+)$/i;
 const COLLECTOR_REGEX = /^Collector(?:\s+(?:Number|No\.?))?:\s*(.+)$/i;
 const DESIGNER_REGEX = /^Designer:\s*(.+)$/i;
 const COLOR_INDICATOR_REGEX = /^Color Indicator:\s*(.+)$/i;
+const ACCENT_REGEX = /^Accent:\s*(.+)$/i;
 const PT_REGEX = /^([*\d+]+)\/([*\d+]+)$/;
 const LOYALTY_REGEX = /^Loyalty:\s*(\S+)$/i;
 const DEFENSE_REGEX = /^Defense:\s*(\S+)$/i;
@@ -84,26 +85,51 @@ function parseTypeLine(typeLine: string): { supertypes: Supertype[]; types: Type
   return { supertypes, types, subtypes };
 }
 
-export function deriveFrameColor(card: Pick<CardData, 'subtypes' | 'types' | 'manaCost'>): FrameColor {
-  if (card.subtypes?.some(s => s.toLowerCase() === 'vehicle')) return 'vehicle';
-  if (card.types?.includes('land') && !card.manaCost) return 'land';
+const MANA_COLOR_MAP: Record<string, Color> = { W: 'white', U: 'blue', B: 'black', R: 'red', G: 'green' };
 
+function extractManaColors(manaCost: string | undefined): Set<string> {
   const colors = new Set<string>();
-  const symbols = card.manaCost?.match(/\{([^}]+)\}/g) || [];
+  const symbols = manaCost?.match(/\{([^}]+)\}/g) || [];
   for (const sym of symbols) {
     const inner = sym.slice(1, -1).toUpperCase();
     for (const c of ['W', 'U', 'B', 'R', 'G']) {
       if (inner.includes(c)) colors.add(c);
     }
   }
+  return colors;
+}
 
-  if (colors.size === 0) return 'artifact';
-  if (colors.size === 1) {
-    const c = [...colors][0];
-    const map: Record<string, FrameColor> = { W: 'white', U: 'blue', B: 'black', R: 'red', G: 'green' };
-    return map[c];
+function colorsToFrameColor(colors: Set<string>): { frameColor: FrameColor; accentColor?: Color | 'multicolor' } {
+  if (colors.size === 0) return { frameColor: 'artifact' };
+  if (colors.size === 1) return { frameColor: MANA_COLOR_MAP[[...colors][0]] };
+  return { frameColor: 'multicolor' };
+}
+
+export function deriveFrameColor(card: Pick<CardData, 'subtypes' | 'types' | 'manaCost' | 'colorIndicator'>): { frameColor: FrameColor; accentColor?: Color | 'multicolor' } {
+  if (card.subtypes?.some(s => s.toLowerCase() === 'vehicle')) return { frameColor: 'vehicle' };
+
+  // Land with no mana cost
+  if (card.types?.includes('land') && !card.manaCost) {
+    // Colored land creatures (Dryad Arbor) — use colorIndicator as the frame color
+    if (card.colorIndicator && card.colorIndicator.length === 1) {
+      return { frameColor: card.colorIndicator[0] };
+    }
+    if (card.colorIndicator && card.colorIndicator.length > 1) {
+      return { frameColor: 'multicolor' };
+    }
+    return { frameColor: 'land' };
   }
-  return 'multicolor';
+
+  const colors = extractManaColors(card.manaCost);
+
+  // Artifact type — use artifact frame with color accent
+  if (card.types?.includes('artifact')) {
+    if (colors.size === 0) return { frameColor: 'artifact' };
+    if (colors.size === 1) return { frameColor: 'artifact', accentColor: MANA_COLOR_MAP[[...colors][0]] };
+    return { frameColor: 'artifact', accentColor: 'multicolor' };
+  }
+
+  return colorsToFrameColor(colors);
 }
 
 export function parseCard(text: string): CardData {
@@ -132,6 +158,7 @@ export function parseCard(text: string): CardData {
   let collectorNumber: string | undefined;
   let designer: string | undefined;
   let colorIndicator: Color[] | undefined;
+  let explicitAccent: Color | 'multicolor' | undefined;
   let nextLine = 1;
   while (nextLine < lines.length) {
     const current = lines[nextLine];
@@ -156,6 +183,17 @@ export function parseCard(text: string): CardData {
       colorIndicator = parseColorIndicator(colorIndicatorMatch[1]) || colorIndicator;
       nextLine++; continue;
     }
+    const accentMatch = current.match(ACCENT_REGEX);
+    if (accentMatch) {
+      const raw = accentMatch[1].trim().toLowerCase();
+      if (raw === 'multicolor' || raw === 'multi' || raw === 'gold') {
+        explicitAccent = 'multicolor';
+      } else {
+        const c = COLOR_ALIASES[raw];
+        if (c) explicitAccent = c;
+      }
+      nextLine++; continue;
+    }
     if (/^[A-Za-z][A-Za-z0-9\/\s]+:\s*/.test(current)) { nextLine++; continue; }
     break;
   }
@@ -163,7 +201,7 @@ export function parseCard(text: string): CardData {
   // Type line
   const typeLine = lines[nextLine];
   const { supertypes, types, subtypes } = parseTypeLine(typeLine);
-  const frameColor = deriveFrameColor({ subtypes, types, manaCost });
+  const { frameColor, accentColor } = deriveFrameColor({ subtypes, types, manaCost, colorIndicator });
 
   // Remaining lines: body
   const bodyLines = lines.slice(nextLine + 1);
@@ -189,6 +227,8 @@ export function parseCard(text: string): CardData {
   if (collectorNumber) card.collectorNumber = collectorNumber;
   if (designer) card.designer = designer;
   if (colorIndicator && colorIndicator.length > 0) card.colorIndicator = colorIndicator;
+  if (explicitAccent) card.accentColor = explicitAccent;
+  else if (accentColor) card.accentColor = accentColor;
   return card;
 }
 

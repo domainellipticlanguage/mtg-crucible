@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { CardData, SagaAbilities } from '../types';
 import { PW_W, PW_H, SAGA_LAYOUT, ASSETS_DIR } from '../layout';
-import { drawArt, drawCorners, drawBottomInfo, drawManaCost, getTypeLine, frameColorCode, drawColorIndicator } from '../helpers';
+import { drawArt, drawCorners, drawBottomInfo, drawManaCost, getTypeLine, frameColorCode, drawColorIndicator, drawFrame } from '../helpers';
 import { drawSingleLineText, drawWrappedText, fillTextHeavy, wrapParagraphs, computeHeight } from '../text';
 
 function romanNumeral(n: number): string {
@@ -30,9 +30,8 @@ export async function renderSaga(card: CardData): Promise<Buffer> {
   // Art (right side)
   if (card.artUrl) await drawArt(ctx, card.artUrl, L.art, cw, ch);
 
-  // Frame
-  const framePath = path.join(ASSETS_DIR, 'frames', 'saga', `${fc}.png`);
-  if (fs.existsSync(framePath)) ctx.drawImage(await loadImage(framePath), 0, 0, cw, ch);
+  // Frame (with accent compositing for colored lands/artifacts)
+  await drawFrame(ctx, 'saga', card.frameColor, card.accentColor, cw, ch);
 
   // Chapter numbers and dividers
   const chapterCount = chapters.length;

@@ -1,4 +1,4 @@
-import { loadImage, GlobalFonts, type SKRSContext2D } from '@napi-rs/canvas';
+import { createCanvas, loadImage, GlobalFonts, type SKRSContext2D } from '@napi-rs/canvas';
 import * as fs from 'fs';
 import * as path from 'path';
 import https from 'https';
@@ -12,6 +12,52 @@ const FRAME_COLOR_CODES: Record<FrameColor, string> = {
 
 export function frameColorCode(fc: FrameColor | undefined): string {
   return fc ? FRAME_COLOR_CODES[fc] ?? 'a' : 'a';
+}
+
+/**
+ * Draws the card frame, handling accent compositing when accentColor is set.
+ * For accented frames (colored lands, colored artifacts):
+ *   1. Draw the accent color frame (e.g. blue)
+ *   2. Overlay the base frame's border using the frame mask (e.g. land rocky border)
+ */
+export async function drawFrame(
+  ctx: SKRSContext2D,
+  template: string,
+  frameColor: FrameColor | undefined,
+  accentColor: Color | 'multicolor' | undefined,
+  cw: number, ch: number,
+): Promise<void> {
+  const fc = frameColorCode(frameColor);
+
+  if (accentColor) {
+    // Draw accent color frame first (full colored frame)
+    const accentCode = accentColor === 'multicolor' ? 'm' : frameColorCode(accentColor);
+    const accentPath = path.join(ASSETS_DIR, 'frames', template, `${accentCode}.png`);
+    if (fs.existsSync(accentPath)) {
+      ctx.drawImage(await loadImage(accentPath), 0, 0, cw, ch);
+    }
+
+    // Overlay base frame's border using mask
+    const basePath = path.join(ASSETS_DIR, 'frames', template, `${fc}.png`);
+    const maskPath = path.join(ASSETS_DIR, 'masks', `${template}-frame.png`);
+    if (fs.existsSync(basePath) && fs.existsSync(maskPath)) {
+      const offscreen = createCanvas(cw, ch);
+      const offCtx = offscreen.getContext('2d');
+      // Draw mask first (defines where the base border appears)
+      offCtx.drawImage(await loadImage(maskPath), 0, 0, cw, ch);
+      // source-in: keep base frame only where mask has alpha
+      offCtx.globalCompositeOperation = 'source-in';
+      offCtx.drawImage(await loadImage(basePath), 0, 0, cw, ch);
+      // Composite the masked border onto main canvas
+      ctx.drawImage(offscreen, 0, 0);
+    }
+  } else {
+    // No accent — just draw the frame normally
+    const framePath = path.join(ASSETS_DIR, 'frames', template, `${fc}.png`);
+    if (fs.existsSync(framePath)) {
+      ctx.drawImage(await loadImage(framePath), 0, 0, cw, ch);
+    }
+  }
 }
 
 export function getTypeLine(card: CardData): string {
