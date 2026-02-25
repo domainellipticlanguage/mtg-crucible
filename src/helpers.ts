@@ -27,11 +27,11 @@ export function getTypeLine(card: CardData): string {
 }
 
 const COLOR_HEX: Record<Color, string> = {
-  white: '#fcfeff',
-  blue: '#0075be',
-  black: '#272624',
-  red: '#ef3827',
-  green: '#007b43',
+  white: '#ccced0',
+  blue: '#005f9a',
+  black: '#1a1918',
+  red: '#c12d1f',
+  green: '#006336',
 };
 
 /**
@@ -46,14 +46,44 @@ export function drawColorIndicator(
 ): number {
   if (!colors || colors.length === 0) return 0;
 
-  const diameter = h * 0.85;
-  const r = diameter / 2;
+  const diameter = h * 0.44;
+  const r = diameter / 2 - 1;
   const cx = x + r;
-  const cy = y + h / 2;
+  const cy = y + h * 0.55 - 5;
 
+  // Outer shadow: dark on top half (impressed into card, light from below)
+  // Draw 3 passes for intensity, tight radius
+  for (let i = 0; i < 5; i++) {
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,1)';
+    ctx.shadowBlur = r * 0.4;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = -r * 0.1;
+    ctx.fillStyle = 'black';
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, Math.PI, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Bottom highlight (anti-shadow) — 5 passes, tight radius
+  for (let i = 0; i < 5; i++) {
+    ctx.save();
+    ctx.shadowColor = 'rgba(255,255,255,0.5)';
+    ctx.shadowBlur = r * 0.3;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = r * 0.08;
+    ctx.fillStyle = 'white';
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Fill the circle with color
   ctx.save();
-
-  // Clip to circle
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
   ctx.clip();
@@ -62,28 +92,31 @@ export function drawColorIndicator(
     ctx.fillStyle = COLOR_HEX[colors[0]];
     ctx.fillRect(cx - r, cy - r, diameter, diameter);
   } else {
-    // Vertical gradient blending through the colors, top to bottom
-    const top = cy - r;
-    const grad = ctx.createLinearGradient(cx, top, cx, top + diameter);
+    // Pie slices, starting from top (12 o'clock)
+    const sliceAngle = (Math.PI * 2) / colors.length;
+    const startOffset = -Math.PI / 2;
     for (let i = 0; i < colors.length; i++) {
-      grad.addColorStop(i / (colors.length - 1), COLOR_HEX[colors[i]]);
+      ctx.fillStyle = COLOR_HEX[colors[i]];
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, r + 1, startOffset + i * sliceAngle, startOffset + (i + 1) * sliceAngle);
+      ctx.closePath();
+      ctx.fill();
     }
-    ctx.fillStyle = grad;
-    ctx.fillRect(cx - r, top, diameter, diameter);
   }
 
   ctx.restore();
 
-  // Dark outline (drawn outside the clip)
+  // Thin dark outline
   ctx.save();
-  ctx.strokeStyle = 'rgba(0,0,0,0.5)';
-  ctx.lineWidth = r * 0.15;
+  ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+  ctx.lineWidth = Math.max(3, r * 0.08 + 2);
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
   ctx.stroke();
   ctx.restore();
 
-  return diameter + h * 0.2; // circle width + gap
+  return diameter + h * 0.15; // circle width + gap
 }
 
 import { loadManaSymbol, parseManaString, preloadAllSymbols } from './symbols';

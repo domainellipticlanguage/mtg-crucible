@@ -13,12 +13,22 @@ export type LinkType =
   | 'transform'     // werewolves
   | 'modal_dfc'     // modal lands
   | 'flip'          // https://scryfall.com/card/chk/93/student-of-elements-tobita-master-of-winds
-  | 'fuse'          // https://scryfall.com/card/dgm/134/turn-burn
+  // | 'fuse'          // https://scryfall.com/card/dgm/134/turn-burn
+    // fuse is split
   | 'split'         // https://scryfall.com/card/dmr/210/assault-battery
   | 'adventure'     // https://scryfall.com/card/dsc/172/beanstalk-giant-fertile-footsteps
   | 'aftermath'     // https://scryfall.com/card/hou/152/appeal-authority
-  | 'room';         // https://scryfall.com/card/dsk/43/bottomless-pool-locker-room
+  // | 'room';         // https://scryfall.com/card/dsk/43/bottomless-pool-locker-room
+    // room is split
+  ;
 
+// transform, modal_dfc, and arguably split do not affect the rendering of the linked card (and linker card)
+// well split does influence proportions a bit
+// Adventure and aftermath are different. They don't affect the linker much. But they
+// severely restrict the linked. 
+// Only the combination of LinkType and CardTemplate allows deriving the art dimensions
+// And then, you have to be careful about linker or linked. Implying CardTemplate should have 2 variants?
+// But does that limit us...assuming we wanted a split card as the adventure? Would need split x linktype
 
 // export type NumericSymbol = number | 'X' | '*' | (string & {});
 

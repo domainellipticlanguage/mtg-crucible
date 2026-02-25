@@ -15,7 +15,7 @@ import * as path from 'path';
 import https from 'https';
 import { createCanvas, loadImage } from '@napi-rs/canvas';
 import { renderCard } from '../src';
-import type { CardData, FrameColor, Supertype, Type } from '../src/types';
+import type { CardData, Color, FrameColor, Supertype, Type } from '../src/types';
 
 const OUT = '/tmp/mtg-crucible-compare';
 
@@ -166,6 +166,12 @@ function scryfallToCardData(sf: any): CardData {
 
   card.frameColor = sfFrameColor(sf);
 
+  // Color indicator (Scryfall uses single-letter codes: W, U, B, R, G)
+  if (sf.color_indicator && sf.color_indicator.length > 0) {
+    const sfColorMap: Record<string, Color> = { W: 'white', U: 'blue', B: 'black', R: 'red', G: 'green' };
+    card.colorIndicator = sf.color_indicator.map((c: string) => sfColorMap[c]).filter(Boolean);
+  }
+
   // Use art_crop for rendering
   if (sf.image_uris?.art_crop) card.artUrl = sf.image_uris.art_crop;
 
@@ -277,18 +283,46 @@ async function compareCard(name: string, set?: string): Promise<string> {
   return compPath;
 }
 
+async function compareLocal(refImagePath: string, cardDataJsonPath: string): Promise<string> {
+  const refPng = fs.readFileSync(refImagePath);
+  const cardData: CardData = JSON.parse(fs.readFileSync(cardDataJsonPath, 'utf-8'));
+
+  console.log(`  Rendering our version...`);
+  const { frontFace: ourPng } = await renderCard(cardData);
+
+  console.log(`  Building comparison image...`);
+  const comparison = await buildComparison(refPng, ourPng, cardData.name || 'card');
+
+  const slug = (cardData.name || 'card').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  const compPath = path.join(OUT, `${slug}.png`);
+  fs.writeFileSync(compPath, comparison);
+  fs.writeFileSync(path.join(OUT, `${slug}-ours.png`), ourPng);
+  console.log(`  Wrote: ${compPath}`);
+  return compPath;
+}
+
 async function main() {
   fs.mkdirSync(OUT, { recursive: true });
 
   const args = process.argv.slice(2);
   if (args.length === 0) {
-    console.error('Usage: npx tsx scripts/compare.ts "Card Name" [set]');
+    console.error('Usage:');
+    console.error('  npx tsx scripts/compare.ts "Card Name" [set]        # fetch from Scryfall');
+    console.error('  npx tsx scripts/compare.ts --local ref.png card.json # compare local files');
     process.exit(1);
   }
 
-  const name = args[0];
-  const set = args[1];
-  await compareCard(name, set);
+  if (args[0] === '--local') {
+    if (args.length < 3) {
+      console.error('Usage: npx tsx scripts/compare.ts --local <reference.png> <carddata.json>');
+      process.exit(1);
+    }
+    await compareLocal(args[1], args[2]);
+  } else {
+    const name = args[0];
+    const set = args[1];
+    await compareCard(name, set);
+  }
 }
 
 main().catch(console.error);
