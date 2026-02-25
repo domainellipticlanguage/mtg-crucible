@@ -220,6 +220,11 @@ npm run spike     # render test cards to output/
 - Support color indicator
 - Support saga creature
 - Support the MDFC / Transform triangle indicator.
+- Fix planeswalker ability spacing
+- Fix planeswalker templates to have transparency
+- Revamp parser - Flavor Text: or Flavor:
+- More lenient parsing - we can ...
+- Fix planeswalker art render positioning
 
 ## Won't do
 - Support devoid borders
@@ -235,8 +240,10 @@ renderCard(cardData: CardData): RenderedCard
 renderCard(text: string): RenderedCard
 
 parseCard(text: string): CardData
+formatCard(cardData: CardData): string
 
 normalizeCard(cardData: CardData): CardData
+
 
 // TODO maybe make a class and there should just be an aspectRatio property that does the division.
 getArtDimensions(cardTemplate: CardTemplate): { widthPixels: number; heightPixels: number; aspectRatioWidth: number; aspectRatioHeight: number; }
