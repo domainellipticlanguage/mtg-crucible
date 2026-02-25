@@ -108,14 +108,13 @@ function colorsToFrameColor(colors: Set<string>): { frameColor: FrameColor; acce
 export function deriveFrameColor(card: Pick<CardData, 'subtypes' | 'types' | 'manaCost' | 'colorIndicator'>): { frameColor: FrameColor; accentColor?: Color | 'multicolor' } {
   if (card.subtypes?.some(s => s.toLowerCase() === 'vehicle')) return { frameColor: 'vehicle' };
 
-  // Land with no mana cost
+  // Land with no mana cost — land frame always wins, colorIndicator becomes accent
   if (card.types?.includes('land') && !card.manaCost) {
-    // Colored land creatures (Dryad Arbor) — use colorIndicator as the frame color
     if (card.colorIndicator && card.colorIndicator.length === 1) {
-      return { frameColor: card.colorIndicator[0] };
+      return { frameColor: 'land', accentColor: card.colorIndicator[0] };
     }
     if (card.colorIndicator && card.colorIndicator.length > 1) {
-      return { frameColor: 'multicolor' };
+      return { frameColor: 'land', accentColor: 'multicolor' };
     }
     return { frameColor: 'land' };
   }

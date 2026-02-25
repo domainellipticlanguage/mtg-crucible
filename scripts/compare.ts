@@ -98,11 +98,11 @@ function sfFrameAndAccent(sf: any): { frameColor: FrameColor; accentColor?: Colo
 
   const colors: string[] = sf.colors || [];
 
-  // Land with no mana cost
+  // Land with no mana cost — land frame always wins, colors become accent
   if (tl.includes('land') && !sf.mana_cost) {
-    // Colored land creatures (Dryad Arbor) — has colors
-    if (colors.length === 1) return { frameColor: SF_COLOR_MAP[colors[0]] || 'land' };
-    if (colors.length > 1) return { frameColor: 'multicolor' };
+    // Colored land creatures (Dryad Arbor) — colors become accent
+    if (colors.length === 1) return { frameColor: 'land', accentColor: SF_COLOR_MAP[colors[0]] };
+    if (colors.length > 1) return { frameColor: 'land', accentColor: 'multicolor' };
 
     // Colorless land — derive accent from produced_mana or color_identity
     const produced: string[] = sf.produced_mana || [];

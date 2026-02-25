@@ -144,6 +144,77 @@ describe('parseCard', () => {
     });
   });
 
+  it('derives artifact frame with multicolor accent', () => {
+    const card = parseCard(`
+      Chromatic Orrery {7}
+      Legendary Artifact
+      You may spend mana as though it were mana of any color.
+    `);
+    expect(card).toMatchObject({ frameColor: 'artifact' });
+    expect(card.accentColor).toBeUndefined();
+  });
+
+  it('derives artifact frame with accent from colored mana', () => {
+    const card = parseCard(`
+      Bolas's Citadel {3}{B}{B}{B}
+      Legendary Artifact
+      You may look at the top card of your library any time.
+    `);
+    expect(card).toMatchObject({
+      frameColor: 'artifact',
+      accentColor: 'black',
+    });
+  });
+
+  it('derives land frame with no accent for colorless land', () => {
+    const card = parseCard(`
+      Command Tower
+      Land
+      {T}: Add one mana of any color in your commander's color identity.
+    `);
+    expect(card).toMatchObject({ frameColor: 'land' });
+    expect(card.accentColor).toBeUndefined();
+  });
+
+  it('derives land frame with accent from colorIndicator', () => {
+    const card = parseCard(`
+      Dryad Arbor
+      Color Indicator: green
+      Land Creature — Forest Dryad
+      1/1
+    `);
+    expect(card).toMatchObject({
+      frameColor: 'land',
+      accentColor: 'green',
+    });
+  });
+
+  it('derives land frame with multicolor accent from multi-color indicator', () => {
+    const card = parseCard(`
+      Test Land
+      Color Indicator: blue, red
+      Land Creature — Island Mountain
+      1/1
+    `);
+    expect(card).toMatchObject({
+      frameColor: 'land',
+      accentColor: 'multicolor',
+    });
+  });
+
+  it('parses explicit Accent: metadata line', () => {
+    const card = parseCard(`
+      Mystic Sanctuary
+      Accent: blue
+      Land — Island
+      Mystic Sanctuary enters the battlefield tapped unless you control three or more other Islands.
+    `);
+    expect(card).toMatchObject({
+      frameColor: 'land',
+      accentColor: 'blue',
+    });
+  });
+
   it('parses flavor text wrapped in *asterisks*', () => {
     const card = parseCard(`
       Lightning Bolt {R}

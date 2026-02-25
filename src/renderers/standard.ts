@@ -12,6 +12,8 @@ export async function renderStandard(card: CardData): Promise<Buffer> {
   const ctx = canvas.getContext('2d');
   const L = STD_LAYOUT;
   const fc = frameColorCode(card.frameColor);
+  // For accent frames, use accent color for elements like P/T box and crown
+  const visualFc = card.accentColor ? frameColorCode(card.accentColor === 'multicolor' ? 'multicolor' : card.accentColor) : fc;
 
   // Background
   ctx.fillStyle = '#1a1a1a';
@@ -25,7 +27,7 @@ export async function renderStandard(card: CardData): Promise<Buffer> {
 
   // Legend crown
   if (card.supertypes?.includes('legendary')) {
-    const crownPath = path.join(ASSETS_DIR, 'crowns', `${fc}.png`);
+    const crownPath = path.join(ASSETS_DIR, 'crowns', `${visualFc}.png`);
     if (fs.existsSync(crownPath)) {
       // "Legend Crown Border Cover" — black bar behind crown top (CC's complementary:9)
       ctx.fillStyle = 'black';
@@ -47,9 +49,9 @@ export async function renderStandard(card: CardData): Promise<Buffer> {
     }
   }
 
-  // P/T box
+  // P/T box (use accent color when available, e.g. green P/T on a green land)
   if (card.power !== undefined && card.toughness !== undefined) {
-    const ptPath = path.join(ASSETS_DIR, 'pt', `${fc}.png`);
+    const ptPath = path.join(ASSETS_DIR, 'pt', `${visualFc}.png`);
     if (fs.existsSync(ptPath)) {
       ctx.drawImage(await loadImage(ptPath), L.ptBox.x * cw, L.ptBox.y * ch, L.ptBox.w * cw, L.ptBox.h * ch);
     }
