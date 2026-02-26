@@ -261,12 +261,16 @@ npm run spike     # render test cards to output/
 - Should we infer missing hyphens in type line?
     - anything unrecognized is assumed to be a subtype?
 
+# TODO
+- test with LTS
+
 
 ## Won't do
 - Support devoid borders
 - Support various borders
 - Support nyx borders
 - Support hybrid mana borders
+
 
 
 # API's

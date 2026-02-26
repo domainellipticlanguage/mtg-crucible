@@ -124,24 +124,20 @@ export async function drawFrame(
   const accentCodes = normalizeAccentColors(accentColor);
 
   if (accentCodes) {
-    // Draw accent color frame(s) first (full colored frame, possibly gradient)
-    await drawGradientFrames(ctx, template, accentCodes, cw, ch);
+    // Draw base frame fully (gold/artifact/land fills name box, type box, PT, etc.)
+    await drawGradientFrames(ctx, template, frameCodes, cw, ch);
 
-    // Overlay base frame's border using mask
-    const maskPath = path.join(ASSETS_DIR, 'masks', `${template}-frame.png`);
-    if (fs.existsSync(maskPath)) {
+    // Overlay accent colors only on pinlines
+    const pinlinePath = path.join(ASSETS_DIR, 'masks', `${template}-pinline.png`);
+    if (fs.existsSync(pinlinePath)) {
       const offscreen = createCanvas(cw, ch);
       const offCtx = offscreen.getContext('2d');
-      // Draw mask first (defines where the base border appears)
-      offCtx.drawImage(await loadImage(maskPath), 0, 0, cw, ch);
-      // source-in: keep base frame only where mask has alpha
+      offCtx.drawImage(await loadImage(pinlinePath), 0, 0, cw, ch);
       offCtx.globalCompositeOperation = 'source-in';
-      // Draw base frame(s) through gradient onto offscreen, then mask
-      const baseOffscreen = createCanvas(cw, ch);
-      const baseCtx = baseOffscreen.getContext('2d');
-      await drawGradientFrames(baseCtx, template, frameCodes, cw, ch);
-      offCtx.drawImage(baseOffscreen, 0, 0);
-      // Composite the masked border onto main canvas
+      const accentOffscreen = createCanvas(cw, ch);
+      const accentCtx = accentOffscreen.getContext('2d');
+      await drawGradientFrames(accentCtx, template, accentCodes, cw, ch);
+      offCtx.drawImage(accentOffscreen, 0, 0);
       ctx.drawImage(offscreen, 0, 0);
     }
   } else {

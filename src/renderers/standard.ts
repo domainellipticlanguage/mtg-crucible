@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { CardData } from '../types';
 import { STD_W, STD_H, STD_LAYOUT, ASSETS_DIR } from '../layout';
-import { drawArt, drawCorners, drawSetSymbol, drawBottomInfo, drawManaCost, getTypeLine, frameColorCode, primaryFrameColorCode, normalizeAccentColors, drawColorIndicator, drawFrame, drawGradientCrowns } from '../helpers';
+import { drawArt, drawCorners, drawSetSymbol, drawBottomInfo, drawManaCost, getTypeLine, primaryFrameColorCode, normalizeFrameColors, drawColorIndicator, drawFrame, drawGradientCrowns } from '../helpers';
 import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor } from '../text';
 
 export async function renderStandard(card: CardData): Promise<Buffer> {
@@ -12,10 +12,7 @@ export async function renderStandard(card: CardData): Promise<Buffer> {
   const ctx = canvas.getContext('2d');
   const L = STD_LAYOUT;
   const fc = primaryFrameColorCode(card.frameColor);
-  // For accent frames, use accent color for elements like P/T box and crown
-  const accentCodes = normalizeAccentColors(card.accentColor);
-  const visualFc = accentCodes ? accentCodes[0] : fc;
-  const visualFcCodes = accentCodes ?? [fc];
+  const frameCodes = normalizeFrameColors(card.frameColor);
 
   // Background
   ctx.fillStyle = '#1a1a1a';
@@ -30,7 +27,7 @@ export async function renderStandard(card: CardData): Promise<Buffer> {
   // Legend crown
   if (card.supertypes?.includes('legendary')) {
     // Check that at least the first crown asset exists
-    const crownPath = path.join(ASSETS_DIR, 'crowns', `${visualFcCodes[0]}.png`);
+    const crownPath = path.join(ASSETS_DIR, 'crowns', `${frameCodes[0]}.png`);
     if (fs.existsSync(crownPath)) {
       // "Legend Crown Border Cover" — black bar behind crown top (CC's complementary:9)
       ctx.fillStyle = 'black';
@@ -38,13 +35,13 @@ export async function renderStandard(card: CardData): Promise<Buffer> {
       // Mask-clip the crown so frame's dark borders show through at edges
       const maskPath = path.join(ASSETS_DIR, 'crowns', 'maskCrownPinline.png');
       const maskImg = fs.existsSync(maskPath) ? await loadImage(maskPath) : null;
-      await drawGradientCrowns(ctx, visualFcCodes, L.crown.x * cw, L.crown.y * ch, L.crown.w * cw, L.crown.h * ch, maskImg, cw, ch);
+      await drawGradientCrowns(ctx, frameCodes, L.crown.x * cw, L.crown.y * ch, L.crown.w * cw, L.crown.h * ch, maskImg, cw, ch);
     }
   }
 
-  // P/T box (use accent color when available, e.g. green P/T on a green land)
+  // P/T box
   if (card.power !== undefined && card.toughness !== undefined) {
-    const ptPath = path.join(ASSETS_DIR, 'pt', `${visualFc}.png`);
+    const ptPath = path.join(ASSETS_DIR, 'pt', `${fc}.png`);
     if (fs.existsSync(ptPath)) {
       ctx.drawImage(await loadImage(ptPath), L.ptBox.x * cw, L.ptBox.y * ch, L.ptBox.w * cw, L.ptBox.h * ch);
     }
