@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { CardData } from '../types';
 import { STD_W, STD_H, STD_LAYOUT, ASSETS_DIR } from '../layout';
-import { drawArt, drawCorners, drawSetSymbol, drawBottomInfo, drawManaCost, getTypeLine, primaryFrameColorCode, normalizeFrameColors, drawColorIndicator, drawFrame, drawGradientCrowns } from '../helpers';
+import { drawArt, drawCorners, drawSetSymbol, drawBottomInfo, drawManaCost, getTypeLine, primaryFrameColorCode, normalizeFrameColors, normalizeAccentColors, drawColorIndicator, drawFrame, drawGradientCrowns } from '../helpers';
 import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor } from '../text';
 
 export async function renderStandard(card: CardData): Promise<Buffer> {
@@ -13,6 +13,8 @@ export async function renderStandard(card: CardData): Promise<Buffer> {
   const L = STD_LAYOUT;
   const fc = primaryFrameColorCode(card.frameColor);
   const frameCodes = normalizeFrameColors(card.frameColor);
+  const accentCodes = normalizeAccentColors(card.accentColor);
+  const crownCodes = accentCodes ?? frameCodes;
 
   // Background
   ctx.fillStyle = '#1a1a1a';
@@ -27,7 +29,7 @@ export async function renderStandard(card: CardData): Promise<Buffer> {
   // Legend crown
   if (card.supertypes?.includes('legendary')) {
     // Check that at least the first crown asset exists
-    const crownPath = path.join(ASSETS_DIR, 'crowns', `${frameCodes[0]}.png`);
+    const crownPath = path.join(ASSETS_DIR, 'crowns', `${crownCodes[0]}.png`);
     if (fs.existsSync(crownPath)) {
       // "Legend Crown Border Cover" — black bar behind crown top (CC's complementary:9)
       ctx.fillStyle = 'black';
@@ -35,7 +37,7 @@ export async function renderStandard(card: CardData): Promise<Buffer> {
       // Mask-clip the crown so frame's dark borders show through at edges
       const maskPath = path.join(ASSETS_DIR, 'crowns', 'maskCrownPinline.png');
       const maskImg = fs.existsSync(maskPath) ? await loadImage(maskPath) : null;
-      await drawGradientCrowns(ctx, frameCodes, L.crown.x * cw, L.crown.y * ch, L.crown.w * cw, L.crown.h * ch, maskImg, cw, ch);
+      await drawGradientCrowns(ctx, crownCodes, L.crown.x * cw, L.crown.y * ch, L.crown.w * cw, L.crown.h * ch, maskImg, cw, ch);
     }
   }
 

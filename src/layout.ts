@@ -1,6 +1,8 @@
 import * as path from 'path';
 
-export const ASSETS_DIR = path.resolve(__dirname, '..', 'assets');
+export const ASSETS_DIR = process.env.ASSETS_DIR
+  ? path.resolve(process.env.ASSETS_DIR)
+  : path.resolve(__dirname, '..', 'assets');
 
 export const FONT_HEIGHT_RATIO = 0.7;
 
