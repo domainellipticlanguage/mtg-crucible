@@ -187,7 +187,10 @@ export async function drawGradientCrowns(
     crownCtx.drawImage(offscreen, 0, 0);
   }
 
-  // Apply pinline mask if available
+  // Draw unmasked crown first so drop shadows are preserved
+  ctx.drawImage(crownCanvas, 0, 0);
+
+  // Apply pinline mask on top — opaque crown body overwrites, shadows remain underneath
   if (maskImg) {
     const maskedCanvas = createCanvas(cw, ch);
     const maskedCtx = maskedCanvas.getContext('2d');
@@ -195,8 +198,6 @@ export async function drawGradientCrowns(
     maskedCtx.globalCompositeOperation = 'source-in';
     maskedCtx.drawImage(crownCanvas, 0, 0);
     ctx.drawImage(maskedCanvas, 0, 0);
-  } else {
-    ctx.drawImage(crownCanvas, 0, 0);
   }
 }
 
