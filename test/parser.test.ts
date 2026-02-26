@@ -190,7 +190,7 @@ describe('parseCard', () => {
     });
   });
 
-  it('derives land frame with multicolor accent from multi-color indicator', () => {
+  it('derives land frame with accent from land subtypes', () => {
     const card = parseCard(`
       Test Land
       Color Indicator: blue, red
@@ -199,7 +199,105 @@ describe('parseCard', () => {
     `);
     expect(card).toMatchObject({
       frameColor: 'land',
-      accentColor: 'multicolor',
+      accentColor: ['blue', 'red'],
+    });
+  });
+
+  it('derives hybrid frame as array for 2-color hybrid mana', () => {
+    const card = parseCard(`
+      Boros Charm {R}{W}
+      Frame: blue, red
+      Instant
+      Choose one —
+    `);
+    // Frame: override takes precedence, but let's test derivation without it
+    const card2 = parseCard(`
+      Boros Charm {R/W}{R/W}
+      Instant
+      Choose one —
+    `);
+    expect(card2).toMatchObject({
+      frameColor: ['white', 'red'],
+      accentColor: ['white', 'red'],
+    });
+  });
+
+  it('derives multicolor frame with 2-color accent for non-hybrid 2-color', () => {
+    const card = parseCard(`
+      Electrolyze {1}{U}{R}
+      Instant
+      Electrolyze deals 2 damage divided as you choose.
+    `);
+    expect(card).toMatchObject({
+      frameColor: 'multicolor',
+      accentColor: ['blue', 'red'],
+    });
+  });
+
+  it('derives hybrid frame for mixed hybrid + mono 2-color', () => {
+    const card = parseCard(`
+      Shaman of the Great Hunt {U}{U/R}{R}
+      Creature — Shaman
+      2/2
+    `);
+    expect(card).toMatchObject({
+      frameColor: ['blue', 'red'],
+      accentColor: ['blue', 'red'],
+    });
+  });
+
+  it('derives artifact frame with 2-color accent array', () => {
+    const card = parseCard(`
+      Talisman of Creativity {2}
+      Artifact
+      {T}: Add {U} or {R}.
+    `);
+    // 0 colors in mana cost — no accent
+    expect(card.accentColor).toBeUndefined();
+
+    const card2 = parseCard(`
+      Izzet Signet {1}{U}{R}
+      Artifact
+      Rules text.
+    `);
+    expect(card2).toMatchObject({
+      frameColor: 'artifact',
+      accentColor: ['blue', 'red'],
+    });
+  });
+
+  it('derives 3+ color as multicolor with no array accent', () => {
+    const card = parseCard(`
+      Maelstrom Wanderer {5}{U}{R}{G}
+      Legendary Creature — Elemental
+      Creatures you control have haste.
+      7/5
+    `);
+    expect(card).toMatchObject({ frameColor: 'multicolor' });
+  });
+
+  it('derives land accent from tap ability mana production', () => {
+    const card = parseCard(`
+      Super Cool Island
+      Rarity: Mythic Rare
+      Land — Island
+      {T}: Add {R} or {U}.
+    `);
+    expect(card).toMatchObject({
+      frameColor: 'land',
+      accentColor: ['blue', 'red'],
+    });
+  });
+
+  it('derives land accent from single basic land type', () => {
+    const card = parseCard(`
+      Mystic Sanctuary
+      Land — Island
+      Mystic Sanctuary enters the battlefield tapped unless you control three or more other Islands.
+    `);
+    expect(card).toMatchObject({
+      frameColor: 'land',
+      accentColor: 'blue',
     });
   });
 

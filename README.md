@@ -247,6 +247,19 @@ npm run spike     # render test cards to output/
 - Legendary crown is missing a shadow on the side
 - Asterisked text in flavor text should be normal faced, not italic
 - Nit: Saga reminder text could be formatted a little better
+- For gold and hybrid frames, still use the default for the name and typeline. Same for P/T box
+- Lands have distinctive text box backgrounds?
+- Make hybrid mana parsing more lenient - 
+    - but normalize it to the correct order. Similar for phyrexian mana
+
+
+## Design Decisions
+- should we support multicolored as an alias for gold?
+- '' single letters as aliases?
+- should normalize sort mana values?
+- do we support styling in the text format? too complicated and people should just use the JSON format
+- Should we infer missing hyphens in type line?
+    - anything unrecognized is assumed to be a subtype?
 
 
 ## Won't do

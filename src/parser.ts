@@ -87,49 +87,109 @@ function parseTypeLine(typeLine: string): { supertypes: Supertype[]; types: Type
 }
 
 const MANA_COLOR_MAP: Record<string, Color> = { W: 'white', U: 'blue', B: 'black', R: 'red', G: 'green' };
+const WUBRG = ['W', 'U', 'B', 'R', 'G'];
 
 function extractManaColors(manaCost: string | undefined): Set<string> {
   const colors = new Set<string>();
   const symbols = manaCost?.match(/\{([^}]+)\}/g) || [];
   for (const sym of symbols) {
     const inner = sym.slice(1, -1).toUpperCase();
-    for (const c of ['W', 'U', 'B', 'R', 'G']) {
+    for (const c of WUBRG) {
       if (inner.includes(c)) colors.add(c);
     }
   }
   return colors;
 }
 
-function colorsToFrameColor(colors: Set<string>): { frameColor: FrameColor; accentColor?: AccentColor } {
-  if (colors.size === 0) return { frameColor: 'artifact' };
-  if (colors.size === 1) return { frameColor: MANA_COLOR_MAP[[...colors][0]] };
-  return { frameColor: 'multicolor' };
+/** Return true if any mana symbol is hybrid between the two colors. */
+function hasHybridMana(manaCost: string | undefined, colors: Set<string>): boolean {
+  if (!manaCost || colors.size !== 2) return false;
+  const [c1, c2] = [...colors];
+  const symbols = manaCost.match(/\{([^}]+)\}/g) || [];
+  for (const sym of symbols) {
+    const inner = sym.slice(1, -1).toUpperCase();
+    if (inner.includes('/') && inner.includes(c1) && inner.includes(c2)) return true;
+  }
+  return false;
 }
 
-export function deriveFrameColor(card: Pick<CardData, 'subtypes' | 'types' | 'manaCost' | 'colorIndicator'>): { frameColor: FrameColor; accentColor?: AccentColor } {
+/** Return colors sorted in WUBRG order as Color[]. */
+function colorsInOrder(colors: Set<string>): Color[] {
+  return [...colors]
+    .sort((a, b) => WUBRG.indexOf(a) - WUBRG.indexOf(b))
+    .map(c => MANA_COLOR_MAP[c]);
+}
+
+const LAND_TYPE_COLORS: Record<string, string> = {
+  plains: 'W', island: 'U', swamp: 'B', mountain: 'R', forest: 'G',
+};
+
+/** Extract colors a land produces from basic land subtypes and "Add {X}" abilities. */
+function extractProducedColors(subtypes: string[] | undefined, oracleText: string | undefined): Set<string> {
+  const colors = new Set<string>();
+  if (subtypes) {
+    for (const st of subtypes) {
+      const c = LAND_TYPE_COLORS[st.toLowerCase()];
+      if (c) colors.add(c);
+    }
+  }
+  if (oracleText) {
+    // Find "Add ..." clauses (up to period/newline), extract {W}/{U}/{B}/{R}/{G} symbols
+    for (const m of oracleText.matchAll(/[Aa]dd [^.\n]*/g)) {
+      for (const sym of m[0].matchAll(/\{([WUBRG])\}/gi)) {
+        const c = sym[1].toUpperCase();
+        if (WUBRG.includes(c)) colors.add(c);
+      }
+    }
+  }
+  return colors;
+}
+
+/** Convert a set of color letters to an accent value (scalar, array, or 'multicolor'). */
+function colorsToAccent(colors: Set<string>): AccentColor | AccentColor[] | undefined {
+  if (colors.size === 0) return undefined;
+  if (colors.size === 1) return MANA_COLOR_MAP[[...colors][0]];
+  if (colors.size === 2) return colorsInOrder(colors);
+  return 'multicolor';
+}
+
+type DerivedFrame = { frameColor: FrameColor | FrameColor[]; accentColor?: AccentColor | AccentColor[] };
+
+export function deriveFrameColor(card: Pick<CardData, 'subtypes' | 'types' | 'manaCost' | 'colorIndicator' | 'oracleText'>): DerivedFrame {
+  const colors = extractManaColors(card.manaCost);
+  const twoColors: Color[] | undefined = colors.size === 2 ? colorsInOrder(colors) : undefined;
+  const isHybrid = twoColors !== undefined && hasHybridMana(card.manaCost, colors);
+
+  // Mana-cost-derived accent (universal: 2 colors → array, 1 → scalar, 3+ → 'multicolor')
+  const manaAccent = colorsToAccent(colors);
+
+  // 1. Vehicle subtype
   if (card.subtypes?.some(s => s.toLowerCase() === 'vehicle')) return { frameColor: 'vehicle' };
 
-  // Land with no mana cost — land frame always wins, colorIndicator becomes accent
-  if (card.types?.includes('land') && !card.manaCost) {
-    if (card.colorIndicator && card.colorIndicator.length === 1) {
-      return { frameColor: 'land', accentColor: card.colorIndicator[0] };
-    }
-    if (card.colorIndicator && card.colorIndicator.length > 1) {
-      return { frameColor: 'land', accentColor: 'multicolor' };
-    }
+  // 2. Land type — accent from produced colors, then colorIndicator fallback
+  if (card.types?.includes('land')) {
+    const produced = extractProducedColors(card.subtypes, card.oracleText);
+    const landAccent = colorsToAccent(produced);
+    if (landAccent) return { frameColor: 'land', accentColor: landAccent };
+    if (manaAccent) return { frameColor: 'land', accentColor: manaAccent };
+    if (card.colorIndicator?.length === 1) return { frameColor: 'land', accentColor: card.colorIndicator[0] };
+    if (card.colorIndicator && card.colorIndicator.length > 1) return { frameColor: 'land', accentColor: 'multicolor' };
     return { frameColor: 'land' };
   }
 
-  const colors = extractManaColors(card.manaCost);
-
-  // Artifact type — use artifact frame with color accent
+  // 3. Artifact type
   if (card.types?.includes('artifact')) {
-    if (colors.size === 0) return { frameColor: 'artifact' };
-    if (colors.size === 1) return { frameColor: 'artifact', accentColor: MANA_COLOR_MAP[[...colors][0]] };
-    return { frameColor: 'artifact', accentColor: 'multicolor' };
+    return manaAccent
+      ? { frameColor: 'artifact', accentColor: manaAccent }
+      : { frameColor: 'artifact' };
   }
 
-  return colorsToFrameColor(colors);
+  // 4. Normal cards
+  if (colors.size === 0) return { frameColor: 'artifact' };
+  if (colors.size === 1) return { frameColor: MANA_COLOR_MAP[[...colors][0]] };
+  if (isHybrid) return { frameColor: twoColors!, accentColor: twoColors };
+  if (twoColors) return { frameColor: 'multicolor', accentColor: twoColors };
+  return { frameColor: 'multicolor' };
 }
 
 export function parseCard(text: string): CardData {
@@ -168,7 +228,7 @@ export function parseCard(text: string): CardData {
     const rarityMatch = current.match(RARITY_REGEX);
     if (rarityMatch) {
       const raw = rarityMatch[1].toLowerCase();
-      rarity = (raw === 'mythic rare' ? 'mythic' : raw) as typeof rarity;
+      rarity = (raw === 'mythic rare' ? 'mythic' : raw) as Rarity;
       nextLine++; continue;
     }
     const artistMatch = current.match(ARTIST_REGEX);
@@ -239,10 +299,8 @@ export function parseCard(text: string): CardData {
   // Type line
   const typeLine = lines[nextLine];
   const { supertypes, types, subtypes } = parseTypeLine(typeLine);
-  const { frameColor, accentColor } = deriveFrameColor({ subtypes, types, manaCost, colorIndicator });
-
-  // Remaining lines: body
   const bodyLines = lines.slice(nextLine + 1);
+  const { frameColor, accentColor } = deriveFrameColor({ subtypes, types, manaCost, colorIndicator, oracleText: bodyLines.join('\n') });
   const lowerType = typeLine.toLowerCase();
 
   let card: CardData;
@@ -274,7 +332,7 @@ export function parseCard(text: string): CardData {
 function parseStandard(
   name: string, manaCost: string | undefined,
   supertypes: Supertype[], types: Type[], subtypes: string[],
-  typeLine: string, frameColor: FrameColor, bodyLines: string[],
+  typeLine: string, frameColor: CardData['frameColor'], bodyLines: string[],
 ): CardData {
   let power: string | undefined;
   let toughness: string | undefined;
@@ -322,7 +380,7 @@ function parseStandard(
 function parsePlaneswalker(
   name: string, manaCost: string | undefined,
   supertypes: Supertype[], types: Type[], subtypes: string[],
-  frameColor: FrameColor, bodyLines: string[],
+  frameColor: CardData['frameColor'], bodyLines: string[],
 ): CardData {
   const loyaltyAbilities: { cost: string; text: string }[] = [];
   let startingLoyalty = '0';
@@ -353,7 +411,7 @@ function parsePlaneswalker(
 function parseSaga(
   name: string, manaCost: string | undefined,
   supertypes: Supertype[], types: Type[], subtypes: string[],
-  frameColor: FrameColor, bodyLines: string[],
+  frameColor: CardData['frameColor'], bodyLines: string[],
 ): CardData {
   const chapters: { chapterNumbers: number[]; text: string }[] = [];
 
@@ -379,7 +437,7 @@ function parseSaga(
 function parseBattle(
   name: string, manaCost: string | undefined,
   types: Type[], subtypes: string[],
-  frameColor: FrameColor, bodyLines: string[],
+  frameColor: CardData['frameColor'], bodyLines: string[],
 ): CardData {
   let battleDefense = '0';
   const rulesLines: string[] = [];
@@ -401,7 +459,7 @@ function parseBattle(
 function parseClass(
   name: string, manaCost: string | undefined,
   supertypes: Supertype[], types: Type[], subtypes: string[],
-  frameColor: FrameColor, bodyLines: string[],
+  frameColor: CardData['frameColor'], bodyLines: string[],
 ): CardData {
   type PendingLevel = { level: number; cost: string; textLines: string[] };
   const classLevels: { level: number; cost: string; text: string }[] = [];
