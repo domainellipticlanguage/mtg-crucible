@@ -1,8 +1,8 @@
 /**
  * Scryfall visual comparison harness.
  *
- * Fetches a card from Scryfall, renders our version using the Scryfall art crop,
- * then produces a side-by-side comparison image.
+ * Fetches a card from Scryfall, builds a text definition, renders our version
+ * using parseCard + renderCard, then produces a side-by-side comparison image.
  *
  * Usage:
  *   npx tsx scripts/compare.ts "Lightning Bolt"
@@ -15,7 +15,7 @@ import * as path from 'path';
 import https from 'https';
 import { createCanvas, loadImage } from '@napi-rs/canvas';
 import { renderCard } from '../src';
-import type { CardData, AccentColor, Color, FrameColor, Supertype, Type } from '../src/types';
+import type { CardData } from '../src/types';
 
 const OUT = '/tmp/mtg-crucible-compare';
 
@@ -71,159 +71,66 @@ async function fetchScryfallCard(name: string, set?: string): Promise<any> {
 }
 
 // ---------------------------------------------------------------------------
-// Scryfall JSON → CardData conversion
+// Scryfall JSON → text definition (for parseCard)
 // ---------------------------------------------------------------------------
 
-const SUPERTYPES = new Set(['legendary', 'basic', 'snow', 'world']);
-const CARD_TYPES = new Set(['creature', 'instant', 'sorcery', 'enchantment', 'artifact', 'planeswalker', 'land', 'battle']);
+const SF_COLOR_NAMES: Record<string, string> = {
+  W: 'white', U: 'blue', B: 'black', R: 'red', G: 'green',
+};
 
-function parseTypeLine(typeLine: string): { supertypes: Supertype[]; types: Type[]; subtypes: string[] } {
-  const [left, right] = typeLine.split(/\s+[—–-]\s+|\s*[—–]\s*/);
-  const subtypes = right ? right.split(/\s+/) : [];
-  const supertypes: Supertype[] = [];
-  const types: Type[] = [];
-  for (const word of left.split(/\s+/)) {
-    const lower = word.toLowerCase();
-    if (SUPERTYPES.has(lower)) supertypes.push(lower as Supertype);
-    else if (CARD_TYPES.has(lower)) types.push(lower as Type);
-  }
-  return { supertypes, types, subtypes };
-}
+function scryfallToText(sf: any): string {
+  const lines: string[] = [];
 
-const SF_COLOR_MAP: Record<string, Color> = { W: 'white', U: 'blue', B: 'black', R: 'red', G: 'green' };
-
-function sfFrameAndAccent(sf: any): { frameColor: FrameColor; accentColor?: AccentColor } {
-  const tl = sf.type_line.toLowerCase();
-  if (tl.includes('vehicle')) return { frameColor: 'vehicle' };
-
-  const colors: string[] = sf.colors || [];
-
-  // Land with no mana cost — land frame always wins, colors become accent
-  if (tl.includes('land') && !sf.mana_cost) {
-    // Colored land creatures (Dryad Arbor) — colors become accent
-    if (colors.length === 1) return { frameColor: 'land', accentColor: SF_COLOR_MAP[colors[0]] };
-    if (colors.length > 1) return { frameColor: 'land', accentColor: 'multicolor' };
-
-    // Colorless land — derive accent from produced_mana or color_identity
-    const produced: string[] = sf.produced_mana || [];
-    const colorProduced = produced.filter((c: string) => SF_COLOR_MAP[c]);
-    if (colorProduced.length === 0) return { frameColor: 'land' };
-    if (colorProduced.length === 1) return { frameColor: 'land', accentColor: SF_COLOR_MAP[colorProduced[0]] };
-    return { frameColor: 'land', accentColor: 'multicolor' };
-  }
-
-  // Artifact type
-  if (tl.includes('artifact') && !tl.includes('creature')) {
-    if (colors.length === 0) return { frameColor: 'artifact' };
-    if (colors.length === 1) return { frameColor: 'artifact', accentColor: SF_COLOR_MAP[colors[0]] };
-    return { frameColor: 'artifact', accentColor: 'multicolor' };
-  }
-
-  // Normal cards
-  if (colors.length === 0) return { frameColor: 'artifact' };
-  if (colors.length === 1) return { frameColor: SF_COLOR_MAP[colors[0]] || 'artifact' };
-  return { frameColor: 'multicolor' };
-}
-
-// Planeswalker: parse "+1: ...\n−2: ...\n−6: ..." from oracle_text
-// Scryfall uses Unicode minus U+2212 (−) not ASCII hyphen
-const SF_PW_ABILITY = /^([+\u2212-]?\d+):\s*(.+)$/;
-
-function parsePwAbilities(oracleText: string): CardData['structuredAbilities'] {
-  const loyaltyAbilities: { cost: string; text: string }[] = [];
-  for (const line of oracleText.split('\n')) {
-    const m = line.match(SF_PW_ABILITY);
-    if (m) {
-      // Normalize Unicode minus to ASCII
-      const cost = m[1].replace('\u2212', '-');
-      loyaltyAbilities.push({ cost, text: m[2] });
-    } else if (line.trim()) {
-      loyaltyAbilities.push({ cost: '', text: line.trim() });
-    }
-  }
-  return { kind: 'planeswalker', loyaltyAbilities };
-}
-
-// Saga: strip reminder text, parse "I — ...", "II, III — ..." etc.
-const SF_SAGA_CHAPTER = /^((?:I{1,3}|IV|V|VI)(?:\s*,\s*(?:I{1,3}|IV|V|VI))*)\s*[—–-]\s*(.+)$/;
-
-function romanToNumber(r: string): number {
-  switch (r.trim()) {
-    case 'I': return 1; case 'II': return 2; case 'III': return 3;
-    case 'IV': return 4; case 'V': return 5; case 'VI': return 6;
-    default: return parseInt(r) || 0;
-  }
-}
-
-function parseSagaText(oracleText: string): { abilities: CardData['structuredAbilities']; reminder?: string } {
-  const chapters: { chapterNumbers: number[]; text: string }[] = [];
-  const reminderLines: string[] = [];
-  for (const line of oracleText.split('\n')) {
-    // Collect reminder text (lines in parens, before any chapters)
-    if (chapters.length === 0 && /^\(.*\)$/.test(line.trim())) {
-      reminderLines.push(line.trim());
-      continue;
-    }
-    const m = line.match(SF_SAGA_CHAPTER);
-    if (m) {
-      const chapterNumbers = m[1].split(',').map(r => romanToNumber(r.trim()));
-      chapters.push({ chapterNumbers, text: m[2].trim() });
-    }
-  }
-  return {
-    abilities: { kind: 'saga', chapters },
-    reminder: reminderLines.length > 0 ? reminderLines.join('\n') : undefined,
-  };
-}
-
-function scryfallToCardData(sf: any): CardData {
-  const card: CardData = {};
-  card.name = sf.name;
-  if (sf.mana_cost) card.manaCost = sf.mana_cost;
-
-  const { supertypes, types, subtypes } = parseTypeLine(sf.type_line);
-  if (supertypes.length > 0) card.supertypes = supertypes;
-  if (types.length > 0) card.types = types;
-  if (subtypes.length > 0) card.subtypes = subtypes;
-
-  const { frameColor, accentColor } = sfFrameAndAccent(sf);
-  card.frameColor = frameColor;
-  if (accentColor) card.accentColor = accentColor;
-
-  // Color indicator (Scryfall uses single-letter codes: W, U, B, R, G)
-  if (sf.color_indicator && sf.color_indicator.length > 0) {
-    card.colorIndicator = sf.color_indicator.map((c: string) => SF_COLOR_MAP[c]).filter(Boolean);
-  }
-
-  // Use art_crop for rendering
-  if (sf.image_uris?.art_crop) card.artUrl = sf.image_uris.art_crop;
-
-  card.rarity = sf.rarity;
-  if (sf.artist) card.artist = sf.artist;
-  if (sf.collector_number) card.collectorNumber = sf.collector_number;
-  if (sf.set) card.setCode = sf.set.toUpperCase();
-
-  const tl = sf.type_line.toLowerCase();
-
-  if (tl.includes('planeswalker')) {
-    card.startingLoyalty = sf.loyalty;
-    card.structuredAbilities = parsePwAbilities(sf.oracle_text);
-  } else if (sf.layout === 'saga' || tl.includes('saga')) {
-    const { abilities, reminder } = parseSagaText(sf.oracle_text);
-    card.structuredAbilities = abilities;
-    if (reminder) card.unstructuredAbilities = reminder;
-  } else if (tl.includes('battle')) {
-    card.battleDefense = sf.defense;
-    if (sf.oracle_text) card.oracleText = sf.oracle_text;
+  // Line 1: Name + mana cost
+  if (sf.mana_cost) {
+    lines.push(`${sf.name} ${sf.mana_cost}`);
   } else {
-    // Standard card
-    if (sf.oracle_text) card.oracleText = sf.oracle_text;
-    if (sf.flavor_text) card.flavorText = sf.flavor_text;
-    if (sf.power) card.power = sf.power;
-    if (sf.toughness) card.toughness = sf.toughness;
+    lines.push(sf.name);
   }
 
-  return card;
+  // Metadata lines
+  if (sf.image_uris?.art_crop) lines.push(`Art: ${sf.image_uris.art_crop}`);
+  if (sf.rarity) lines.push(`Rarity: ${sf.rarity}`);
+  if (sf.artist) lines.push(`Artist: ${sf.artist}`);
+  if (sf.set) lines.push(`Set: ${sf.set.toUpperCase()}`);
+  if (sf.collector_number) lines.push(`Collector Number: ${sf.collector_number}`);
+
+  // Color indicator
+  if (sf.color_indicator && sf.color_indicator.length > 0) {
+    const names = sf.color_indicator.map((c: string) => SF_COLOR_NAMES[c]).filter(Boolean);
+    if (names.length > 0) lines.push(`Color Indicator: ${names.join(', ')}`);
+  }
+
+  // Type line
+  lines.push(sf.type_line);
+
+  // Oracle text — normalize Unicode minus (U+2212) to ASCII for PW ability parsing
+  if (sf.oracle_text) {
+    const normalized = sf.oracle_text.replace(/\u2212/g, '-');
+    for (const line of normalized.split('\n')) {
+      lines.push(line);
+    }
+  }
+
+  // Flavor text (wrapped in asterisks)
+  if (sf.flavor_text) {
+    for (const line of sf.flavor_text.split('\n')) {
+      lines.push(`*${line}*`);
+    }
+  }
+
+  // P/T
+  if (sf.power !== undefined && sf.toughness !== undefined) {
+    lines.push(`${sf.power}/${sf.toughness}`);
+  }
+
+  // Loyalty
+  if (sf.loyalty) lines.push(`Loyalty: ${sf.loyalty}`);
+
+  // Defense (battles)
+  if (sf.defense) lines.push(`Defense: ${sf.defense}`);
+
+  return lines.join('\n');
 }
 
 // ---------------------------------------------------------------------------
@@ -277,13 +184,12 @@ async function compareCard(name: string, set?: string): Promise<string> {
 
   console.log(`  Found: ${sf.name} (${sf.set.toUpperCase()} #${sf.collector_number})`);
 
-  // Convert to our CardData
-  const cardData = scryfallToCardData(sf);
-  console.log(`  CardData:`, JSON.stringify(cardData, null, 2).slice(0, 200) + '...');
+  // Build text definition and render through the public API
+  const text = scryfallToText(sf);
+  console.log(`  Text definition:\n${text}\n`);
 
-  // Render our version
   console.log(`  Rendering our version...`);
-  const { frontFace: ourPng } = await renderCard(cardData);
+  const { frontFace: ourPng } = await renderCard(text);
 
   // Fetch Scryfall's rendered PNG
   await sleep(100); // respect rate limit

@@ -251,7 +251,7 @@ npm run spike     # render test cards to output/
 - Lands have distinctive text box backgrounds?
 - Make hybrid mana parsing more lenient - 
     - but normalize it to the correct order. Similar for phyrexian mana
-
+- Update Flavortext parsing
 
 ## Design Decisions
 - should we support multicolored as an alias for gold?
