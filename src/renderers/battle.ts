@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { CardData } from '../types';
 import { BTL_W, BTL_H, BTL_LAYOUT, ASSETS_DIR } from '../layout';
-import { drawArt, drawCorners, drawManaCost, getTypeLine, frameColorCode, drawColorIndicator, drawFrame } from '../helpers';
+import { drawArt, drawCorners, drawManaCost, getTypeLine, primaryFrameColorCode, drawColorIndicator, drawFrame } from '../helpers';
 import { drawSingleLineText, drawWrappedText } from '../text';
 
 export async function renderBattle(card: CardData): Promise<Buffer> {
@@ -11,7 +11,7 @@ export async function renderBattle(card: CardData): Promise<Buffer> {
   const canvas = createCanvas(cw, ch);
   const ctx = canvas.getContext('2d');
   const L = BTL_LAYOUT;
-  const fc = frameColorCode(card.frameColor);
+  const fc = primaryFrameColorCode(card.frameColor);
 
   // Background
   ctx.fillStyle = '#1a1a1a';

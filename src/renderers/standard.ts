@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { CardData } from '../types';
 import { STD_W, STD_H, STD_LAYOUT, ASSETS_DIR } from '../layout';
-import { drawArt, drawCorners, drawSetSymbol, drawBottomInfo, drawManaCost, getTypeLine, frameColorCode, drawColorIndicator, drawFrame } from '../helpers';
+import { drawArt, drawCorners, drawSetSymbol, drawBottomInfo, drawManaCost, getTypeLine, frameColorCode, primaryFrameColorCode, normalizeAccentColors, drawColorIndicator, drawFrame, drawGradientCrowns } from '../helpers';
 import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor } from '../text';
 
 export async function renderStandard(card: CardData): Promise<Buffer> {
@@ -11,9 +11,11 @@ export async function renderStandard(card: CardData): Promise<Buffer> {
   const canvas = createCanvas(cw, ch);
   const ctx = canvas.getContext('2d');
   const L = STD_LAYOUT;
-  const fc = frameColorCode(card.frameColor);
+  const fc = primaryFrameColorCode(card.frameColor);
   // For accent frames, use accent color for elements like P/T box and crown
-  const visualFc = card.accentColor ? frameColorCode(card.accentColor === 'multicolor' ? 'multicolor' : card.accentColor) : fc;
+  const accentCodes = normalizeAccentColors(card.accentColor);
+  const visualFc = accentCodes ? accentCodes[0] : fc;
+  const visualFcCodes = accentCodes ?? [fc];
 
   // Background
   ctx.fillStyle = '#1a1a1a';
@@ -27,25 +29,16 @@ export async function renderStandard(card: CardData): Promise<Buffer> {
 
   // Legend crown
   if (card.supertypes?.includes('legendary')) {
-    const crownPath = path.join(ASSETS_DIR, 'crowns', `${visualFc}.png`);
+    // Check that at least the first crown asset exists
+    const crownPath = path.join(ASSETS_DIR, 'crowns', `${visualFcCodes[0]}.png`);
     if (fs.existsSync(crownPath)) {
       // "Legend Crown Border Cover" — black bar behind crown top (CC's complementary:9)
       ctx.fillStyle = 'black';
       ctx.fillRect(0, 0, cw, (137 / 2814) * ch);
       // Mask-clip the crown so frame's dark borders show through at edges
       const maskPath = path.join(ASSETS_DIR, 'crowns', 'maskCrownPinline.png');
-      const crownImg = await loadImage(crownPath);
-      if (fs.existsSync(maskPath)) {
-        const maskImg = await loadImage(maskPath);
-        const crownCanvas = createCanvas(cw, ch);
-        const crownCtx = crownCanvas.getContext('2d');
-        crownCtx.drawImage(maskImg, 0, 0, cw, ch);
-        crownCtx.globalCompositeOperation = 'source-in';
-        crownCtx.drawImage(crownImg, L.crown.x * cw, L.crown.y * ch, L.crown.w * cw, L.crown.h * ch);
-        ctx.drawImage(crownCanvas, 0, 0);
-      } else {
-        ctx.drawImage(crownImg, L.crown.x * cw, L.crown.y * ch, L.crown.w * cw, L.crown.h * ch);
-      }
+      const maskImg = fs.existsSync(maskPath) ? await loadImage(maskPath) : null;
+      await drawGradientCrowns(ctx, visualFcCodes, L.crown.x * cw, L.crown.y * ch, L.crown.w * cw, L.crown.h * ch, maskImg, cw, ch);
     }
   }
 
@@ -81,7 +74,8 @@ export async function renderStandard(card: CardData): Promise<Buffer> {
 
   // P/T text (white for vehicles since the badge is dark brown)
   if (card.power !== undefined && card.toughness !== undefined) {
-    const ptColor = card.frameColor === 'vehicle' ? 'white' : 'black';
+    const ptFrameColor = Array.isArray(card.frameColor) ? card.frameColor[0] : card.frameColor;
+    const ptColor = ptFrameColor === 'vehicle' ? 'white' : 'black';
     drawSingleLineText(ctx, `${card.power}/${card.toughness}`, L.pt.x*cw, L.pt.y*ch, L.pt.w*cw, L.pt.h*ch, L.pt.font, L.pt.size*ch, 'center', ptColor);
   }
 

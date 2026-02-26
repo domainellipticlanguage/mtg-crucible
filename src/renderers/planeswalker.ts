@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { CardData, PlaneswalkerAbilities } from '../types';
 import { PW_W, PW_H, PW_LAYOUT, ASSETS_DIR } from '../layout';
-import { drawArt, drawCorners, drawBottomInfo, drawManaCost, getTypeLine, frameColorCode, drawColorIndicator, drawFrame } from '../helpers';
+import { drawArt, drawCorners, drawBottomInfo, drawManaCost, getTypeLine, primaryFrameColorCode, drawColorIndicator, drawFrame } from '../helpers';
 import { drawSingleLineText, drawWrappedText } from '../text';
 
 export async function renderPlaneswalker(card: CardData): Promise<Buffer> {
@@ -11,7 +11,7 @@ export async function renderPlaneswalker(card: CardData): Promise<Buffer> {
   const canvas = createCanvas(cw, ch);
   const ctx = canvas.getContext('2d');
   const L = PW_LAYOUT;
-  const fc = frameColorCode(card.frameColor);
+  const fc = primaryFrameColorCode(card.frameColor);
   const pw = card.structuredAbilities as PlaneswalkerAbilities;
   const abilities = pw.loyaltyAbilities;
 

@@ -3,6 +3,7 @@ export type Rarity = 'common' | 'uncommon' | 'rare' | 'mythic';
 export type CardTemplate = 'normal' | 'planeswalker' | 'saga' | 'battle' | 'class' | 'saga_creature';
 
 export type Color = 'white' | 'blue' | 'black' | 'red' | 'green';
+export type AccentColor = Color | 'multicolor';
 export type FrameColor = Color | 'artifact' | 'multicolor' | 'vehicle' | 'land';
 export type Supertype = 'legendary' | 'basic' | 'snow' | 'world';
 export type Type = 'creature' | 'instant' | 'sorcery' | 'enchantment' | 'artifact' | 'planeswalker' | 'land' | 'battle';
@@ -110,10 +111,11 @@ export interface CardData {
   // Will be inferred if not provided
   cardTemplate?: CardTemplate;
   // Will be inferred if not provided
-  frameColor?: FrameColor;
+  // Array = gradient blend left-to-right (e.g. ['blue','red'] for hybrid)
+  frameColor?: FrameColor | FrameColor[];
   // Optional accent tint for land/artifact frames (e.g. blue land, green artifact)
-  // TODO should add colorless?
-  accentColor?: Color | 'multicolor';
+  // Array = gradient blend (e.g. ['red','blue'] for R/U crown on gold legendary)
+  accentColor?: AccentColor | AccentColor[];
 
   name?: string; // Will default to Untitled
   manaCost?: string;

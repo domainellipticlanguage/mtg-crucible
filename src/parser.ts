@@ -1,4 +1,4 @@
-import type { CardData, Color, FrameColor, Supertype, Type } from './types';
+import type { CardData, AccentColor, Color, FrameColor, Rarity, Supertype, Type } from './types';
 
 const MANA_COST_REGEX = /^(.+?)\s+((?:\{[^}]+\})+)$/;
 const ART_REGEX = /^Art:\s*(https?:\/\/\S+)$/i;
@@ -9,6 +9,7 @@ const COLLECTOR_REGEX = /^Collector(?:\s+(?:Number|No\.?))?:\s*(.+)$/i;
 const DESIGNER_REGEX = /^Designer:\s*(.+)$/i;
 const COLOR_INDICATOR_REGEX = /^Color Indicator:\s*(.+)$/i;
 const ACCENT_REGEX = /^Accent:\s*(.+)$/i;
+const FRAME_REGEX = /^Frame:\s*(.+)$/i;
 const PT_REGEX = /^([*\d+]+)\/([*\d+]+)$/;
 const LOYALTY_REGEX = /^Loyalty:\s*(\S+)$/i;
 const DEFENSE_REGEX = /^Defense:\s*(\S+)$/i;
@@ -99,13 +100,13 @@ function extractManaColors(manaCost: string | undefined): Set<string> {
   return colors;
 }
 
-function colorsToFrameColor(colors: Set<string>): { frameColor: FrameColor; accentColor?: Color | 'multicolor' } {
+function colorsToFrameColor(colors: Set<string>): { frameColor: FrameColor; accentColor?: AccentColor } {
   if (colors.size === 0) return { frameColor: 'artifact' };
   if (colors.size === 1) return { frameColor: MANA_COLOR_MAP[[...colors][0]] };
   return { frameColor: 'multicolor' };
 }
 
-export function deriveFrameColor(card: Pick<CardData, 'subtypes' | 'types' | 'manaCost' | 'colorIndicator'>): { frameColor: FrameColor; accentColor?: Color | 'multicolor' } {
+export function deriveFrameColor(card: Pick<CardData, 'subtypes' | 'types' | 'manaCost' | 'colorIndicator'>): { frameColor: FrameColor; accentColor?: AccentColor } {
   if (card.subtypes?.some(s => s.toLowerCase() === 'vehicle')) return { frameColor: 'vehicle' };
 
   // Land with no mana cost — land frame always wins, colorIndicator becomes accent
@@ -151,13 +152,14 @@ export function parseCard(text: string): CardData {
 
   // Optional metadata lines between name and type (Art:, Rarity:)
   let artUrl: string | undefined;
-  let rarity: 'common' | 'uncommon' | 'rare' | 'mythic' | undefined;
+  let rarity: Rarity | undefined;
   let artist: string | undefined;
   let setCode: string | undefined;
   let collectorNumber: string | undefined;
   let designer: string | undefined;
   let colorIndicator: Color[] | undefined;
-  let explicitAccent: Color | 'multicolor' | undefined;
+  let explicitAccent: AccentColor | AccentColor[] | undefined;
+  let explicitFrame: FrameColor | FrameColor[] | undefined;
   let nextLine = 1;
   while (nextLine < lines.length) {
     const current = lines[nextLine];
@@ -184,12 +186,49 @@ export function parseCard(text: string): CardData {
     }
     const accentMatch = current.match(ACCENT_REGEX);
     if (accentMatch) {
-      const raw = accentMatch[1].trim().toLowerCase();
-      if (raw === 'multicolor' || raw === 'multi' || raw === 'gold') {
-        explicitAccent = 'multicolor';
-      } else {
-        const c = COLOR_ALIASES[raw];
-        if (c) explicitAccent = c;
+      const tokens = accentMatch[1].split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+      if (tokens.length === 1) {
+        const raw = tokens[0];
+        if (raw === 'multicolor' || raw === 'multi' || raw === 'gold') {
+          explicitAccent = 'multicolor';
+        } else {
+          const c = COLOR_ALIASES[raw];
+          if (c) explicitAccent = c;
+        }
+      } else if (tokens.length > 1) {
+        const parsed: AccentColor[] = [];
+        for (const raw of tokens) {
+          if (raw === 'multicolor' || raw === 'multi' || raw === 'gold') {
+            parsed.push('multicolor');
+          } else {
+            const c = COLOR_ALIASES[raw];
+            if (c) parsed.push(c);
+          }
+        }
+        if (parsed.length > 0) explicitAccent = parsed;
+      }
+      nextLine++; continue;
+    }
+    const frameMatch = current.match(FRAME_REGEX);
+    if (frameMatch) {
+      const tokens = frameMatch[1].split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+      const FRAME_ALIASES: Record<string, FrameColor> = {
+        ...COLOR_ALIASES,
+        artifact: 'artifact', a: 'artifact',
+        multicolor: 'multicolor', multi: 'multicolor', gold: 'multicolor', m: 'multicolor',
+        vehicle: 'vehicle', v: 'vehicle',
+        land: 'land', l: 'land',
+      };
+      if (tokens.length === 1) {
+        const fc = FRAME_ALIASES[tokens[0]];
+        if (fc) explicitFrame = fc;
+      } else if (tokens.length > 1) {
+        const parsed: FrameColor[] = [];
+        for (const raw of tokens) {
+          const fc = FRAME_ALIASES[raw];
+          if (fc) parsed.push(fc);
+        }
+        if (parsed.length > 0) explicitFrame = parsed;
       }
       nextLine++; continue;
     }
@@ -226,6 +265,7 @@ export function parseCard(text: string): CardData {
   if (collectorNumber) card.collectorNumber = collectorNumber;
   if (designer) card.designer = designer;
   if (colorIndicator && colorIndicator.length > 0) card.colorIndicator = colorIndicator;
+  if (explicitFrame) card.frameColor = explicitFrame;
   if (explicitAccent) card.accentColor = explicitAccent;
   else if (accentColor) card.accentColor = accentColor;
   return card;

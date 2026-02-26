@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parseCard } from '../src/parser';
+import { renderCard } from '../src';
 
 describe('parseCard', () => {
   it('parses a simple instant', () => {
@@ -666,4 +667,55 @@ Deal 2 damage to any target.\r
       subtypes: ['Time-Lord', 'Doctor'],
     });
   });
+
+  it('parses comma-separated Accent: red, blue', () => {
+    const card = parseCard(`
+      Test Gold Land
+      Accent: red, blue
+      Land
+      {T}: Add {R} or {U}.
+    `);
+    expect(card).toMatchObject({
+      frameColor: 'land',
+      accentColor: ['red', 'blue'],
+    });
+  });
+
+  it('parses Frame: blue, red for explicit multi-color frames', () => {
+    const card = parseCard(`
+      Hybrid Test {U/R}
+      Frame: blue, red
+      Instant
+      Deal 2 damage to any target.
+    `);
+    expect(card).toMatchObject({
+      frameColor: ['blue', 'red'],
+    });
+  });
+
+  it('parses single-value Frame: green', () => {
+    const card = parseCard(`
+      Green Test {G}
+      Frame: green
+      Instant
+      Untap target creature.
+    `);
+    expect(card).toMatchObject({
+      frameColor: 'green',
+    });
+  });
+
+  it('renderCard with frameColor array produces valid PNG', async () => {
+    const { frontFace } = await renderCard({
+      name: 'Gradient Test',
+      frameColor: ['blue', 'red'],
+      types: ['instant'],
+      oracleText: 'Test card.',
+    });
+    expect(frontFace).toBeInstanceOf(Buffer);
+    expect(frontFace.length).toBeGreaterThan(1000);
+    // PNG magic bytes
+    expect(frontFace[0]).toBe(0x89);
+    expect(frontFace[1]).toBe(0x50);
+  }, 30000);
 });

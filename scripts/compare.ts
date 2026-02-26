@@ -15,7 +15,7 @@ import * as path from 'path';
 import https from 'https';
 import { createCanvas, loadImage } from '@napi-rs/canvas';
 import { renderCard } from '../src';
-import type { CardData, Color, FrameColor, Supertype, Type } from '../src/types';
+import type { CardData, AccentColor, Color, FrameColor, Supertype, Type } from '../src/types';
 
 const OUT = '/tmp/mtg-crucible-compare';
 
@@ -92,7 +92,7 @@ function parseTypeLine(typeLine: string): { supertypes: Supertype[]; types: Type
 
 const SF_COLOR_MAP: Record<string, Color> = { W: 'white', U: 'blue', B: 'black', R: 'red', G: 'green' };
 
-function sfFrameAndAccent(sf: any): { frameColor: FrameColor; accentColor?: Color | 'multicolor' } {
+function sfFrameAndAccent(sf: any): { frameColor: FrameColor; accentColor?: AccentColor } {
   const tl = sf.type_line.toLowerCase();
   if (tl.includes('vehicle')) return { frameColor: 'vehicle' };
 

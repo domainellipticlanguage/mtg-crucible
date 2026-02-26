@@ -7,7 +7,7 @@ import { renderBattle } from './renderers/battle';
 import { renderClass } from './renderers/class';
 import { parseCard, deriveFrameColor } from './parser';
 
-export type { CardData, RenderedCard, StructuredAbilities, PlaneswalkerAbilities, SagaAbilities, ClassAbilities } from './types';
+export type { CardData, RenderedCard, AccentColor, StructuredAbilities, PlaneswalkerAbilities, SagaAbilities, ClassAbilities } from './types';
 export { renderStandard } from './renderers/standard';
 export { renderPlaneswalker } from './renderers/planeswalker';
 export { renderSaga } from './renderers/saga';

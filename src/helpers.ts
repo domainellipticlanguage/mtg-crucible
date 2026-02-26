@@ -1,8 +1,8 @@
-import { createCanvas, loadImage, GlobalFonts, type SKRSContext2D } from '@napi-rs/canvas';
+import { createCanvas, loadImage, GlobalFonts, ImageData, type SKRSContext2D } from '@napi-rs/canvas';
 import * as fs from 'fs';
 import * as path from 'path';
 import https from 'https';
-import type { CardData, Color, FrameColor } from './types';
+import type { CardData, Color, FrameColor, AccentColor } from './types';
 import { ASSETS_DIR } from './layout';
 
 const FRAME_COLOR_CODES: Record<FrameColor, string> = {
@@ -14,49 +14,193 @@ export function frameColorCode(fc: FrameColor | undefined): string {
   return fc ? FRAME_COLOR_CODES[fc] ?? 'a' : 'a';
 }
 
+/** Normalize frameColor (scalar or array) to an array of color codes. */
+export function normalizeFrameColors(fc: CardData['frameColor']): string[] {
+  if (!fc) return ['a'];
+  if (Array.isArray(fc)) return fc.map(c => frameColorCode(c));
+  return [frameColorCode(fc)];
+}
+
+/** Normalize accentColor (scalar or array) to an array of color codes, or undefined. */
+export function normalizeAccentColors(ac: CardData['accentColor']): string[] | undefined {
+  if (!ac) return undefined;
+  if (Array.isArray(ac)) return ac.map(c => frameColorCode(c));
+  return [frameColorCode(ac)];
+}
+
+/** Return the first frame color code (for single-value contexts like P/T). */
+export function primaryFrameColorCode(fc: CardData['frameColor']): string {
+  if (!fc) return 'a';
+  if (Array.isArray(fc)) return frameColorCode(fc[0]);
+  return frameColorCode(fc);
+}
+
 /**
- * Draws the card frame, handling accent compositing when accentColor is set.
+ * Create a sine-smoothed gradient alpha mask for one zone in a multi-zone gradient.
+ * For zone `zoneIndex` of `totalZones`, alpha ramps from 0→255 around the boundary.
+ */
+function createGradientMask(
+  cw: number, ch: number,
+  zoneIndex: number, totalZones: number,
+  transitionFraction = 0.5,
+): ImageData {
+  const boundary = (zoneIndex / totalZones) * cw;
+  const halfTrans = (cw / totalZones) * transitionFraction * 0.5;
+  const transStart = boundary - halfTrans;
+  const transEnd = boundary + halfTrans;
+
+  // Use an offscreen canvas to get a proper ImageData
+  const tmpCanvas = createCanvas(cw, ch);
+  const tmpCtx = tmpCanvas.getContext('2d');
+  const imgData = tmpCtx.createImageData(cw, ch);
+  const data = imgData.data;
+
+  for (let x = 0; x < cw; x++) {
+    let alpha: number;
+    if (x <= transStart) alpha = 0;
+    else if (x >= transEnd) alpha = 255;
+    else {
+      const t = (x - transStart) / (transEnd - transStart);
+      alpha = Math.round((0.5 - 0.5 * Math.cos(t * Math.PI)) * 255);
+    }
+    for (let y = 0; y < ch; y++) {
+      const i = (y * cw + x) * 4;
+      data[i + 3] = alpha;
+    }
+  }
+  return imgData;
+}
+
+/**
+ * Draw multiple frame colors with gradient blending.
+ * colorCodes[0] is drawn as the base; each subsequent code is overlaid
+ * through a sine-smoothed gradient mask.
+ */
+async function drawGradientFrames(
+  ctx: SKRSContext2D,
+  template: string,
+  colorCodes: string[],
+  cw: number, ch: number,
+): Promise<void> {
+  if (colorCodes.length === 0) return;
+
+  // Draw base frame
+  const basePath = path.join(ASSETS_DIR, 'frames', template, `${colorCodes[0]}.png`);
+  if (fs.existsSync(basePath)) {
+    ctx.drawImage(await loadImage(basePath), 0, 0, cw, ch);
+  }
+
+  // Overlay each subsequent frame through gradient mask
+  for (let i = 1; i < colorCodes.length; i++) {
+    const framePath = path.join(ASSETS_DIR, 'frames', template, `${colorCodes[i]}.png`);
+    if (!fs.existsSync(framePath)) continue;
+
+    const mask = createGradientMask(cw, ch, i, colorCodes.length);
+    const offscreen = createCanvas(cw, ch);
+    const offCtx = offscreen.getContext('2d');
+    offCtx.putImageData(mask, 0, 0);
+    offCtx.globalCompositeOperation = 'source-in';
+    offCtx.drawImage(await loadImage(framePath), 0, 0, cw, ch);
+    ctx.drawImage(offscreen, 0, 0);
+  }
+}
+
+/**
+ * Draws the card frame, handling accent compositing and gradient blending.
+ * Supports both scalar and array frameColor/accentColor.
+ *
  * For accented frames (colored lands, colored artifacts):
- *   1. Draw the accent color frame (e.g. blue)
+ *   1. Draw the accent color frame(s) (the visible inner color, possibly gradient)
  *   2. Overlay the base frame's border using the frame mask (e.g. land rocky border)
  */
 export async function drawFrame(
   ctx: SKRSContext2D,
   template: string,
-  frameColor: FrameColor | undefined,
-  accentColor: Color | 'multicolor' | undefined,
+  frameColor: CardData['frameColor'],
+  accentColor: CardData['accentColor'],
   cw: number, ch: number,
 ): Promise<void> {
-  const fc = frameColorCode(frameColor);
+  const frameCodes = normalizeFrameColors(frameColor);
+  const accentCodes = normalizeAccentColors(accentColor);
 
-  if (accentColor) {
-    // Draw accent color frame first (full colored frame)
-    const accentCode = accentColor === 'multicolor' ? 'm' : frameColorCode(accentColor);
-    const accentPath = path.join(ASSETS_DIR, 'frames', template, `${accentCode}.png`);
-    if (fs.existsSync(accentPath)) {
-      ctx.drawImage(await loadImage(accentPath), 0, 0, cw, ch);
-    }
+  if (accentCodes) {
+    // Draw accent color frame(s) first (full colored frame, possibly gradient)
+    await drawGradientFrames(ctx, template, accentCodes, cw, ch);
 
     // Overlay base frame's border using mask
-    const basePath = path.join(ASSETS_DIR, 'frames', template, `${fc}.png`);
     const maskPath = path.join(ASSETS_DIR, 'masks', `${template}-frame.png`);
-    if (fs.existsSync(basePath) && fs.existsSync(maskPath)) {
+    if (fs.existsSync(maskPath)) {
       const offscreen = createCanvas(cw, ch);
       const offCtx = offscreen.getContext('2d');
       // Draw mask first (defines where the base border appears)
       offCtx.drawImage(await loadImage(maskPath), 0, 0, cw, ch);
       // source-in: keep base frame only where mask has alpha
       offCtx.globalCompositeOperation = 'source-in';
-      offCtx.drawImage(await loadImage(basePath), 0, 0, cw, ch);
+      // Draw base frame(s) through gradient onto offscreen, then mask
+      const baseOffscreen = createCanvas(cw, ch);
+      const baseCtx = baseOffscreen.getContext('2d');
+      await drawGradientFrames(baseCtx, template, frameCodes, cw, ch);
+      offCtx.drawImage(baseOffscreen, 0, 0);
       // Composite the masked border onto main canvas
       ctx.drawImage(offscreen, 0, 0);
     }
   } else {
-    // No accent — just draw the frame normally
-    const framePath = path.join(ASSETS_DIR, 'frames', template, `${fc}.png`);
-    if (fs.existsSync(framePath)) {
-      ctx.drawImage(await loadImage(framePath), 0, 0, cw, ch);
+    // No accent — draw frame(s) with gradient blending
+    await drawGradientFrames(ctx, template, frameCodes, cw, ch);
+  }
+}
+
+/**
+ * Draw gradient-blended crown assets for legendary cards with multi-color accents.
+ * Same algorithm as drawGradientFrames but for crown images.
+ */
+export async function drawGradientCrowns(
+  ctx: SKRSContext2D,
+  colorCodes: string[],
+  x: number, y: number, w: number, h: number,
+  maskImg: any | null,
+  cw: number, ch: number,
+): Promise<void> {
+  if (colorCodes.length === 0) return;
+
+  const drawCrown = async (crownCtx: SKRSContext2D, code: string) => {
+    const crownPath = path.join(ASSETS_DIR, 'crowns', `${code}.png`);
+    if (fs.existsSync(crownPath)) {
+      crownCtx.drawImage(await loadImage(crownPath), x, y, w, h);
     }
+  };
+
+  // Build composite crown on offscreen canvas
+  const crownCanvas = createCanvas(cw, ch);
+  const crownCtx = crownCanvas.getContext('2d');
+
+  // Draw base crown
+  await drawCrown(crownCtx, colorCodes[0]);
+
+  // Overlay subsequent crowns through gradient masks
+  for (let i = 1; i < colorCodes.length; i++) {
+    const crownPath = path.join(ASSETS_DIR, 'crowns', `${colorCodes[i]}.png`);
+    if (!fs.existsSync(crownPath)) continue;
+
+    const mask = createGradientMask(cw, ch, i, colorCodes.length);
+    const offscreen = createCanvas(cw, ch);
+    const offCtx = offscreen.getContext('2d');
+    offCtx.putImageData(mask, 0, 0);
+    offCtx.globalCompositeOperation = 'source-in';
+    offCtx.drawImage(await loadImage(crownPath), x, y, w, h);
+    crownCtx.drawImage(offscreen, 0, 0);
+  }
+
+  // Apply pinline mask if available
+  if (maskImg) {
+    const maskedCanvas = createCanvas(cw, ch);
+    const maskedCtx = maskedCanvas.getContext('2d');
+    maskedCtx.drawImage(maskImg, 0, 0, cw, ch);
+    maskedCtx.globalCompositeOperation = 'source-in';
+    maskedCtx.drawImage(crownCanvas, 0, 0);
+    ctx.drawImage(maskedCanvas, 0, 0);
+  } else {
+    ctx.drawImage(crownCanvas, 0, 0);
   }
 }
 

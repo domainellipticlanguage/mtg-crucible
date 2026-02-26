@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { CardData, SagaAbilities } from '../types';
 import { PW_W, PW_H, SAGA_LAYOUT, ASSETS_DIR } from '../layout';
-import { drawArt, drawCorners, drawBottomInfo, drawManaCost, getTypeLine, frameColorCode, drawColorIndicator, drawFrame } from '../helpers';
+import { drawArt, drawCorners, drawBottomInfo, drawManaCost, getTypeLine, primaryFrameColorCode, drawColorIndicator, drawFrame } from '../helpers';
 import { drawSingleLineText, drawWrappedText, fillTextHeavy, wrapParagraphs, computeHeight } from '../text';
 
 function romanNumeral(n: number): string {
@@ -19,7 +19,7 @@ export async function renderSaga(card: CardData): Promise<Buffer> {
   const canvas = createCanvas(cw, ch);
   const ctx = canvas.getContext('2d');
   const L = SAGA_LAYOUT;
-  const fc = frameColorCode(card.frameColor);
+  const fc = primaryFrameColorCode(card.frameColor);
   const saga = card.structuredAbilities as SagaAbilities;
   const chapters = saga.chapters;
 
