@@ -128,7 +128,7 @@ export async function drawFrame(
     await drawGradientFrames(ctx, template, frameCodes, cw, ch);
 
     // Overlay accent colors only on pinlines
-    const pinlinePath = path.join(ASSETS_DIR, 'masks', `${template}-pinline.png`);
+    const pinlinePath = path.join(ASSETS_DIR, 'masks', `${template}-pinline-textbox.png`);
     if (fs.existsSync(pinlinePath)) {
       const offscreen = createCanvas(cw, ch);
       const offCtx = offscreen.getContext('2d');
