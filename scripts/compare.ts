@@ -13,6 +13,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import https from 'https';
+import { execSync } from 'child_process';
 import { createCanvas, loadImage } from '@napi-rs/canvas';
 import { renderCard } from '../src';
 import type { CardData } from '../src/types';
@@ -234,23 +235,29 @@ async function main() {
   fs.mkdirSync(OUT, { recursive: true });
 
   const args = process.argv.slice(2);
-  if (args.length === 0) {
+  const openFlag = args.includes('--open');
+  const filtered = args.filter(a => a !== '--open');
+
+  if (filtered.length === 0) {
     console.error('Usage:');
-    console.error('  npx tsx scripts/compare.ts "Card Name" [set]        # fetch from Scryfall');
-    console.error('  npx tsx scripts/compare.ts --local ref.png card.json # compare local files');
+    console.error('  npx tsx scripts/compare.ts "Card Name" [set] [--open]');
+    console.error('  npx tsx scripts/compare.ts --local ref.png card.json [--open]');
     process.exit(1);
   }
 
-  if (args[0] === '--local') {
-    if (args.length < 3) {
-      console.error('Usage: npx tsx scripts/compare.ts --local <reference.png> <carddata.json>');
+  let compPath: string;
+  if (filtered[0] === '--local') {
+    if (filtered.length < 3) {
+      console.error('Usage: npx tsx scripts/compare.ts --local <reference.png> <carddata.json> [--open]');
       process.exit(1);
     }
-    await compareLocal(args[1], args[2]);
+    compPath = await compareLocal(filtered[1], filtered[2]);
   } else {
-    const name = args[0];
-    const set = args[1];
-    await compareCard(name, set);
+    compPath = await compareCard(filtered[0], filtered[1]);
+  }
+
+  if (openFlag) {
+    execSync(`open "${compPath}"`);
   }
 }
 

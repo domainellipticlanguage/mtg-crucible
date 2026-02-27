@@ -252,6 +252,11 @@ npm run spike     # render test cards to output/
 - Make hybrid mana parsing more lenient - 
     - but normalize it to the correct order. Similar for phyrexian mana
 - Update Flavortext parsing
+- Multicolored artifact
+- Shrewed Hatchling - P/T box wrong color
+- Drayad Arbor - no P/T box. name and type box are wrong color
+- An Unearthly Child - where does that little golden bit come from?
+- Urza's Saga - just straight up broken
 
 ## Design Decisions
 - should we support multicolored as an alias for gold?
