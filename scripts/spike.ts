@@ -219,6 +219,17 @@ async function main() {
   };
   fs.writeFileSync(fname('tidal-loreweaving'), (await renderCard(tidalLoreweaver)).frontFace);
 
+  // 17. Niv-Mizzet, Parun — legendary U/R creature
+  console.log('Rendering Niv-Mizzet, Parun...');
+  fs.writeFileSync(fname('niv-mizzet-parun'), (await renderCard({
+    name: 'Niv-Mizzet, Parun', manaCost: '{U}{U}{U}{R}{R}{R}',
+    supertypes: ['legendary'], types: ['creature'], subtypes: ['Dragon', 'Wizard'],
+    oracleText: 'This spell can\'t be countered.\nFlying\nWhenever you draw a card, Niv-Mizzet, Parun deals 1 damage to any target.\nWhenever a player casts an instant or sorcery spell, you draw a card.',
+    flavorText: '"The Izzet are quite adept at distraction."',
+    power: '5', toughness: '5', frameColor: 'multicolor', accentColor: ['blue', 'red'], rarity: 'rare',
+    artist: 'Svetlin Velinov', collectorNumber: '192',
+  })).frontFace);
+
   console.log(`\nDone! ${idx - 1} cards rendered to ${OUT}`);
 }
 

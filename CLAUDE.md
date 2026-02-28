@@ -23,7 +23,12 @@ TypeScript library that renders MTG card images as PNGs. Takes card data (struct
     - a dev server
 - test
     - unit tests. i don't really care about these
-    
+
 ## Commands
 - `npm run build` — Build the project
 - `npm test` — Run tests
+
+## References
+We use Card Conjurer as a reference for card designs and layouts. Look at 
+/Users/nathandunn/Projects/cardconjurer-master
+you can find assets and find how they do stuff
