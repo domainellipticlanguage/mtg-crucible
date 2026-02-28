@@ -14,8 +14,10 @@ const PT_REGEX = /^([*\d+]+)\/([*\d+]+)$/;
 const LOYALTY_REGEX = /^Loyalty:\s*(\S+)$/i;
 const DEFENSE_REGEX = /^Defense:\s*(\S+)$/i;
 const PW_ABILITY_REGEX = /^([+-]?\d+):\s*(.+)$/;
+// TODO make this more general - any IVXL
 const SAGA_CHAPTER_REGEX = /^((?:I{1,3}|IV|V|VI)(?:\s*,\s*(?:I{1,3}|IV|V|VI))*)\s*[—–-]\s*(.+)$/;
 const CLASS_LEVEL_REGEX = /^((?:\{[^}]+\})+):\s*(Level\s+\d+)$/;
+// TODO Use an explicit Flavor Text: instead
 const FLAVOR_REGEX = /^\*(.+)\*$/;
 
 const ZERO_WIDTH_REGEX = /[\u200B-\u200D\uFEFF]/g;
