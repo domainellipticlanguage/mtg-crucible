@@ -127,7 +127,7 @@ export async function drawFrame(
     // Draw base frame fully (gold/artifact/land fills name box, type box, PT, etc.)
     await drawGradientFrames(ctx, template, frameCodes, cw, ch);
 
-    // Overlay accent colors only on pinlines
+    // Overlay accent colors on pinlines
     const pinlinePath = path.join(ASSETS_DIR, 'masks', `${template}-pinline-textbox.png`);
     if (fs.existsSync(pinlinePath)) {
       const offscreen = createCanvas(cw, ch);
@@ -139,6 +139,33 @@ export async function drawFrame(
       await drawGradientFrames(accentCtx, template, accentCodes, cw, ch);
       offCtx.drawImage(accentOffscreen, 0, 0);
       ctx.drawImage(offscreen, 0, 0);
+    }
+
+    // Overlay accent colors on banner (left/right split for 2-color cards)
+    const bannerPath = path.join(ASSETS_DIR, 'masks', `${template}-banner.png`);
+    if (fs.existsSync(bannerPath)) {
+      // First color fills the full banner region
+      const b1 = createCanvas(cw, ch);
+      const b1Ctx = b1.getContext('2d');
+      b1Ctx.drawImage(await loadImage(bannerPath), 0, 0, cw, ch);
+      b1Ctx.globalCompositeOperation = 'source-in';
+      const firstFrame = path.join(ASSETS_DIR, 'frames', template, `${accentCodes[0]}.png`);
+      if (fs.existsSync(firstFrame)) b1Ctx.drawImage(await loadImage(firstFrame), 0, 0, cw, ch);
+      ctx.drawImage(b1, 0, 0);
+
+      // Second color overlays the right portion of the banner
+      if (accentCodes.length >= 2) {
+        const bannerRightPath = path.join(ASSETS_DIR, 'masks', `${template}-banner-right.png`);
+        if (fs.existsSync(bannerRightPath)) {
+          const b2 = createCanvas(cw, ch);
+          const b2Ctx = b2.getContext('2d');
+          b2Ctx.drawImage(await loadImage(bannerRightPath), 0, 0, cw, ch);
+          b2Ctx.globalCompositeOperation = 'source-in';
+          const secondFrame = path.join(ASSETS_DIR, 'frames', template, `${accentCodes[1]}.png`);
+          if (fs.existsSync(secondFrame)) b2Ctx.drawImage(await loadImage(secondFrame), 0, 0, cw, ch);
+          ctx.drawImage(b2, 0, 0);
+        }
+      }
     }
   } else {
     // No accent — draw frame(s) with gradient blending
