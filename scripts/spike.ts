@@ -10,7 +10,7 @@ import * as path from 'path';
 import { renderCard } from '../src';
 import type { CardData } from '../src';
 
-const OUT = '/tmp/mtg-crucible-spike';
+const OUT = path.resolve(__dirname, '..', '.output', 'spike');
 
 async function main() {
   fs.mkdirSync(OUT, { recursive: true });
@@ -199,6 +199,25 @@ async function main() {
     },
   };
   fs.writeFileSync(fname('barbarian-class'), (await renderCard(barbarianClass)).frontFace);
+
+  // 16. Legendary Saga — multicolor U/G
+  console.log('Rendering Tidal Loreweaver (Legendary Saga)...');
+  const tidalLoreweaver: CardData = {
+    name: 'The Tidal Loreweaving', manaCost: '{4}{U}{G}',
+    supertypes: ['legendary'], types: ['enchantment'], subtypes: ['Saga'],
+    frameColor: 'multicolor', rarity: 'rare',
+    artist: 'Magali Villeneuve', collectorNumber: '220',
+    unstructuredAbilities: '(As this Saga enters and after your draw step, add a lore counter.)',
+    structuredAbilities: {
+      kind: 'saga',
+      chapters: [
+        { chapterNumbers: [1], text: 'Draw two cards, then put a card from your hand on the bottom of your library.' },
+        { chapterNumbers: [2], text: 'Create a 3/3 green Beast creature token.' },
+        { chapterNumbers: [3], text: 'Return target creature card from your graveyard to your hand. You gain life equal to its mana value.' },
+      ],
+    },
+  };
+  fs.writeFileSync(fname('tidal-loreweaving'), (await renderCard(tidalLoreweaver)).frontFace);
 
   console.log(`\nDone! ${idx - 1} cards rendered to ${OUT}`);
 }

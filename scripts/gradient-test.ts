@@ -59,8 +59,11 @@ async function main() {
   // Composite onto main canvas
   ctx.drawImage(offscreen, 0, 0);
 
-  fs.writeFileSync('/tmp/gradient-test.png', canvas.toBuffer('image/png'));
-  console.log('Wrote /tmp/gradient-test.png');
+  const outDir = path.resolve(__dirname, '..', '.output');
+  fs.mkdirSync(outDir, { recursive: true });
+  const outPath = path.join(outDir, 'gradient-test.png');
+  fs.writeFileSync(outPath, canvas.toBuffer('image/png'));
+  console.log(`Wrote ${outPath}`);
 }
 
 main().catch(console.error);

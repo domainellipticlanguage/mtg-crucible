@@ -53,7 +53,7 @@ export const PW_LAYOUT = {
   abilityBox: { x: 0.1167, w: 0.8094 },
   totalAbilityH: 0.2916,
   crown:     { x: 44/2010, y: 53/2814, w: 1922/2010, h: 493/2814 },
-  setSymbol: { x: 0.926, y: 0.57, w: 0.09, h: 0.0525 },
+  setSymbol: { x: 0.9227, y: 0.5899, w: 0.12, h: 0.0700 },
 };
 
 // Saga layout (packSagaRegular.js)
@@ -69,7 +69,7 @@ export const SAGA_LAYOUT = {
   chapterSpread: 0.0358,
   chapterFont: 0.0324,
   crown:     { x: 44/2010, y: 53/2814, w: 1922/2010, h: 493/2814 },
-  setSymbol: { x: 0.926, y: 0.856, w: 0.09, h: 0.0525 },
+  setSymbol: { x: 0.9227, y: 0.8753, w: 0.12, h: 0.0700 },
 };
 
 // Class layout (packClass.js)
@@ -95,4 +95,5 @@ export const BTL_LAYOUT = {
   type:    { x: 268/2100, y: 873/1500, w: 1667/2100, h: 114/1500, size: (0.0324*2100)/1500, font: 'Beleren Bold' },
   rules:   { x: 272/2100, y: 1008/1500, w: 1661/2100, h: 414/1500, size: (0.0362*2100)/1500, font: 'MPlantin' },
   defense: { x: 1920/2100, y: 1320/1500, w: 86/2100, h: 123/1500, size: (0.0372*2100)/1500, font: 'Beleren Bold SmCaps' },
+  setSymbol: { x: 0.93, y: 0.62, w: 0.12, h: 0.098 },
 };

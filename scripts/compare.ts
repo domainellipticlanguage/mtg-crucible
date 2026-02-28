@@ -18,7 +18,7 @@ import { createCanvas, loadImage } from '@napi-rs/canvas';
 import { renderCard } from '../src';
 import type { CardData } from '../src/types';
 
-const OUT = '/tmp/mtg-crucible-compare';
+const OUT = path.resolve(__dirname, '..', '.output', 'compare');
 
 // ---------------------------------------------------------------------------
 // HTTP helpers

@@ -136,6 +136,10 @@ function extractProducedColors(subtypes: string[] | undefined, oracleText: strin
     }
   }
   if (oracleText) {
+    // "mana of any color" → all five colors (gold frame)
+    if (/mana of any color/i.test(oracleText)) {
+      for (const c of WUBRG) colors.add(c);
+    }
     // Find "Add ..." clauses (up to period/newline), extract {W}/{U}/{B}/{R}/{G} symbols
     for (const m of oracleText.matchAll(/[Aa]dd [^.\n]*/g)) {
       for (const sym of m[0].matchAll(/\{([WUBRG])\}/gi)) {

@@ -15,7 +15,7 @@ export const renderBattle = (card: CardData) => renderCardImage(card, 'battle');
 export const renderClass = (card: CardData) => renderCardImage(card, 'class');
 
 export function normalizeCard(card: CardData): CardData {
-  const derived = card.frameColor ? undefined : deriveFrameColor(card);
+  const derived = card.frameColor && card.accentColor ? undefined : deriveFrameColor(card);
   return {
     ...card,
     name: card.name ?? '',

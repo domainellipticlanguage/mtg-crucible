@@ -79,8 +79,8 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
   // Frame
   await drawFrame(ctx, frame, card.frameColor, card.accentColor, cw, ch);
 
-  // Legend crown
-  if (L.crown && card.supertypes?.includes('legendary')) {
+  // Legend crown (planeswalkers use their own frame treatment)
+  if (L.crown && card.supertypes?.includes('legendary') && templateKey !== 'planeswalker') {
     const crownPath = path.join(ASSETS_DIR, 'crowns', `${crownCodes[0]}.png`);
     if (fs.existsSync(crownPath)) {
       ctx.fillStyle = 'black';
@@ -135,8 +135,18 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
     drawSingleLineText(ctx, `${card.power}/${card.toughness}`, L.pt.x * cw, L.pt.y * ch, L.pt.w * cw, L.pt.h * ch, L.pt.font, L.pt.size * ch, 'center', ptColor);
   }
 
-  // Bottom info + corners
-  drawBottomInfo(ctx, card, cw, ch);
+  // Bottom info (battles: rotated to portrait orientation along right edge)
+  if (templateKey === 'battle') {
+    ctx.save();
+    ctx.translate(cw, 0);
+    ctx.rotate(Math.PI / 2);
+    drawBottomInfo(ctx, card, ch, cw);
+    ctx.restore();
+  } else {
+    drawBottomInfo(ctx, card, cw, ch);
+  }
+
+  // Corners
   drawCorners(ctx, cw, ch);
 
   return canvas.toBuffer('image/png');
