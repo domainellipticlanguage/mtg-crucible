@@ -141,30 +141,30 @@ export async function drawFrame(
       ctx.drawImage(offscreen, 0, 0);
     }
 
-    // Overlay accent colors on banner (left/right split for 2-color cards)
+    // Overlay accent colors on banner (N-color vertical split)
     const bannerPath = path.join(ASSETS_DIR, 'masks', `${template}-banner.png`);
     if (fs.existsSync(bannerPath)) {
-      // First color fills the full banner region
-      const b1 = createCanvas(cw, ch);
-      const b1Ctx = b1.getContext('2d');
-      b1Ctx.drawImage(await loadImage(bannerPath), 0, 0, cw, ch);
-      b1Ctx.globalCompositeOperation = 'source-in';
-      const firstFrame = path.join(ASSETS_DIR, 'frames', template, `${accentCodes[0]}.png`);
-      if (fs.existsSync(firstFrame)) b1Ctx.drawImage(await loadImage(firstFrame), 0, 0, cw, ch);
-      ctx.drawImage(b1, 0, 0);
+      const bannerMask = await loadImage(bannerPath);
+      const n = accentCodes.length;
+      const stripW = Math.ceil(cw / n);
 
-      // Second color overlays the right portion of the banner
-      if (accentCodes.length >= 2) {
-        const bannerRightPath = path.join(ASSETS_DIR, 'masks', `${template}-banner-right.png`);
-        if (fs.existsSync(bannerRightPath)) {
-          const b2 = createCanvas(cw, ch);
-          const b2Ctx = b2.getContext('2d');
-          b2Ctx.drawImage(await loadImage(bannerRightPath), 0, 0, cw, ch);
-          b2Ctx.globalCompositeOperation = 'source-in';
-          const secondFrame = path.join(ASSETS_DIR, 'frames', template, `${accentCodes[1]}.png`);
-          if (fs.existsSync(secondFrame)) b2Ctx.drawImage(await loadImage(secondFrame), 0, 0, cw, ch);
-          ctx.drawImage(b2, 0, 0);
-        }
+      for (let i = 0; i < n; i++) {
+        const framePath = path.join(ASSETS_DIR, 'frames', template, `${accentCodes[i]}.png`);
+        if (!fs.existsSync(framePath)) continue;
+
+        const strip = createCanvas(cw, ch);
+        const sCtx = strip.getContext('2d');
+        // Draw banner mask
+        sCtx.drawImage(bannerMask, 0, 0, cw, ch);
+        // Clip to this color's vertical strip
+        sCtx.globalCompositeOperation = 'destination-in';
+        sCtx.fillStyle = 'white';
+        sCtx.fillRect(stripW * i, 0, stripW, ch);
+        // Fill with color frame
+        sCtx.globalCompositeOperation = 'source-in';
+        sCtx.drawImage(await loadImage(framePath), 0, 0, cw, ch);
+
+        ctx.drawImage(strip, 0, 0);
       }
     }
   } else {
