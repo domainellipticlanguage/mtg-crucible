@@ -52,6 +52,8 @@ export const PW_LAYOUT = {
   iconTextSize: 0.0286,
   abilityBox: { x: 0.1167, w: 0.8094 },
   totalAbilityH: 0.2916,
+  crown:     { x: 44/2010, y: 53/2814, w: 1922/2010, h: 493/2814 },
+  setSymbol: { x: 0.926, y: 0.57, w: 0.09, h: 0.0525 },
 };
 
 // Saga layout (packSagaRegular.js)
@@ -66,6 +68,8 @@ export const SAGA_LAYOUT = {
   divider:   { h: 0.0029 },
   chapterSpread: 0.0358,
   chapterFont: 0.0324,
+  crown:     { x: 44/2010, y: 53/2814, w: 1922/2010, h: 493/2814 },
+  setSymbol: { x: 0.926, y: 0.856, w: 0.09, h: 0.0525 },
 };
 
 // Class layout (packClass.js)
@@ -80,6 +84,7 @@ export const CLASS_LAYOUT = {
   headerGap: 0.0481,
   maxY:      0.8368,
   setSymbol: { x: 0.9227, y: 0.8739, w: 0.12, h: 0.0700 },
+  crown:     { x: 44/2010, y: 53/2814, w: 1922/2010, h: 493/2814 },
 };
 
 // Battle layout (packBattle.js)

@@ -1,19 +1,18 @@
 import type { CardData, RenderedCard } from './types';
 import { ensureInitialized } from './helpers';
-import { renderStandard } from './renderers/standard';
-import { renderPlaneswalker } from './renderers/planeswalker';
-import { renderSaga } from './renderers/saga';
-import { renderBattle } from './renderers/battle';
-import { renderClass } from './renderers/class';
+import { renderCardImage, resolveTemplate } from './renderers/render';
 import { parseCard, deriveFrameColor } from './parser';
 
 export type { CardData, RenderedCard, AccentColor, StructuredAbilities, PlaneswalkerAbilities, SagaAbilities, ClassAbilities } from './types';
-export { renderStandard } from './renderers/standard';
-export { renderPlaneswalker } from './renderers/planeswalker';
-export { renderSaga } from './renderers/saga';
-export { renderBattle } from './renderers/battle';
-export { renderClass } from './renderers/class';
+export { renderCardImage } from './renderers/render';
 export { parseCard } from './parser';
+
+// Backwards-compatible individual renderer exports
+export const renderStandard = (card: CardData) => renderCardImage(card, 'standard');
+export const renderPlaneswalker = (card: CardData) => renderCardImage(card, 'planeswalker');
+export const renderSaga = (card: CardData) => renderCardImage(card, 'saga');
+export const renderBattle = (card: CardData) => renderCardImage(card, 'battle');
+export const renderClass = (card: CardData) => renderCardImage(card, 'class');
 
 export function normalizeCard(card: CardData): CardData {
   const derived = card.frameColor ? undefined : deriveFrameColor(card);
@@ -33,12 +32,7 @@ export async function renderCard(input: CardData | string): Promise<RenderedCard
   const normalized = normalizeCard(card);
 
   await ensureInitialized();
-  let frontFace: Buffer;
-  if (normalized.structuredAbilities?.kind === 'planeswalker') frontFace = await renderPlaneswalker(normalized);
-  else if (normalized.structuredAbilities?.kind === 'saga') frontFace = await renderSaga(normalized);
-  else if (normalized.structuredAbilities?.kind === 'class') frontFace = await renderClass(normalized);
-  else if (normalized.battleDefense) frontFace = await renderBattle(normalized);
-  else frontFace = await renderStandard(normalized);
+  const frontFace = await renderCardImage(normalized);
 
   return {
     frontFace,

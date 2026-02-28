@@ -1,10 +1,8 @@
-import { createCanvas, loadImage } from '@napi-rs/canvas';
-import * as fs from 'fs';
+import { loadImage, type SKRSContext2D } from '@napi-rs/canvas';
 import * as path from 'path';
 import type { CardData, SagaAbilities } from '../types';
-import { PW_W, PW_H, SAGA_LAYOUT, ASSETS_DIR } from '../layout';
-import { drawArt, drawCorners, drawBottomInfo, drawManaCost, getTypeLine, primaryFrameColorCode, drawColorIndicator, drawFrame } from '../helpers';
-import { drawSingleLineText, drawWrappedText, fillTextHeavy, wrapParagraphs, computeHeight } from '../text';
+import { ASSETS_DIR } from '../layout';
+import { drawWrappedText, fillTextHeavy, wrapParagraphs, computeHeight } from '../text';
 
 function romanNumeral(n: number): string {
   return [
@@ -16,30 +14,13 @@ function romanNumeral(n: number): string {
   ][n] || String(n);
 }
 
-export async function renderSaga(card: CardData): Promise<Buffer> {
-  const cw = PW_W, ch = PW_H;
-  const canvas = createCanvas(cw, ch);
-  const ctx = canvas.getContext('2d');
-  const L = SAGA_LAYOUT;
-  const fc = primaryFrameColorCode(card.frameColor);
+async function body(ctx: SKRSContext2D, card: CardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
   const saga = card.structuredAbilities as SagaAbilities;
   const chapters = saga.chapters;
-
-  // Background
-  ctx.fillStyle = '#1a1a1a';
-  ctx.fillRect(0, 0, cw, ch);
-
-  // Art (right side)
-  if (card.artUrl) await drawArt(ctx, card.artUrl, L.art, cw, ch);
-
-  // Frame (with accent compositing for colored lands/artifacts)
-  await drawFrame(ctx, 'saga', card.frameColor, card.accentColor, cw, ch);
-
-  // Chapter numbers and dividers
   const chapterCount = chapters.length;
 
-  // Measure and render reminder text if present (e.g. saga lore counter reminder)
-  let reminderOffsetN = 0; // normalized offset for chapter start
+  // Measure and render reminder text if present
+  let reminderOffsetN = 0;
   const reminderSize = L.ability.size * ch * 0.85;
   if (card.unstructuredAbilities) {
     const reminderX = L.ability.x * cw;
@@ -91,7 +72,7 @@ export async function renderSaga(card: CardData): Promise<Buffer> {
     const sagaX = L.saga.x * cw;
     const sagaW = L.saga.w * cw;
 
-    // Divider line (CC draws for all chapters including first)
+    // Divider line
     ctx.drawImage(dividerImg, sagaX, abilityY - (L.divider.h * ch) / 2, sagaW, L.divider.h * ch);
 
     // Chapter numeral hex(es)
@@ -104,7 +85,6 @@ export async function renderSaga(card: CardData): Promise<Buffer> {
     const chapterNumbers = chapters[i].chapterNumbers;
     const chapCount = chapterNumbers.length;
 
-    // Set font for chapter numerals (use bold since we don't have plantinsemibold)
     ctx.font = `bold ${chapterFontSize}px "MPlantin"`;
     ctx.textAlign = 'center';
     ctx.fillStyle = 'black';
@@ -141,15 +121,6 @@ export async function renderSaga(card: CardData): Promise<Buffer> {
 
     curY += abilityH;
   }
-
-  // Name, mana, type
-  drawSingleLineText(ctx, card.name ?? '', L.name.x*cw, L.name.y*ch, L.name.w*cw, L.name.h*ch, L.name.font, L.name.size*ch);
-  if (card.manaCost) await drawManaCost(ctx, card.manaCost, cw, ch, L.mana);
-  const sagaTypeX = L.type.x * cw, sagaTypeY = L.type.y * ch, sagaTypeH = L.type.h * ch;
-  const sagaIndOff = drawColorIndicator(ctx, card.colorIndicator, sagaTypeX, sagaTypeY, sagaTypeH);
-  drawSingleLineText(ctx, getTypeLine(card), sagaTypeX + sagaIndOff, sagaTypeY, L.type.w * cw - sagaIndOff, sagaTypeH, L.type.font, L.type.size * ch);
-
-  drawBottomInfo(ctx, card, cw, ch);
-  drawCorners(ctx, cw, ch);
-  return canvas.toBuffer('image/png');
 }
+
+export const sagaHooks = { body };

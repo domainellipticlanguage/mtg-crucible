@@ -1,28 +1,13 @@
-import { createCanvas, loadImage } from '@napi-rs/canvas';
+import { loadImage, type SKRSContext2D } from '@napi-rs/canvas';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { CardData, PlaneswalkerAbilities } from '../types';
-import { PW_W, PW_H, PW_LAYOUT, ASSETS_DIR } from '../layout';
-import { drawArt, drawCorners, drawBottomInfo, drawManaCost, getTypeLine, primaryFrameColorCode, drawColorIndicator, drawFrame } from '../helpers';
+import { ASSETS_DIR } from '../layout';
 import { drawSingleLineText, drawWrappedText } from '../text';
 
-export async function renderPlaneswalker(card: CardData): Promise<Buffer> {
-  const cw = PW_W, ch = PW_H;
-  const canvas = createCanvas(cw, ch);
-  const ctx = canvas.getContext('2d');
-  const L = PW_LAYOUT;
-  const fc = primaryFrameColorCode(card.frameColor);
+async function preFrame(ctx: SKRSContext2D, card: CardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
   const pw = card.structuredAbilities as PlaneswalkerAbilities;
   const abilities = pw.loyaltyAbilities;
-
-  // Background
-  ctx.fillStyle = '#1a1a1a';
-  ctx.fillRect(0, 0, cw, ch);
-
-  // Art
-  if (card.artUrl) await drawArt(ctx, card.artUrl, L.art, cw, ch);
-
-  // Ability background shading (pre-frame)
   const abilityCount = abilities.length;
   const abilityStartY = L.ability.y;
   const abilityH = L.totalAbilityH / abilityCount;
@@ -49,11 +34,16 @@ export async function renderPlaneswalker(card: CardData): Promise<Buffer> {
       }
     }
   }
+}
 
-  // Frame (with accent compositing for colored lands/artifacts)
-  await drawFrame(ctx, 'planeswalker', card.frameColor, card.accentColor, cw, ch);
+async function body(ctx: SKRSContext2D, card: CardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
+  const pw = card.structuredAbilities as PlaneswalkerAbilities;
+  const abilities = pw.loyaltyAbilities;
+  const abilityCount = abilities.length;
+  const abilityStartY = L.ability.y;
+  const abilityH = L.totalAbilityH / abilityCount;
 
-  // Loyalty cost icons (post-frame)
+  // Loyalty cost icons
   const iconYPositions = L.abilityIconY[abilityCount] || L.abilityIconY[3];
   const plusImg = await loadImage(path.join(ASSETS_DIR, 'frames', 'planeswalker', 'planeswalkerPlus.png'));
   const minusImg = await loadImage(path.join(ASSETS_DIR, 'frames', 'planeswalker', 'planeswalkerMinus.png'));
@@ -94,17 +84,10 @@ export async function renderPlaneswalker(card: CardData): Promise<Buffer> {
     drawWrappedText(ctx, abilities[i].text, ax, ay, aw, ah, L.ability.font, L.ability.size * ch);
   }
 
-  // Name, mana, type
-  drawSingleLineText(ctx, card.name ?? '', L.name.x*cw, L.name.y*ch, L.name.w*cw, L.name.h*ch, L.name.font, L.name.size*ch);
-  if (card.manaCost) await drawManaCost(ctx, card.manaCost, cw, ch, L.mana);
-  const pwTypeX = L.type.x * cw, pwTypeY = L.type.y * ch, pwTypeH = L.type.h * ch;
-  const pwIndOff = drawColorIndicator(ctx, card.colorIndicator, pwTypeX, pwTypeY, pwTypeH);
-  drawSingleLineText(ctx, getTypeLine(card), pwTypeX + pwIndOff, pwTypeY, L.type.w * cw - pwIndOff, pwTypeH, L.type.font, L.type.size * ch);
-
   // Starting loyalty
-  drawSingleLineText(ctx, card.startingLoyalty ?? '0', L.loyalty.x*cw, L.loyalty.y*ch, L.loyalty.w*cw, L.loyalty.h*ch, L.loyalty.font, L.loyalty.size*ch, 'center', 'white');
-
-  drawBottomInfo(ctx, card, cw, ch);
-  drawCorners(ctx, cw, ch);
-  return canvas.toBuffer('image/png');
+  if (L.loyalty) {
+    drawSingleLineText(ctx, card.startingLoyalty ?? '0', L.loyalty.x * cw, L.loyalty.y * ch, L.loyalty.w * cw, L.loyalty.h * ch, L.loyalty.font, L.loyalty.size * ch, 'center', 'white');
+  }
 }
+
+export const planeswalkerHooks = { preFrame, body };
