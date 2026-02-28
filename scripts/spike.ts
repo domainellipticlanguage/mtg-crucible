@@ -230,6 +230,129 @@ async function main() {
     artist: 'Svetlin Velinov', collectorNumber: '192',
   })).frontFace);
 
+  // 18. Wrenn and Six — legendary R/G planeswalker
+  console.log('Rendering Wrenn and Six (2-color Planeswalker)...');
+  const wrennAndSix: CardData = {
+    name: 'Wrenn and Six', manaCost: '{R}{G}',
+    supertypes: ['legendary'], types: ['planeswalker'], subtypes: ['Wrenn'],
+    frameColor: 'multicolor', accentColor: ['red', 'green'], rarity: 'mythic',
+    artist: 'Chase Stone', collectorNumber: '217',
+    startingLoyalty: '3',
+    structuredAbilities: {
+      kind: 'planeswalker',
+      loyaltyAbilities: [
+        { cost: '+1', text: 'Return up to one target land card from your graveyard to your hand.' },
+        { cost: '-1', text: 'Wrenn and Six deals 1 damage to any target.' },
+        { cost: '-7', text: 'You get an emblem with "Instant and sorcery cards in your graveyard have retrace."' },
+      ],
+    },
+  };
+  fs.writeFileSync(fname('wrenn-and-six'), (await renderCard(wrennAndSix)).frontFace);
+
+  // --- 2-color coverage: legendary + non-legendary for each template ---
+
+  // 19. Non-legendary 2-color creature (W/B)
+  console.log('Rendering Tidehollow Sculler (2-color creature)...');
+  fs.writeFileSync(fname('tidehollow-sculler'), (await renderCard({
+    name: 'Tidehollow Sculler', manaCost: '{W}{B}',
+    types: ['artifact', 'creature'], subtypes: ['Zombie'],
+    oracleText: 'When Tidehollow Sculler enters the battlefield, target opponent reveals their hand and you choose a nonland card from it. Exile that card.\nWhen Tidehollow Sculler leaves the battlefield, return the exiled card to its owner\'s hand.',
+    power: '2', toughness: '2', rarity: 'uncommon',
+    artist: 'rk post', collectorNumber: '202',
+  })).frontFace);
+
+  // 20. Non-legendary 2-color planeswalker (U/B)
+  console.log('Rendering Ashiok, Dream Render (2-color PW, non-legendary)...');
+  fs.writeFileSync(fname('ashiok-dream-render'), (await renderCard({
+    name: 'Ashiok, Dream Render', manaCost: '{1}{U/B}{U/B}',
+    types: ['planeswalker'], subtypes: ['Ashiok'],
+    rarity: 'uncommon',
+    artist: 'Cynthia Sheppard', collectorNumber: '228',
+    startingLoyalty: '5',
+    structuredAbilities: {
+      kind: 'planeswalker',
+      loyaltyAbilities: [
+        { cost: '', text: 'Spells and abilities your opponents control can\'t cause their controller to search their library.' },
+        { cost: '-1', text: 'Target player mills four cards. Then exile each opponent\'s graveyard.' },
+      ],
+    },
+  })).frontFace);
+
+  // 21. Non-legendary 2-color saga (B/G)
+  console.log('Rendering The Weatherseed Treaty (2-color saga)...');
+  fs.writeFileSync(fname('weatherseed-treaty'), (await renderCard({
+    name: 'The Weatherseed Treaty', manaCost: '{1}{B}{G}',
+    types: ['enchantment'], subtypes: ['Saga'],
+    rarity: 'uncommon',
+    artist: 'Alex Brock', collectorNumber: '222',
+    structuredAbilities: {
+      kind: 'saga',
+      chapters: [
+        { chapterNumbers: [1], text: 'Search your library for a basic land card, put it onto the battlefield tapped, then shuffle.' },
+        { chapterNumbers: [2], text: 'Put two +1/+1 counters on target creature you control.' },
+        { chapterNumbers: [3], text: 'Create a 4/3 green Fungus Beast creature token with trample and haste.' },
+      ],
+    },
+  })).frontFace);
+
+  // 22. Legendary 2-color class (W/U)
+  console.log('Rendering Bard Class (legendary 2-color class)...');
+  fs.writeFileSync(fname('divine-scholar-class'), (await renderCard({
+    name: 'Divine Scholar Class', manaCost: '{W}{U}',
+    supertypes: ['legendary'], types: ['enchantment'], subtypes: ['Class'],
+    rarity: 'rare',
+    artist: 'Wylie Beckert', collectorNumber: '301',
+    unstructuredAbilities: '(Gain the next level as a sorcery to add its ability.)',
+    structuredAbilities: {
+      kind: 'class',
+      classLevels: [
+        { level: 1, cost: '', text: 'When this Class enters, scry 2, then draw a card.' },
+        { level: 2, cost: '{1}{W}{U}', text: 'Instant and sorcery spells you cast cost {1} less to cast.' },
+        { level: 3, cost: '{3}{W}{U}', text: 'Whenever you cast a noncreature spell, create a 1/1 white Bird creature token with flying.' },
+      ],
+    },
+  })).frontFace);
+
+  // 23. Non-legendary 2-color class (R/G)
+  console.log('Rendering Primal Fury Class (2-color class)...');
+  fs.writeFileSync(fname('primal-fury-class'), (await renderCard({
+    name: 'Primal Fury Class', manaCost: '{R}{G}',
+    types: ['enchantment'], subtypes: ['Class'],
+    rarity: 'uncommon',
+    artist: 'Lie Setiawan', collectorNumber: '302',
+    unstructuredAbilities: '(Gain the next level as a sorcery to add its ability.)',
+    structuredAbilities: {
+      kind: 'class',
+      classLevels: [
+        { level: 1, cost: '', text: 'Creatures you control get +1/+0.' },
+        { level: 2, cost: '{1}{R}{G}', text: 'Creatures you control have trample.' },
+        { level: 3, cost: '{2}{R}{G}', text: 'Whenever a creature you control attacks, it gets +X/+0 until end of turn, where X is its power.' },
+      ],
+    },
+  })).frontFace);
+
+  // 24. Legendary 2-color battle (U/R)
+  console.log('Rendering Invasion of Keral Keep (legendary 2-color battle)...');
+  fs.writeFileSync(fname('invasion-keral-keep'), (await renderCard({
+    name: 'Invasion of Keral Keep', manaCost: '{3}{U}{R}',
+    supertypes: ['legendary'], types: ['battle'], subtypes: ['Siege'],
+    oracleText: 'When Invasion of Keral Keep enters the battlefield, it deals 4 damage to target creature or planeswalker, then you may cast an instant or sorcery spell with mana value 3 or less from your hand without paying its mana cost.',
+    rarity: 'mythic',
+    artist: 'Dominik Mayer', collectorNumber: '303',
+    battleDefense: '5',
+  })).frontFace);
+
+  // 25. Non-legendary 2-color battle (W/G)
+  console.log('Rendering Invasion of the Wilds (2-color battle)...');
+  fs.writeFileSync(fname('invasion-wilds'), (await renderCard({
+    name: 'Invasion of the Wilds', manaCost: '{2}{W}{G}',
+    types: ['battle'], subtypes: ['Siege'],
+    oracleText: 'When Invasion of the Wilds enters the battlefield, search your library for a basic land card, put it onto the battlefield tapped, then shuffle. You gain 3 life.',
+    rarity: 'uncommon',
+    artist: 'Bryan Sola', collectorNumber: '304',
+    battleDefense: '4',
+  })).frontFace);
+
   console.log(`\nDone! ${idx - 1} cards rendered to ${OUT}`);
 }
 
