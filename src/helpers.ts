@@ -146,7 +146,23 @@ export async function drawFrame(
     if (fs.existsSync(bannerPath)) {
       const bannerMask = await loadImage(bannerPath);
       const n = accentCodes.length;
-      const stripW = Math.ceil(cw / n);
+
+      // Find horizontal bounds of the banner mask
+      const bboxCanvas = createCanvas(cw, ch);
+      const bboxCtx = bboxCanvas.getContext('2d');
+      bboxCtx.drawImage(bannerMask, 0, 0, cw, ch);
+      const imgData = bboxCtx.getImageData(0, 0, cw, ch);
+      let minX = cw, maxX = 0;
+      for (let y = 0; y < ch; y++) {
+        for (let x = 0; x < cw; x++) {
+          if (imgData.data[(y * cw + x) * 4 + 3] > 0) {
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+          }
+        }
+      }
+      const bannerW = maxX - minX + 1;
+      const stripW = Math.ceil(bannerW / n);
 
       for (let i = 0; i < n; i++) {
         const framePath = path.join(ASSETS_DIR, 'frames', template, `${accentCodes[i]}.png`);
@@ -156,10 +172,10 @@ export async function drawFrame(
         const sCtx = strip.getContext('2d');
         // Draw banner mask
         sCtx.drawImage(bannerMask, 0, 0, cw, ch);
-        // Clip to this color's vertical strip
+        // Clip to this color's vertical strip within the banner bounds
         sCtx.globalCompositeOperation = 'destination-in';
         sCtx.fillStyle = 'white';
-        sCtx.fillRect(stripW * i, 0, stripW, ch);
+        sCtx.fillRect(minX + stripW * i, 0, stripW, ch);
         // Fill with color frame
         sCtx.globalCompositeOperation = 'source-in';
         sCtx.drawImage(await loadImage(framePath), 0, 0, cw, ch);
