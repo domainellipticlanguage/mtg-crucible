@@ -33,7 +33,8 @@ export const STD_LAYOUT = {
 
 // Planeswalker layout (packPlaneswalkerRegular.js)
 export const PW_LAYOUT = {
-  art:       { x: 0.0767, y: 0.1129, w: 0.8476, h: 0.4429 },
+  // art:       { x: 0.0767, y: 0.1034, w: 0.8476, h: 0.7966 },
+  art:       { x: 0.0767, y: 0.05, w: 0.8476, h: 0.7966 },
   name:      { x: 0.0867, y: 0.0372, w: 0.8267, h: 0.0548, size: 0.0381, font: 'Beleren Bold' },
   mana:      { y: 0.0481, w: 0.9292, size: 71/1638, shadowX: -0.001, shadowY: 0.0029 },
   type:      { x: 0.0867, y: 0.5625, w: 0.8267, h: 0.0548, size: 0.0324, font: 'Beleren Bold' },
