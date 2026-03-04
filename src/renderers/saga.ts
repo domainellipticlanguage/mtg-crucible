@@ -3,6 +3,7 @@ import * as path from 'path';
 import type { CardData, SagaAbilities } from '../types';
 import { ASSETS_DIR } from '../layout';
 import { drawWrappedText, fillTextHeavy, wrapParagraphs, computeHeight } from '../text';
+import { getParsedAbilities } from './render';
 
 function romanNumeral(n: number): string {
   return [
@@ -15,24 +16,26 @@ function romanNumeral(n: number): string {
 }
 
 async function body(ctx: SKRSContext2D, card: CardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
-  const saga = card.structuredAbilities as SagaAbilities;
+  const pa = getParsedAbilities(card);
+  const saga = pa.structuredAbilities as SagaAbilities;
   const chapters = saga.chapters;
   const chapterCount = chapters.length;
 
   // Measure and render reminder text if present
   let reminderOffsetN = 0;
   const reminderSize = L.ability.size * ch * 0.85;
-  if (card.unstructuredAbilities) {
+  const reminderText = pa.unstructuredAbilities?.join('\n');
+  if (reminderText) {
     const reminderX = L.ability.x * cw;
     const reminderW = L.ability.w * cw;
     ctx.font = `${reminderSize}px "MPlantin Italic"`;
-    const reminderParas = card.unstructuredAbilities.split('\n').filter(p => p.trim());
+    const reminderParas = reminderText.split('\n').filter(p => p.trim());
     const reminderLines = wrapParagraphs(ctx, reminderParas, reminderW, reminderSize);
     const reminderH = computeHeight(reminderLines, reminderSize, reminderSize * 0.35);
     const reminderPadding = reminderSize * 0.5;
     reminderOffsetN = (reminderH + reminderPadding) / ch;
 
-    drawWrappedText(ctx, card.unstructuredAbilities,
+    drawWrappedText(ctx, reminderText,
       reminderX, L.ability.y * ch, reminderW, reminderH + reminderPadding,
       'MPlantin Italic', reminderSize, { fontFamily: 'MPlantin Italic' });
   }

@@ -1,7 +1,7 @@
 import { createCanvas, loadImage, type SKRSContext2D } from '@napi-rs/canvas';
 import * as fs from 'fs';
 import * as path from 'path';
-import type { CardData } from '../types';
+import type { CardData, ParsedAbilities } from '../types';
 import {
   STD_W, STD_H, STD_LAYOUT,
   PW_W, PW_H, PW_LAYOUT,
@@ -45,10 +45,17 @@ const TEMPLATES: Record<string, TemplateConfig> = {
   battle:       { layout: BTL_LAYOUT, w: BTL_W, h: BTL_H, frame: 'battle', hooks: battleHooks },
 };
 
+/** Extract ParsedAbilities from card, handling string | ParsedAbilities | undefined. */
+export function getParsedAbilities(card: CardData): ParsedAbilities {
+  if (card.abilities && typeof card.abilities === 'object') return card.abilities;
+  return {};
+}
+
 export function resolveTemplate(card: CardData): string {
-  if (card.structuredAbilities?.kind === 'planeswalker') return 'planeswalker';
-  if (card.structuredAbilities?.kind === 'saga') return 'saga';
-  if (card.structuredAbilities?.kind === 'class') return 'class';
+  const pa = getParsedAbilities(card);
+  if (pa.structuredAbilities?.kind === 'planeswalker') return 'planeswalker';
+  if (pa.structuredAbilities?.kind === 'saga') return 'saga';
+  if (pa.structuredAbilities?.kind === 'class') return 'class';
   if (card.battleDefense) return 'battle';
   return 'standard';
 }
@@ -121,10 +128,12 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
   drawSingleLineText(ctx, getTypeLine(card), typeX + indicatorOffset, typeY, L.type.w * cw - indicatorOffset, typeH, L.type.font, L.type.size * ch);
 
   // Rules + flavor text (for templates with a rules area)
-  if (L.rules && (card.oracleText || card.flavorText)) {
+  const pa = getParsedAbilities(card);
+  const rulesText = pa.unstructuredAbilities?.join('\n');
+  if (L.rules && (rulesText || card.flavorText)) {
     const rx = L.rules.x * cw, ry = L.rules.y * ch, rw = L.rules.w * cw, rh = L.rules.h * ch, rs = L.rules.size * ch;
-    if (card.oracleText && card.flavorText) drawRulesAndFlavor(ctx, card.oracleText, card.flavorText, rx, ry, rw, rh, L.rules.font, rs);
-    else if (card.oracleText) drawWrappedText(ctx, card.oracleText, rx, ry, rw, rh, L.rules.font, rs);
+    if (rulesText && card.flavorText) drawRulesAndFlavor(ctx, rulesText, card.flavorText, rx, ry, rw, rh, L.rules.font, rs);
+    else if (rulesText) drawWrappedText(ctx, rulesText, rx, ry, rw, rh, L.rules.font, rs);
     else if (card.flavorText) drawWrappedText(ctx, card.flavorText, rx, ry, rw, rh, L.rules.font, rs, { fontFamily: 'MPlantin Italic' });
   }
 

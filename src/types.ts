@@ -107,6 +107,11 @@ export type StructuredAbilities =
   | CaseAbilities
   | PrototypeAbilities;
 
+export interface ParsedAbilities {
+  unstructuredAbilities?: string[];
+  structuredAbilities?: StructuredAbilities;
+}
+
 export interface CardData {
   // Will be inferred if not provided
   cardTemplate?: CardTemplate;
@@ -126,8 +131,8 @@ export interface CardData {
   rarity?: Rarity;
 
   colorIndicator?: Color[];
-  unstructuredAbilities?: string;
-  structuredAbilities?: StructuredAbilities;
+
+  abilities?: string | ParsedAbilities;
 
   power?: string;
   toughness?: string;
@@ -138,8 +143,6 @@ export interface CardData {
 
   startingLoyalty?: string;
   battleDefense?: string;
-
-  oracleText?: string;
 
   linkedCard?: CardData;
   linkType?: LinkType;

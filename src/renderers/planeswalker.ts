@@ -3,10 +3,11 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { CardData, PlaneswalkerAbilities } from '../types';
 import { ASSETS_DIR } from '../layout';
+import { getParsedAbilities } from './render';
 import { drawSingleLineText, drawWrappedText } from '../text';
 
 async function preFrame(ctx: SKRSContext2D, card: CardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
-  const pw = card.structuredAbilities as PlaneswalkerAbilities;
+  const pw = getParsedAbilities(card).structuredAbilities as PlaneswalkerAbilities;
   const abilities = pw.loyaltyAbilities;
   const abilityCount = abilities.length;
   const abilityStartY = L.ability.y;
@@ -37,7 +38,7 @@ async function preFrame(ctx: SKRSContext2D, card: CardData, L: Record<string, an
 }
 
 async function body(ctx: SKRSContext2D, card: CardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
-  const pw = card.structuredAbilities as PlaneswalkerAbilities;
+  const pw = getParsedAbilities(card).structuredAbilities as PlaneswalkerAbilities;
   const abilities = pw.loyaltyAbilities;
   const abilityCount = abilities.length;
   const abilityStartY = L.ability.y;

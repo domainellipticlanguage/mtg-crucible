@@ -270,12 +270,24 @@ npm run spike     # render test cards to output/
 - test with LTS
 
 
-## Won't do
+## Future Features And Blockers
+- Pass in FrameModifier / FrameVariant / FrameStyle
+    - can be a list or single value. List will round robin??
 - Support devoid borders
-- Support various borders
 - Support nyx borders
-- Support hybrid mana borders
+- Support Snow borders
 
+- Support various borders
+- Support hybrid mana borders
+- Support composite cards
+
+
+
+## Supported
+Battles (only the front face)
+
+## Maybe
+- Keyrune integration https://keyrune.andrewgioia.com/icons.html
 
 
 # API's

@@ -4,6 +4,7 @@ import * as path from 'path';
 import type { CardData, ClassAbilities } from '../types';
 import { ASSETS_DIR, FONT_HEIGHT_RATIO } from '../layout';
 import { drawWrappedText, drawRichLine, wrapParagraphs, computeHeight } from '../text';
+import { getParsedAbilities } from './render';
 
 /** Measure how tall text would be at a given size without drawing. */
 function measureTextHeight(
@@ -17,7 +18,8 @@ function measureTextHeight(
 }
 
 async function body(ctx: SKRSContext2D, card: CardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
-  const cls = card.structuredAbilities as ClassAbilities;
+  const pa = getParsedAbilities(card);
+  const cls = pa.structuredAbilities as ClassAbilities;
   const classLevels = cls.classLevels;
 
   // Header divider image
@@ -46,8 +48,9 @@ async function body(ctx: SKRSContext2D, card: CardData, L: Record<string, any>, 
   const reminderSize = textSize * 0.8;
   const barHeight = 8;
   const barSpacing = textSize * 0.5;
-  if (card.unstructuredAbilities) {
-    const rh = measureTextHeight(ctx, card.unstructuredAbilities, levelW, reminderSize, 'MPlantin Italic');
+  const reminderText = pa.unstructuredAbilities?.join('\n');
+  if (reminderText) {
+    const rh = measureTextHeight(ctx, reminderText, levelW, reminderSize, 'MPlantin Italic');
     reminderH = (rh + barHeight + barSpacing * 2) / ch;
   }
 
@@ -73,14 +76,14 @@ async function body(ctx: SKRSContext2D, card: CardData, L: Record<string, any>, 
     const level = classLevels[i];
 
     // Level 1: render reminder text + bar before the ability text
-    if (i === 0 && card.unstructuredAbilities) {
+    if (i === 0 && reminderText) {
       const reminderResult = drawWrappedText(
-        ctx, card.unstructuredAbilities,
+        ctx, reminderText,
         levelX, lastY * ch, levelW, reminderH * ch,
         'MPlantin Italic', reminderSize,
         { fontFamily: 'MPlantin Italic' },
       );
-      const reminderUsedH = reminderResult.usedHeight || measureTextHeight(ctx, card.unstructuredAbilities, levelW, reminderSize, 'MPlantin Italic');
+      const reminderUsedH = reminderResult.usedHeight || measureTextHeight(ctx, reminderText, levelW, reminderSize, 'MPlantin Italic');
 
       // Horizontal bar separator
       const barY = lastY * ch + reminderUsedH + barSpacing;

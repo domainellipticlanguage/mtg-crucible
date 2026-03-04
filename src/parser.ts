@@ -1,4 +1,4 @@
-import type { CardData, AccentColor, Color, FrameColor, Rarity, Supertype, Type } from './types';
+import type { CardData, AccentColor, Color, FrameColor, Rarity, Supertype, Type, ParsedAbilities, StructuredAbilities } from './types';
 
 const MANA_COST_REGEX = /^(.+?)\s+((?:\{[^}]+\})+)$/;
 const ART_REGEX = /^Art:\s*(https?:\/\/\S+)$/i;
@@ -161,7 +161,7 @@ function colorsToAccent(colors: Set<string>): AccentColor | AccentColor[] | unde
 
 type DerivedFrame = { frameColor: FrameColor | FrameColor[]; accentColor?: AccentColor | AccentColor[] };
 
-export function deriveFrameColor(card: Pick<CardData, 'subtypes' | 'types' | 'manaCost' | 'colorIndicator' | 'oracleText'>): DerivedFrame {
+export function deriveFrameColor(card: Pick<CardData, 'subtypes' | 'types' | 'manaCost' | 'colorIndicator'> & { abilitiesText?: string }): DerivedFrame {
   const colors = extractManaColors(card.manaCost);
   const twoColors: Color[] | undefined = colors.size === 2 ? colorsInOrder(colors) : undefined;
   const isHybrid = twoColors !== undefined && hasHybridMana(card.manaCost, colors);
@@ -174,7 +174,7 @@ export function deriveFrameColor(card: Pick<CardData, 'subtypes' | 'types' | 'ma
 
   // 2. Land type — accent from produced colors, then colorIndicator fallback
   if (card.types?.includes('land')) {
-    const produced = extractProducedColors(card.subtypes, card.oracleText);
+    const produced = extractProducedColors(card.subtypes, card.abilitiesText);
     const landAccent = colorsToAccent(produced);
     if (landAccent) return { frameColor: 'land', accentColor: landAccent };
     if (manaAccent) return { frameColor: 'land', accentColor: manaAccent };
@@ -196,6 +196,154 @@ export function deriveFrameColor(card: Pick<CardData, 'subtypes' | 'types' | 'ma
   if (isHybrid) return { frameColor: twoColors!, accentColor: twoColors };
   if (twoColors) return { frameColor: 'multicolor', accentColor: twoColors };
   return { frameColor: 'multicolor' };
+}
+
+function numberToRoman(n: number): string {
+  switch (n) {
+    case 1: return 'I'; case 2: return 'II'; case 3: return 'III';
+    case 4: return 'IV'; case 5: return 'V'; case 6: return 'VI';
+    default: return String(n);
+  }
+}
+
+/** Parse raw ability text into structured form. */
+export function parseAbilities(text: string, kind?: StructuredAbilities['kind']): ParsedAbilities {
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  if (lines.length === 0) return {};
+
+  if (kind === 'planeswalker') {
+    const loyaltyAbilities: { cost: string; text: string }[] = [];
+    for (const line of lines) {
+      const m = line.match(PW_ABILITY_REGEX);
+      if (m) {
+        loyaltyAbilities.push({ cost: m[1], text: m[2] });
+      } else {
+        loyaltyAbilities.push({ cost: '', text: line });
+      }
+    }
+    return { structuredAbilities: { kind: 'planeswalker', loyaltyAbilities } };
+  }
+
+  if (kind === 'saga') {
+    const chapters: { chapterNumbers: number[]; text: string }[] = [];
+    const unstructured: string[] = [];
+    for (const line of lines) {
+      const m = line.match(SAGA_CHAPTER_REGEX);
+      if (m) {
+        const chapterNumbers = m[1].split(',').map(r => romanToNumber(r.trim()));
+        chapters.push({ chapterNumbers, text: m[2].trim() });
+      } else {
+        unstructured.push(line);
+      }
+    }
+    const result: ParsedAbilities = { structuredAbilities: { kind: 'saga', chapters } };
+    if (unstructured.length > 0) result.unstructuredAbilities = unstructured;
+    return result;
+  }
+
+  if (kind === 'class') {
+    type PendingLevel = { level: number; cost: string; textLines: string[] };
+    const classLevels: { level: number; cost: string; text: string }[] = [];
+    let pending: PendingLevel = { level: 1, cost: '', textLines: [] };
+    let haveExplicitLevel = false;
+
+    const pushPending = () => {
+      const text = pending.textLines.join('\n').trim();
+      classLevels.push({
+        level: pending.level,
+        cost: normalizeManaSymbols(pending.cost) ?? '',
+        text,
+      });
+    };
+
+    for (const line of lines) {
+      const levelMatch = line.match(CLASS_LEVEL_REGEX);
+      if (levelMatch) {
+        if (haveExplicitLevel || pending.textLines.length > 0) pushPending();
+        haveExplicitLevel = true;
+        pending = {
+          level: parseInt(levelMatch[2].replace(/\D/g, ''), 10) || pending.level + 1,
+          cost: levelMatch[1],
+          textLines: [],
+        };
+      } else {
+        pending.textLines.push(line);
+      }
+    }
+    if (haveExplicitLevel || pending.textLines.length > 0) pushPending();
+
+    // Extract reminder text from level 1 — lines wrapped in *(...)* are italic reminder text
+    const unstructured: string[] = [];
+    if (classLevels.length > 0 && classLevels[0].level === 1 && classLevels[0].text) {
+      const level0Lines = classLevels[0].text.split('\n');
+      const reminderLines: string[] = [];
+      const abilityLines: string[] = [];
+      for (const line of level0Lines) {
+        if (reminderLines.length === 0 && abilityLines.length === 0 && /^\*\(.*\)\*$/.test(line.trim())) {
+          reminderLines.push(line.trim().slice(1, -1));
+        } else {
+          abilityLines.push(line);
+        }
+      }
+      if (reminderLines.length > 0) {
+        unstructured.push(...reminderLines);
+        classLevels[0].text = abilityLines.join('\n');
+      }
+    }
+
+    const result: ParsedAbilities = { structuredAbilities: { kind: 'class', classLevels } };
+    if (unstructured.length > 0) result.unstructuredAbilities = unstructured;
+    return result;
+  }
+
+  // Default (standard): all lines are unstructured abilities
+  return { unstructuredAbilities: lines };
+}
+
+/** Format ParsedAbilities back into oracle text. */
+export function formatAbilities(abilities: ParsedAbilities): string {
+  const parts: string[] = [];
+
+  if (abilities.unstructuredAbilities && abilities.unstructuredAbilities.length > 0) {
+    parts.push(abilities.unstructuredAbilities.join('\n'));
+  }
+
+  const sa = abilities.structuredAbilities;
+  if (sa) {
+    switch (sa.kind) {
+      case 'planeswalker':
+        for (const a of sa.loyaltyAbilities) {
+          parts.push(a.cost ? `${a.cost}: ${a.text}` : a.text);
+        }
+        break;
+      case 'saga':
+        for (const ch of sa.chapters) {
+          const nums = ch.chapterNumbers.map(n => numberToRoman(n)).join(', ');
+          parts.push(`${nums} — ${ch.text}`);
+        }
+        break;
+      case 'class':
+        for (const lv of sa.classLevels) {
+          if (lv.cost) parts.push(`${lv.cost}: Level ${lv.level}`);
+          if (lv.text) parts.push(lv.text);
+        }
+        break;
+      case 'leveler':
+        for (const lv of sa.creatureLevels) {
+          parts.push(`Level ${lv.level.join('-')}: ${lv.rulesText} (${lv.power}/${lv.toughness})`);
+        }
+        break;
+      case 'case':
+        parts.push(`To solve: ${sa.caseConditions.toSolve}`);
+        parts.push(`Solved: ${sa.caseConditions.solved}`);
+        break;
+      case 'prototype':
+        parts.push(`Prototype ${sa.prototype.manaCost} — ${sa.prototype.power}/${sa.prototype.toughness}`);
+        break;
+    }
+  }
+
+  return parts.join('\n');
 }
 
 export function parseCard(text: string): CardData {
@@ -305,22 +453,86 @@ export function parseCard(text: string): CardData {
   // Type line
   const typeLine = lines[nextLine];
   const { supertypes, types, subtypes } = parseTypeLine(typeLine);
-  const bodyLines = lines.slice(nextLine + 1);
-  const { frameColor, accentColor } = deriveFrameColor({ subtypes, types, manaCost, colorIndicator, oracleText: bodyLines.join('\n') });
+  let body = lines.slice(nextLine + 1);
   const lowerType = typeLine.toLowerCase();
+  const { frameColor, accentColor } = deriveFrameColor({ subtypes, types, manaCost, colorIndicator, abilitiesText: body.join('\n') });
 
-  let card: CardData;
-  if (lowerType.includes('planeswalker')) {
-    card = parsePlaneswalker(name, manaCost, supertypes, types, subtypes, frameColor, bodyLines);
-  } else if (lowerType.includes('class')) {
-    card = parseClass(name, manaCost, supertypes, types, subtypes, frameColor, bodyLines);
-  } else if (lowerType.includes('saga')) {
-    card = parseSaga(name, manaCost, supertypes, types, subtypes, frameColor, bodyLines);
-  } else if (lowerType.includes('battle')) {
-    card = parseBattle(name, manaCost, types, subtypes, frameColor, bodyLines);
-  } else {
-    card = parseStandard(name, manaCost, supertypes, types, subtypes, typeLine, frameColor, bodyLines);
+  // Determine ability kind from type line
+  let kind: StructuredAbilities['kind'] | undefined;
+  if (lowerType.includes('planeswalker')) kind = 'planeswalker';
+  else if (lowerType.includes('class')) kind = 'class';
+  else if (lowerType.includes('saga')) kind = 'saga';
+
+  // Extract stats from body lines before parsing abilities
+  let startingLoyalty: string | undefined;
+  let battleDefense: string | undefined;
+  let power: string | undefined;
+  let toughness: string | undefined;
+  let flavorText: string | undefined;
+
+  // Planeswalker: extract Loyalty: N
+  if (kind === 'planeswalker') {
+    const filtered: string[] = [];
+    for (const line of body) {
+      const m = line.match(LOYALTY_REGEX);
+      if (m) { startingLoyalty = m[1]; }
+      else filtered.push(line);
+    }
+    body = filtered;
+    if (!startingLoyalty) startingLoyalty = '0';
   }
+
+  // Battle: extract Defense: N
+  if (lowerType.includes('battle')) {
+    const filtered: string[] = [];
+    for (const line of body) {
+      const m = line.match(DEFENSE_REGEX);
+      if (m) { battleDefense = m[1]; }
+      else filtered.push(line);
+    }
+    body = filtered;
+    if (!battleDefense) battleDefense = '0';
+  }
+
+  // Standard cards: extract trailing flavor text (*...*) and P/T
+  if (!kind && !lowerType.includes('battle')) {
+    // Flavor text: trailing *...* lines
+    let flavorStart = body.length;
+    while (flavorStart > 0 && isFlavorLine(body[flavorStart - 1])) {
+      flavorStart--;
+    }
+    if (flavorStart < body.length) {
+      const flavorLines = body.slice(flavorStart);
+      body = body.slice(0, flavorStart);
+      flavorText = flavorLines.map(l => l.match(FLAVOR_REGEX)![1]).join('\n');
+    }
+
+    // P/T: last line matching N/N for creatures/vehicles
+    if ((lowerType.includes('creature') || lowerType.includes('vehicle')) && body.length > 0) {
+      const ptMatch = body[body.length - 1].match(PT_REGEX);
+      if (ptMatch) {
+        power = ptMatch[1];
+        toughness = ptMatch[2];
+        body = body.slice(0, -1);
+      }
+    }
+  }
+
+  // Parse abilities from remaining body lines
+  const abilities = body.length > 0 ? parseAbilities(body.join('\n'), kind) : undefined;
+
+  // Build card
+  const card: CardData = { name, frameColor };
+  if (supertypes.length > 0) card.supertypes = supertypes;
+  if (types.length > 0) card.types = types;
+  if (subtypes.length > 0) card.subtypes = subtypes;
+  if (manaCost) card.manaCost = manaCost;
+  if (abilities) card.abilities = abilities;
+  if (flavorText) card.flavorText = flavorText;
+  if (power !== undefined) card.power = power;
+  if (toughness !== undefined) card.toughness = toughness;
+  if (startingLoyalty) card.startingLoyalty = startingLoyalty;
+  if (battleDefense) card.battleDefense = battleDefense;
 
   if (artUrl) card.artUrl = artUrl;
   card.rarity = rarity ?? 'rare';
@@ -332,201 +544,5 @@ export function parseCard(text: string): CardData {
   if (explicitFrame) card.frameColor = explicitFrame;
   if (explicitAccent) card.accentColor = explicitAccent;
   else if (accentColor) card.accentColor = accentColor;
-  return card;
-}
-
-function parseStandard(
-  name: string, manaCost: string | undefined,
-  supertypes: Supertype[], types: Type[], subtypes: string[],
-  typeLine: string, frameColor: CardData['frameColor'], bodyLines: string[],
-): CardData {
-  let power: string | undefined;
-  let toughness: string | undefined;
-  let oracleText: string | undefined;
-  let flavorText: string | undefined;
-  let lines = [...bodyLines];
-
-  // Scan from end: consecutive *...*-wrapped lines are flavor text
-  let flavorStart = lines.length;
-  while (flavorStart > 0 && isFlavorLine(lines[flavorStart - 1])) {
-    flavorStart--;
-  }
-  const flavorLines = lines.slice(flavorStart);
-  lines = lines.slice(0, flavorStart);
-
-  // Only check P/T if type line suggests a creature/vehicle
-  const lowerType = typeLine.toLowerCase();
-  if ((lowerType.includes('creature') || lowerType.includes('vehicle')) && lines.length > 0) {
-    const ptMatch = lines[lines.length - 1].match(PT_REGEX);
-    if (ptMatch) {
-      power = ptMatch[1];
-      toughness = ptMatch[2];
-      lines = lines.slice(0, -1);
-    }
-  }
-
-  const rulesLines = lines;
-  if (rulesLines.length > 0) oracleText = rulesLines.join('\n');
-  if (flavorLines.length > 0) {
-    flavorText = flavorLines.map(l => l.match(FLAVOR_REGEX)![1]).join('\n');
-  }
-
-  const card: CardData = { name, frameColor };
-  if (supertypes.length > 0) card.supertypes = supertypes;
-  if (types.length > 0) card.types = types;
-  if (subtypes.length > 0) card.subtypes = subtypes;
-  if (manaCost) card.manaCost = manaCost;
-  if (oracleText) card.oracleText = oracleText;
-  if (flavorText) card.flavorText = flavorText;
-  if (power !== undefined) card.power = power;
-  if (toughness !== undefined) card.toughness = toughness;
-  return card;
-}
-
-function parsePlaneswalker(
-  name: string, manaCost: string | undefined,
-  supertypes: Supertype[], types: Type[], subtypes: string[],
-  frameColor: CardData['frameColor'], bodyLines: string[],
-): CardData {
-  const loyaltyAbilities: { cost: string; text: string }[] = [];
-  let startingLoyalty = '0';
-
-  for (const line of bodyLines) {
-    const loyaltyMatch = line.match(LOYALTY_REGEX);
-    if (loyaltyMatch) { startingLoyalty = loyaltyMatch[1]; continue; }
-
-    const abilityMatch = line.match(PW_ABILITY_REGEX);
-    if (abilityMatch) {
-      loyaltyAbilities.push({ cost: abilityMatch[1], text: abilityMatch[2] });
-    } else {
-      loyaltyAbilities.push({ cost: '', text: line });
-    }
-  }
-
-  const card: CardData = {
-    name, frameColor, startingLoyalty,
-    structuredAbilities: { kind: 'planeswalker', loyaltyAbilities },
-  };
-  if (supertypes.length > 0) card.supertypes = supertypes;
-  if (types.length > 0) card.types = types;
-  if (subtypes.length > 0) card.subtypes = subtypes;
-  if (manaCost) card.manaCost = manaCost;
-  return card;
-}
-
-function parseSaga(
-  name: string, manaCost: string | undefined,
-  supertypes: Supertype[], types: Type[], subtypes: string[],
-  frameColor: CardData['frameColor'], bodyLines: string[],
-): CardData {
-  const chapters: { chapterNumbers: number[]; text: string }[] = [];
-
-  for (const line of bodyLines) {
-    const chapterMatch = line.match(SAGA_CHAPTER_REGEX);
-    if (chapterMatch) {
-      const chapterNumbers = chapterMatch[1].split(',').map(r => romanToNumber(r.trim()));
-      chapters.push({ chapterNumbers, text: chapterMatch[2].trim() });
-    }
-  }
-
-  const card: CardData = {
-    name, frameColor,
-    structuredAbilities: { kind: 'saga', chapters },
-  };
-  if (supertypes.length > 0) card.supertypes = supertypes;
-  if (types.length > 0) card.types = types;
-  if (subtypes.length > 0) card.subtypes = subtypes;
-  if (manaCost) card.manaCost = manaCost;
-  return card;
-}
-
-function parseBattle(
-  name: string, manaCost: string | undefined,
-  types: Type[], subtypes: string[],
-  frameColor: CardData['frameColor'], bodyLines: string[],
-): CardData {
-  let battleDefense = '0';
-  const rulesLines: string[] = [];
-
-  for (const line of bodyLines) {
-    const defenseMatch = line.match(DEFENSE_REGEX);
-    if (defenseMatch) { battleDefense = defenseMatch[1]; continue; }
-    rulesLines.push(line);
-  }
-
-  const card: CardData = { name, frameColor, battleDefense };
-  if (types.length > 0) card.types = types;
-  if (subtypes.length > 0) card.subtypes = subtypes;
-  if (manaCost) card.manaCost = manaCost;
-  if (rulesLines.length > 0) card.oracleText = rulesLines.join('\n');
-  return card;
-}
-
-function parseClass(
-  name: string, manaCost: string | undefined,
-  supertypes: Supertype[], types: Type[], subtypes: string[],
-  frameColor: CardData['frameColor'], bodyLines: string[],
-): CardData {
-  type PendingLevel = { level: number; cost: string; textLines: string[] };
-  const classLevels: { level: number; cost: string; text: string }[] = [];
-  let pending: PendingLevel = { level: 1, cost: '', textLines: [] };
-  let haveExplicitLevel = false;
-
-  const pushPending = () => {
-    const text = pending.textLines.join('\n').trim();
-    classLevels.push({
-      level: pending.level,
-      cost: normalizeManaSymbols(pending.cost) ?? '',
-      text,
-    });
-  };
-
-  for (const line of bodyLines) {
-    const levelMatch = line.match(CLASS_LEVEL_REGEX);
-    if (levelMatch) {
-      if (haveExplicitLevel || pending.textLines.length > 0) pushPending();
-      haveExplicitLevel = true;
-      pending = {
-        level: parseInt(levelMatch[2].replace(/\D/g, ''), 10) || pending.level + 1,
-        cost: levelMatch[1],
-        textLines: [],
-      };
-    } else {
-      pending.textLines.push(line);
-    }
-  }
-
-  if (haveExplicitLevel || pending.textLines.length > 0) {
-    pushPending();
-  }
-
-  // Extract reminder text from level 1 — lines wrapped in *(...)* are italic reminder text
-  let unstructuredAbilities: string | undefined;
-  if (classLevels.length > 0 && classLevels[0].level === 1 && classLevels[0].text) {
-    const level0Lines = classLevels[0].text.split('\n');
-    const reminderLines: string[] = [];
-    const abilityLines: string[] = [];
-    for (const line of level0Lines) {
-      if (reminderLines.length === 0 && abilityLines.length === 0 && /^\*\(.*\)\*$/.test(line.trim())) {
-        reminderLines.push(line.trim().slice(1, -1));
-      } else {
-        abilityLines.push(line);
-      }
-    }
-    if (reminderLines.length > 0) {
-      unstructuredAbilities = reminderLines.join('\n');
-      classLevels[0].text = abilityLines.join('\n');
-    }
-  }
-
-  const card: CardData = {
-    name, frameColor,
-    structuredAbilities: { kind: 'class', classLevels },
-  };
-  if (supertypes.length > 0) card.supertypes = supertypes;
-  if (types.length > 0) card.types = types;
-  if (subtypes.length > 0) card.subtypes = subtypes;
-  if (manaCost) card.manaCost = manaCost;
-  if (unstructuredAbilities) card.unstructuredAbilities = unstructuredAbilities;
   return card;
 }

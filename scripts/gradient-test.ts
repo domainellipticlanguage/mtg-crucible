@@ -9,7 +9,7 @@ const ASSETS_DIR = path.join(__dirname, '..', 'assets');
 async function main() {
   const card: CardData = {
     name: 'Lightning Bolt', manaCost: '{R}', types: ['instant'],
-    oracleText: 'Lightning Bolt deals 3 damage to any target.',
+    abilities: 'Lightning Bolt deals 3 damage to any target.',
     flavorText: '"The sparkmage shrieked, calling on the rage of the storms of his youth."',
     frameColor: 'blue', rarity: 'uncommon',
   };
