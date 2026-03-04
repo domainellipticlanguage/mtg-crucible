@@ -177,8 +177,10 @@ const server = http.createServer(async (req, res) => {
     const { text } = body as { text: string };
 
     try {
+      let input: any = text;
+      try { input = JSON.parse(text); } catch {}
       const t0 = performance.now();
-      const rendered = await renderCard(text);
+      const rendered = await renderCard(input);
       const ms = Math.round(performance.now() - t0);
       res.writeHead(200, { 'Content-Type': 'application/json', 'X-Render-Time-Ms': String(ms) });
       res.end(JSON.stringify({
