@@ -296,6 +296,28 @@ export function parseAbilities(text: string, kind?: StructuredAbilities['kind'])
     return result;
   }
 
+  if (kind === 'case') {
+    let toSolve = '';
+    let solved = '';
+    const unstructured: string[] = [];
+    for (const line of lines) {
+      const toSolveMatch = line.match(/^To solve\s*[—–-]\s*(.+)$/i);
+      const solvedMatch = line.match(/^Solved\s*[—–-]\s*(.+)$/i);
+      if (toSolveMatch) {
+        toSolve = toSolveMatch[1].trim();
+      } else if (solvedMatch) {
+        solved = solvedMatch[1].trim();
+      } else {
+        unstructured.push(line);
+      }
+    }
+    const result: ParsedAbilities = {
+      structuredAbilities: { kind: 'case', caseConditions: { toSolve, solved } },
+    };
+    if (unstructured.length > 0) result.unstructuredAbilities = unstructured;
+    return result;
+  }
+
   // Default (standard): all lines are unstructured abilities
   return { unstructuredAbilities: lines };
 }
@@ -462,6 +484,7 @@ export function parseCard(text: string): CardData {
   if (lowerType.includes('planeswalker')) kind = 'planeswalker';
   else if (lowerType.includes('class')) kind = 'class';
   else if (lowerType.includes('saga')) kind = 'saga';
+  else if (lowerType.includes('case')) kind = 'case';
 
   // Extract stats from body lines before parsing abilities
   let startingLoyalty: string | undefined;

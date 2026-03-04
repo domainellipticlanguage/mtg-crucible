@@ -19,6 +19,7 @@ function inferAbilityKind(card: CardData): ParsedAbilities['structuredAbilities'
   if (card.types?.includes('planeswalker')) return 'planeswalker' as any;
   if (card.subtypes?.some(s => s.toLowerCase() === 'saga')) return 'saga' as any;
   if (card.subtypes?.some(s => s.toLowerCase() === 'class')) return 'class' as any;
+  if (card.subtypes?.some(s => s.toLowerCase() === 'case')) return 'case' as any;
   return undefined as any;
 }
 
