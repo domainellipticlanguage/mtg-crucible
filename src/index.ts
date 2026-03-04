@@ -1,11 +1,16 @@
 import type { CardData, ParsedAbilities, RenderedCard } from './types';
 import { ensureInitialized } from './helpers';
 import { renderCardImage, resolveTemplate } from './renderers/render';
-import { parseCard, parseAbilities, formatAbilities, deriveFrameColor } from './parser';
+import { parseCard, parseAbilities, formatAbilities, formatCard, toScryfallJson, toScryfallText, computeRotations, deriveFrameColor } from './parser';
 
-export type { CardData, RenderedCard, ParsedAbilities, AccentColor, StructuredAbilities, PlaneswalkerAbilities, SagaAbilities, ClassAbilities } from './types';
+export type {
+  Rarity, CardTemplate, Color, AccentColor, FrameColor, Supertype, Type, Subtype, LinkType,
+  PlaneswalkerAbilities, SagaAbilities, ClassAbilities, LevelerAbilities, CaseAbilities, PrototypeAbilities,
+  StructuredAbilities, ParsedAbilities,
+  CardData, Rotation, RenderedCard,
+} from './types';
 export { renderCardImage } from './renderers/render';
-export { parseCard, parseAbilities, formatAbilities } from './parser';
+export { parseCard, parseAbilities, formatAbilities, formatCard, toScryfallJson, toScryfallText, computeRotations } from './parser';
 
 // Backwards-compatible individual renderer exports
 export const renderStandard = (card: CardData) => renderCardImage(card, 'standard');
@@ -63,5 +68,9 @@ export async function renderCard(input: CardData | string): Promise<RenderedCard
     frontFace,
     frontFaceOrientation: 'vertical',
     normalizedCardData: normalized,
+    rotations: computeRotations(normalized),
+    scryfallJson: toScryfallJson(normalized),
+    scryfallText: toScryfallText(normalized),
+    crucibleText: formatCard(normalized),
   };
 }

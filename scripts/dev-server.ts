@@ -18,11 +18,10 @@ const HTML = `<!DOCTYPE html>
   textarea { width: 100%; height: 360px; background: #16213e; color: #e0e0e0; border: 1px solid #444; border-radius: 6px; padding: 0.75rem; font-family: 'Menlo', 'Consolas', monospace; font-size: 13px; resize: vertical; }
   textarea:focus { outline: none; border-color: #c4a35a; }
   .controls { display: flex; gap: 1rem; align-items: center; margin-top: 0.75rem; }
-  .toggle { display: flex; background: #16213e; border-radius: 6px; overflow: hidden; border: 1px solid #444; }
-  .toggle label { padding: 0.5rem 1rem; cursor: pointer; font-size: 0.85rem; transition: background 0.15s; }
-  .toggle input { display: none; }
-  .toggle input:checked + span { background: #c4a35a; color: #1a1a2e; }
-  .toggle span { display: block; padding: 0.5rem 1rem; }
+  .tabs { display: flex; background: #16213e; border-radius: 6px; overflow: hidden; border: 1px solid #444; flex-wrap: wrap; }
+  .tabs button { background: none; border: none; color: #e0e0e0; padding: 0.5rem 1rem; cursor: pointer; font-size: 0.85rem; transition: background 0.15s; }
+  .tabs button:hover { background: #2a2a4e; }
+  .tabs button.active { background: #c4a35a; color: #1a1a2e; }
   button { background: #c4a35a; color: #1a1a2e; border: none; border-radius: 6px; padding: 0.5rem 1.5rem; font-weight: 600; cursor: pointer; font-size: 0.9rem; }
   button:hover { background: #d4b36a; }
   button:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -47,26 +46,65 @@ Legendary Artifact
 Whenever a legendary creature you control dies, return it to your hand at the beginning of the next end step.
 *Every great story begins with fire.*</textarea>
     <div class="controls">
-      <div class="toggle">
-        <label><input type="radio" name="mode" value="image" checked><span>Image</span></label>
-        <label><input type="radio" name="mode" value="json"><span>CardData</span></label>
-      </div>
       <button id="renderBtn" onclick="doRender()">Render</button>
     </div>
   </div>
   <div class="output-panel">
-    <h2>Output</h2>
+    <div class="tabs" id="tabs">
+      <button class="active" data-tab="image">Image</button>
+      <button data-tab="cardData">CardData</button>
+      <button data-tab="scryfallJson">Scryfall JSON</button>
+      <button data-tab="scryfallText">Scryfall Text</button>
+      <button data-tab="crucibleText">Crucible Text</button>
+      <button data-tab="rotations">Rotations</button>
+    </div>
     <div id="output"><span style="color:#666">Click Render to see output</span></div>
     <div id="timing" style="margin-top:0.5rem;font-size:0.8rem;color:#888"></div>
   </div>
 </div>
 <script>
+let lastResult = null;
+let activeTab = 'image';
+
+function showTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('#tabs button').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === tab);
+  });
+  if (!lastResult) return;
+  const output = document.getElementById('output');
+  const r = lastResult;
+  switch (tab) {
+    case 'image':
+      output.innerHTML = '<img src="' + r.imageUrl + '" alt="Rendered card">';
+      break;
+    case 'cardData':
+      output.innerHTML = '<pre>' + escapeHtml(JSON.stringify(r.cardData, null, 2)) + '</pre>';
+      break;
+    case 'scryfallJson':
+      output.innerHTML = '<pre>' + escapeHtml(JSON.stringify(JSON.parse(r.scryfallJson), null, 2)) + '</pre>';
+      break;
+    case 'scryfallText':
+      output.innerHTML = '<pre>' + escapeHtml(r.scryfallText) + '</pre>';
+      break;
+    case 'crucibleText':
+      output.innerHTML = '<pre>' + escapeHtml(r.crucibleText) + '</pre>';
+      break;
+    case 'rotations':
+      output.innerHTML = '<pre>' + escapeHtml(JSON.stringify(r.rotations, null, 2)) + '</pre>';
+      break;
+  }
+}
+
+document.getElementById('tabs').addEventListener('click', (e) => {
+  const tab = e.target.dataset.tab;
+  if (tab) showTab(tab);
+});
+
 async function doRender() {
   const text = document.getElementById('cardText').value;
-  const mode = document.querySelector('input[name="mode"]:checked').value;
   const output = document.getElementById('output');
   const btn = document.getElementById('renderBtn');
-
   const timing = document.getElementById('timing');
   btn.disabled = true;
   output.innerHTML = '<div class="spinner"></div>';
@@ -77,7 +115,7 @@ async function doRender() {
     const res = await fetch('/render', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, mode }),
+      body: JSON.stringify({ text }),
     });
     const serverMs = res.headers.get('X-Render-Time-Ms');
 
@@ -87,14 +125,20 @@ async function doRender() {
       return;
     }
 
-    if (mode === 'image') {
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      output.innerHTML = '<img src="' + url + '" alt="Rendered card">';
-    } else {
-      const json = await res.json();
-      output.innerHTML = '<pre>' + escapeHtml(JSON.stringify(json.cardData, null, 2)) + '</pre>';
-    }
+    const json = await res.json();
+    const blob = new Blob([Uint8Array.from(atob(json.image), c => c.charCodeAt(0))], { type: 'image/png' });
+    const imageUrl = URL.createObjectURL(blob);
+
+    lastResult = {
+      imageUrl,
+      cardData: json.cardData,
+      scryfallJson: json.scryfallJson,
+      scryfallText: json.scryfallText,
+      crucibleText: json.crucibleText,
+      rotations: json.rotations,
+    };
+
+    showTab(activeTab);
 
     const totalMs = Math.round(performance.now() - t0);
     timing.textContent = 'Total: ' + totalMs + 'ms' + (serverMs ? ' (server: ' + serverMs + 'ms)' : '');
@@ -130,21 +174,21 @@ const server = http.createServer(async (req, res) => {
     const chunks: Buffer[] = [];
     for await (const chunk of req) chunks.push(chunk as Buffer);
     const body = JSON.parse(Buffer.concat(chunks).toString());
-    const { text, mode } = body as { text: string; mode: 'json' | 'image' };
+    const { text } = body as { text: string };
 
     try {
       const t0 = performance.now();
-      if (mode === 'json') {
-        const cardData = parseCard(text);
-        const ms = Math.round(performance.now() - t0);
-        res.writeHead(200, { 'Content-Type': 'application/json', 'X-Render-Time-Ms': String(ms) });
-        res.end(JSON.stringify({ cardData }));
-      } else {
-        const rendered = await renderCard(text);
-        const ms = Math.round(performance.now() - t0);
-        res.writeHead(200, { 'Content-Type': 'image/png', 'Content-Length': rendered.frontFace.length, 'X-Render-Time-Ms': String(ms) });
-        res.end(rendered.frontFace);
-      }
+      const rendered = await renderCard(text);
+      const ms = Math.round(performance.now() - t0);
+      res.writeHead(200, { 'Content-Type': 'application/json', 'X-Render-Time-Ms': String(ms) });
+      res.end(JSON.stringify({
+        image: rendered.frontFace.toString('base64'),
+        cardData: rendered.normalizedCardData,
+        scryfallJson: rendered.scryfallJson,
+        scryfallText: rendered.scryfallText,
+        crucibleText: rendered.crucibleText,
+        rotations: rendered.rotations,
+      }));
     } catch (err: any) {
       res.writeHead(500, { 'Content-Type': 'text/plain' });
       res.end(err.message || 'Internal server error');

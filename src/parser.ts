@@ -1,4 +1,4 @@
-import type { CardData, AccentColor, Color, FrameColor, Rarity, Supertype, Type, ParsedAbilities, StructuredAbilities } from './types';
+import type { CardData, AccentColor, Color, FrameColor, Rarity, Rotation, Supertype, Type, ParsedAbilities, StructuredAbilities } from './types';
 
 const MANA_COST_REGEX = /^(.+?)\s+((?:\{[^}]+\})+)$/;
 const ART_REGEX = /^Art:\s*(https?:\/\/\S+)$/i;
@@ -568,4 +568,259 @@ export function parseCard(text: string): CardData {
   if (explicitAccent) card.accentColor = explicitAccent;
   else if (accentColor) card.accentColor = accentColor;
   return card;
+}
+
+/** Format CardData back into Crucible extended text format (reverse of parseCard). */
+export function formatCard(card: CardData): string {
+  const lines: string[] = [];
+
+  // Line 1: Name {ManaCost}
+  let nameLine = card.name ?? '';
+  if (card.manaCost) nameLine += ` ${card.manaCost}`;
+  lines.push(nameLine);
+
+  // Metadata lines
+  if (card.artUrl) lines.push(`Art: ${card.artUrl}`);
+  if (card.rarity) lines.push(`Rarity: ${card.rarity}`);
+  if (card.artist) lines.push(`Artist: ${card.artist}`);
+  if (card.setCode) lines.push(`Set: ${card.setCode}`);
+  if (card.collectorNumber) lines.push(`Collector Number: ${card.collectorNumber}`);
+  if (card.designer) lines.push(`Designer: ${card.designer}`);
+  if (card.colorIndicator && card.colorIndicator.length > 0) {
+    lines.push(`Color Indicator: ${card.colorIndicator.join(', ')}`);
+  }
+  if (card.accentColor) {
+    const accents = Array.isArray(card.accentColor) ? card.accentColor : [card.accentColor];
+    lines.push(`Accent: ${accents.join(', ')}`);
+  }
+  if (card.frameColor) {
+    const frames = Array.isArray(card.frameColor) ? card.frameColor : [card.frameColor];
+    lines.push(`Frame: ${frames.join(', ')}`);
+  }
+
+  // Type line
+  lines.push(buildTypeLine(card));
+
+  // Abilities
+  const oracleText = getOracleText(card);
+
+  // Stats that go before abilities for pw/battle, after for creatures
+  if (card.startingLoyalty) lines.push(`Loyalty: ${card.startingLoyalty}`);
+  if (card.battleDefense) lines.push(`Defense: ${card.battleDefense}`);
+
+  if (oracleText) lines.push(oracleText);
+
+  // P/T for creatures
+  if (card.power !== undefined && card.toughness !== undefined) {
+    lines.push(`${card.power}/${card.toughness}`);
+  }
+
+  // Flavor text
+  if (card.flavorText) {
+    for (const fl of card.flavorText.split('\n')) {
+      lines.push(`*${fl}*`);
+    }
+  }
+
+  return lines.join('\n');
+}
+
+// --- Scryfall conversion helpers ---
+
+const COLOR_TO_LETTER: Record<Color, string> = {
+  white: 'W',
+  blue: 'U',
+  black: 'B',
+  red: 'R',
+  green: 'G',
+};
+
+const MANA_COLOR_LETTERS = new Set(['W', 'U', 'B', 'R', 'G']);
+
+/** Extract colors from a mana cost string like "{2}{U}{R}" */
+function colorsFromManaCost(manaCost: string | undefined): string[] {
+  if (!manaCost) return [];
+  const colors: string[] = [];
+  const symbols = manaCost.match(/\{([^}]+)\}/g) || [];
+  for (const sym of symbols) {
+    const inner = sym.slice(1, -1).toUpperCase();
+    for (const ch of inner) {
+      if (MANA_COLOR_LETTERS.has(ch) && !colors.includes(ch)) {
+        colors.push(ch);
+      }
+    }
+  }
+  const order = ['W', 'U', 'B', 'R', 'G'];
+  return colors.sort((a, b) => order.indexOf(a) - order.indexOf(b));
+}
+
+/** Calculate converted mana cost from a mana cost string */
+function calcCmc(manaCost: string | undefined): number {
+  if (!manaCost) return 0;
+  let total = 0;
+  const symbols = manaCost.match(/\{([^}]+)\}/g) || [];
+  for (const sym of symbols) {
+    const inner = sym.slice(1, -1).toUpperCase();
+    if (inner === 'X') continue;
+    const num = parseInt(inner, 10);
+    if (!isNaN(num)) {
+      total += num;
+    } else {
+      total += 1;
+    }
+  }
+  return total;
+}
+
+/** Build the type line string like "Legendary Creature — Human Wizard" */
+function buildTypeLine(card: CardData): string {
+  const parts: string[] = [];
+  if (card.supertypes) parts.push(...card.supertypes.map(s => s.charAt(0).toUpperCase() + s.slice(1)));
+  if (card.types) parts.push(...card.types.map(t => t.charAt(0).toUpperCase() + t.slice(1)));
+  let line = parts.join(' ');
+  if (card.subtypes && card.subtypes.length > 0) {
+    line += ' \u2014 ' + card.subtypes.join(' ');
+  }
+  return line;
+}
+
+function getOracleText(card: CardData): string {
+  if (!card.abilities) return '';
+  if (typeof card.abilities === 'string') return card.abilities;
+  return formatAbilities(card.abilities);
+}
+
+/** Map LinkType to Scryfall layout string */
+function scryfallLayout(card: CardData): string {
+  if (card.linkType) {
+    switch (card.linkType) {
+      case 'transform': return 'transform';
+      case 'modal_dfc': return 'modal_dfc';
+      case 'flip': return 'flip';
+      case 'split': return 'split';
+      case 'adventure': return 'adventure';
+      case 'aftermath': return 'aftermath';
+    }
+  }
+  return 'normal';
+}
+
+/** Build a Scryfall-like card face object */
+function buildScryfallFace(card: CardData): Record<string, any> {
+  const face: Record<string, any> = {};
+  face.name = card.name ?? '';
+  if (card.manaCost) face.mana_cost = card.manaCost;
+  face.type_line = buildTypeLine(card);
+
+  const oracleText = getOracleText(card);
+  if (oracleText) face.oracle_text = oracleText;
+
+  if (card.power !== undefined) face.power = card.power;
+  if (card.toughness !== undefined) face.toughness = card.toughness;
+  if (card.startingLoyalty) face.loyalty = card.startingLoyalty;
+  if (card.battleDefense) face.defense = card.battleDefense;
+  if (card.flavorText) face.flavor_text = card.flavorText;
+  if (card.artist) face.artist = card.artist;
+  if (card.colorIndicator) {
+    face.color_indicator = card.colorIndicator.map(c => COLOR_TO_LETTER[c]);
+  }
+  if (card.artUrl) {
+    face.image_uris = { art_crop: card.artUrl };
+  }
+
+  const colors = card.colorIndicator
+    ? card.colorIndicator.map(c => COLOR_TO_LETTER[c])
+    : colorsFromManaCost(card.manaCost);
+  face.colors = colors;
+
+  return face;
+}
+
+/** Convert CardData to a Scryfall-compatible JSON string */
+export function toScryfallJson(card: CardData): string {
+  const obj: Record<string, any> = {};
+
+  obj.layout = scryfallLayout(card);
+  obj.name = card.name ?? '';
+
+  if (card.linkedCard) {
+    obj.name = `${card.name ?? ''} // ${card.linkedCard.name ?? ''}`;
+    obj.card_faces = [buildScryfallFace(card), buildScryfallFace(card.linkedCard)];
+  } else {
+    Object.assign(obj, buildScryfallFace(card));
+  }
+
+  if (card.manaCost) obj.mana_cost = card.manaCost;
+  obj.cmc = calcCmc(card.manaCost);
+  obj.type_line = buildTypeLine(card);
+
+  const colors = card.colorIndicator
+    ? card.colorIndicator.map(c => COLOR_TO_LETTER[c])
+    : colorsFromManaCost(card.manaCost);
+  obj.colors = colors;
+  obj.color_identity = colors;
+
+  if (card.rarity) obj.rarity = card.rarity;
+  if (card.setCode) obj.set = card.setCode.toLowerCase();
+  if (card.collectorNumber) obj.collector_number = card.collectorNumber;
+
+  return JSON.stringify(obj);
+}
+
+/** Format a single face as Scryfall spoiler text */
+function formatScryfallFaceText(card: CardData): string {
+  const lines: string[] = [];
+
+  let nameLine = card.name ?? '';
+  if (card.manaCost) nameLine += ` ${card.manaCost}`;
+  lines.push(nameLine);
+
+  lines.push(buildTypeLine(card));
+
+  const oracleText = getOracleText(card);
+  if (oracleText) lines.push(oracleText);
+
+  if (card.power !== undefined && card.toughness !== undefined) {
+    lines.push(`${card.power}/${card.toughness}`);
+  } else if (card.startingLoyalty) {
+    lines.push(`Loyalty: ${card.startingLoyalty}`);
+  } else if (card.battleDefense) {
+    lines.push(`Defense: ${card.battleDefense}`);
+  }
+
+  return lines.join('\n');
+}
+
+/** Convert CardData to Scryfall-style spoiler text */
+export function toScryfallText(card: CardData): string {
+  const parts = [formatScryfallFaceText(card)];
+  if (card.linkedCard) {
+    parts.push('---');
+    parts.push(formatScryfallFaceText(card.linkedCard));
+  }
+  return parts.join('\n');
+}
+
+/** Compute rotation steps for card face presentation */
+export function computeRotations(card: CardData): Rotation[] {
+  const identity: Rotation = { x: 0, y: 0, z: 0 };
+
+  if (!card.linkedCard || !card.linkType) {
+    return [identity];
+  }
+
+  switch (card.linkType) {
+    case 'transform':
+    case 'modal_dfc':
+      return [identity, { x: 0, y: 180, z: 0 }];
+    case 'flip':
+      return [identity, { x: 0, y: 0, z: 180 }];
+    case 'split':
+      return [identity, { x: 0, y: 0, z: 90 }];
+    case 'adventure':
+    case 'aftermath':
+      return [identity];
+    default:
+      return [identity];
+  }
 }

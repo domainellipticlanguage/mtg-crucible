@@ -155,10 +155,20 @@ export interface CardData {
 
 
 
+export interface Rotation {
+  x: number;
+  y: number;
+  z: number;
+}
+
 export interface RenderedCard {
   frontFace: Buffer;
   frontFaceOrientation: 'horizontal' | 'vertical';
   backFace?: Buffer;
   backFaceOrientation?: 'horizontal' | 'vertical';
   normalizedCardData: CardData;
+  rotations: Rotation[];
+  scryfallJson: string;
+  scryfallText: string;
+  crucibleText: string;
 }
