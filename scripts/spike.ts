@@ -358,6 +358,16 @@ async function main() {
     battleDefense: '4',
   })).frontFace);
 
+  // 26. Reaper King (modified) — tests {2/W} {2/U} {2/B} {2/R} {2/G}, {Q}, high mana, {∞}
+  console.log('Rendering Reaper King (modified — new symbol test)...');
+  fs.writeFileSync(fname('reaper-king-symbols'), (await renderCard({
+    name: 'Reaper King', manaCost: '{2/W}{2/U}{2/B}{2/R}{2/G}',
+    supertypes: ['legendary'], types: ['artifact', 'creature'], subtypes: ['Scarecrow'],
+    abilities: 'Other Scarecrow creatures you control get +1/+1.\nWhenever another Scarecrow enters the battlefield under your control, destroy target permanent.\n{Q}: Add {C}{C}{C}. Activate only once each turn.\nThis spell costs {11} less to cast if you control fifteen or more Scarecrows. Its mana value is {20}.\n{12}{13}{14}{15}{16}{17}{18}{19} — reminder: {∞}',
+    power: '6', toughness: '6', frameColor: 'multicolor', rarity: 'mythic',
+    artist: 'Jim Murray', collectorNumber: '260',
+  })).frontFace);
+
   console.log(`\nDone! ${idx - 1} cards rendered to ${OUT}`);
 }
 

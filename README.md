@@ -318,3 +318,5 @@ Note: IF you need to refer to any borders and assets, you cannot do that yet. th
 Card normalization - do we help them out with boilerplate reminder text for sagas and classes?
 Could we support hybrid borders via draw tools? linear gradient to shift between them?
 
+# Tech Debt
+- The Class level one is still messed up - tried changing it and it got messed up. I think we do need to parse it as level one?

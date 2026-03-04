@@ -6,7 +6,7 @@ import { ASSETS_DIR } from './layout';
 const manaCache = new Map<string, Image | null>();
 
 export async function loadManaSymbol(symbol: string): Promise<Image | null> {
-  const key = symbol.toLowerCase().replace(/\//g, '');
+  const key = symbol.toLowerCase().replace(/\//g, '').replace(/∞|infinity/g, 'inf');
   if (manaCache.has(key)) return manaCache.get(key)!;
   const svgPath = path.join(ASSETS_DIR, 'symbols', `${key}.svg`);
   if (!fs.existsSync(svgPath)) { manaCache.set(key, null); return null; }
@@ -16,7 +16,7 @@ export async function loadManaSymbol(symbol: string): Promise<Image | null> {
 }
 
 export function getManaSymbolSync(symbol: string): Image | null {
-  const key = symbol.toLowerCase().replace(/\//g, '');
+  const key = symbol.toLowerCase().replace(/\//g, '').replace(/∞|infinity/g, 'inf');
   return manaCache.get(key) ?? null;
 }
 
