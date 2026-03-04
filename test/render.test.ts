@@ -75,39 +75,39 @@ describe('renderCard', () => {
     expect(buf.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
   });
 
-  it('renders a planeswalker at 1500x2100', async () => {
+  it('renders a planeswalker as a valid PNG', async () => {
     const card: CardData = {
       name: 'Liliana of the Veil', manaCost: '{1}{B}{B}',
       supertypes: ['legendary'], types: ['planeswalker'], subtypes: ['Liliana'],
       frameColor: 'black', rarity: 'mythic',
       startingLoyalty: '3',
-      structuredAbilities: {
+      abilities: { structuredAbilities: {
         kind: 'planeswalker',
         loyaltyAbilities: [
           { cost: '+1', text: 'Each player discards a card.' },
           { cost: '-2', text: 'Target player sacrifices a creature.' },
           { cost: '-6', text: 'Separate all permanents target player controls into two piles. That player sacrifices all permanents in the pile of their choice.' },
         ],
-      },
+      } },
     };
     const { frontFace: buf } = await renderCard(card);
     expect(buf.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
     expect(pngDimensions(buf)).toEqual({ width: 1500, height: 2100 });
   });
 
-  it('renders a saga at 1500x2100', async () => {
+  it('renders a saga as a valid PNG', async () => {
     const card: CardData = {
       name: 'The Eldest Reborn', manaCost: '{4}{B}',
       types: ['enchantment'], subtypes: ['Saga'],
       frameColor: 'black', rarity: 'uncommon',
-      structuredAbilities: {
+      abilities: { structuredAbilities: {
         kind: 'saga',
         chapters: [
           { chapterNumbers: [1], text: 'Each opponent sacrifices a creature or planeswalker.' },
           { chapterNumbers: [2], text: 'Each opponent discards a card.' },
           { chapterNumbers: [3], text: 'Put target creature or planeswalker card from a graveyard onto the battlefield under your control.' },
         ],
-      },
+      } },
     };
     const { frontFace: buf } = await renderCard(card);
     expect(buf.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
