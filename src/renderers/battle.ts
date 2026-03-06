@@ -14,7 +14,7 @@ async function body(ctx: SKRSContext2D, card: CardData, L: Record<string, any>, 
   if (L.backPt && card.linkedCard?.power !== undefined && card.linkedCard?.toughness !== undefined) {
     drawSingleLineText(ctx, `${card.linkedCard.power}/${card.linkedCard.toughness}`,
       L.backPt.x * cw, L.backPt.y * ch, L.backPt.w * cw, L.backPt.h * ch,
-      L.backPt.font, L.backPt.size * ch, 'center', 'white');
+      L.backPt.font, L.backPt.size * ch, 'center', 'black');
   }
 }
 
