@@ -368,6 +368,34 @@ async function main() {
     artist: 'Jim Murray', collectorNumber: '260',
   })).frontFace);
 
+  // 27. Battle with creature back face — Invasion of Gobakhan / Lightshield Array
+  console.log('Rendering Invasion of Gobakhan (Battle + creature back face)...');
+  const gobakhanDFC = await renderCard({
+    name: 'Invasion of Gobakhan', manaCost: '{1}{W}',
+    types: ['battle'], subtypes: ['Siege'],
+    abilities: 'When Invasion of Gobakhan enters the battlefield, look at target opponent\'s hand. You may exile a nonland card from it. For as long as that card remains exiled, its owner may play it. A spell cast this way costs {2} more to cast.',
+    frameColor: 'white', rarity: 'rare',
+    artist: 'Zoltan Boros', collectorNumber: '014',
+    battleDefense: '3',
+    artUrl: 'https://cards.scryfall.io/art_crop/front/7/e/7e767a67-3e71-4765-bab0-22abd55cca2d.jpg',
+    linkType: 'transform',
+    linkedCard: {
+      name: 'Lightshield Array',
+      types: ['enchantment', 'creature'],
+      frameColor: 'white', rarity: 'rare',
+      artist: 'Zoltan Boros', collectorNumber: '014',
+      abilities: 'At the beginning of your end step, put a +1/+1 counter on each creature you control.\nSacrifice Lightshield Array: Creatures you control gain hexproof and indestructible until end of turn.',
+      artUrl: 'https://cards.scryfall.io/art_crop/back/7/e/7e767a67-3e71-4765-bab0-22abd55cca2d.jpg',
+      power: '0', toughness: '4',
+    },
+  });
+  fs.writeFileSync(fname('invasion-gobakhan-front'), gobakhanDFC.frontFace);
+  if (gobakhanDFC.backFace) {
+    fs.writeFileSync(fname('invasion-gobakhan-back'), gobakhanDFC.backFace);
+  }
+  console.log('  Rotations:', JSON.stringify(gobakhanDFC.rotations));
+  console.log('  Scryfall text:\n' + gobakhanDFC.scryfallText);
+
   console.log(`\nDone! ${idx - 1} cards rendered to ${OUT}`);
 }
 

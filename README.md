@@ -286,6 +286,9 @@ npm run spike     # render test cards to output/
 - Tokens?
 - Flavor Name (nickname)
 
+
+- fix reminder text italics
+
 https://cran.r-project.org/web/packages/scryr/vignettes/frames.html
 - Frame Effects
 

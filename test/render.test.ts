@@ -127,6 +127,32 @@ describe('renderCard', () => {
     expect(pngDimensions(buf)).toEqual({ width: 2814, height: 2010 });
   });
 
+  it('renders a battle with creature back face', async () => {
+    const card: CardData = {
+      name: 'Invasion of Gobakhan', manaCost: '{1}{W}',
+      types: ['battle'], subtypes: ['Siege'],
+      abilities: 'When Invasion of Gobakhan enters the battlefield, look at target opponent\'s hand. You may exile a nonland card from it. For as long as that card remains exiled, its owner may play it. A spell cast this way costs {2} more to cast.',
+      frameColor: 'white', rarity: 'rare',
+      battleDefense: '3',
+      linkType: 'transform',
+      linkedCard: {
+        name: 'Lightshield Array',
+        types: ['enchantment'],
+        frameColor: 'white', rarity: 'rare',
+        abilities: 'At the beginning of your end step, put a +1/+1 counter on each creature you control.\nSacrifice Lightshield Array: Creatures you control gain hexproof and indestructible until end of turn.',
+      },
+    };
+    const result = await renderCard(card);
+    expect(result.frontFace.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
+    expect(pngDimensions(result.frontFace)).toEqual({ width: 2814, height: 2010 });
+    expect(result.frontFaceOrientation).toBe('horizontal');
+    expect(result.backFace).toBeDefined();
+    expect(result.backFace!.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
+    expect(pngDimensions(result.backFace!)).toEqual({ width: 2010, height: 2814 });
+    expect(result.backFaceOrientation).toBe('vertical');
+    expect(result.rotations).toEqual([{ x: 0, y: 0, z: 0 }, { x: 0, y: 180, z: 0 }]);
+  });
+
   it('renders a gold multicolor legendary', async () => {
     const { frontFace: buf } = await renderCard({
       name: 'Maelstrom Wanderer', manaCost: '{5}{U}{R}{G}',

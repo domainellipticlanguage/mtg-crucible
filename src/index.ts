@@ -63,10 +63,23 @@ export async function renderCard(input: CardData | string): Promise<RenderedCard
 
   await ensureInitialized();
   const frontFace = await renderCardImage(normalized);
+  const frontTemplate = resolveTemplate(normalized);
+  const frontFaceOrientation = frontTemplate === 'battle' ? 'horizontal' : 'vertical' as const;
+
+  let backFace: Buffer | undefined;
+  let backFaceOrientation: 'horizontal' | 'vertical' | undefined;
+  if (normalized.linkedCard) {
+    const normalizedBack = normalizeCard(normalized.linkedCard);
+    backFace = await renderCardImage(normalizedBack);
+    const backTemplate = resolveTemplate(normalizedBack);
+    backFaceOrientation = backTemplate === 'battle' ? 'horizontal' : 'vertical';
+  }
 
   return {
     frontFace,
-    frontFaceOrientation: 'vertical',
+    frontFaceOrientation,
+    backFace,
+    backFaceOrientation,
     normalizedCardData: normalized,
     rotations: computeRotations(normalized),
     scryfallJson: toScryfallJson(normalized),
