@@ -268,7 +268,7 @@ npm run spike     # render test cards to output/
 
 # TODO
 - test with LTS
-
+- Add {S} symbol
 
 ## Future Features And Blockers
 - Pass in FrameModifier / FrameVariant / FrameStyle
@@ -280,8 +280,18 @@ npm run spike     # render test cards to output/
 - Support various borders
 - Support hybrid mana borders
 - Support composite cards
+    - mdfc is fine
+    - transform - double the crowns?
+    - flip - another 5 templates. no pinlines?
+- Tokens?
+- Flavor Name (nickname)
 
+https://cran.r-project.org/web/packages/scryr/vignettes/frames.html
+- Frame Effects
 
+- Lesson
+
+Only way to avoid combinatorial explosion - separate layers
 
 ## Supported
 Battles (only the front face)
