@@ -163,14 +163,10 @@ export function drawWrappedText(
     let vertAdj: number;
 
     if (exclusions.length > 0) {
-      // Pass 1: wrap with full width to estimate centering
-      const estLines = wrapParagraphs(ctx, paragraphs, boxW, textSize);
-      const estH = computeHeight(estLines, textSize, paraSpacing);
-      vertAdj = (boxH - estH + textSize * 0.15) / 2;
-
-      // Pass 2: re-wrap with exclusion-aware widths
+      // Wrap with exclusion-aware widths, using vertAdj=0 (text at top of box)
+      // to conservatively estimate which lines overlap badges
       lines = wrapParagraphs(ctx, paragraphs, (lineIdx: number) => {
-        const lineY = boxY + vertAdj + lineIdx * textSize;
+        const lineY = boxY + lineIdx * textSize;
         return getEffectiveWidth(lineY, textSize, boxX, boxW, exclusions);
       }, textSize);
       totalH = computeHeight(lines, textSize, paraSpacing);
@@ -218,23 +214,15 @@ export function drawRulesAndFlavor(
     let vertAdj: number;
 
     if (exclusionRects.length > 0) {
-      // Pass 1: estimate with full width
-      rulesLines = wrapParagraphs(ctx, ruleParas, boxW, textSize);
-      ctx.font = `${flavorSize}px "MPlantin Italic"`;
-      flavorLines = wrapParagraphs(ctx, flavorParas, boxW, flavorSize);
-      totalH = computeHeight(rulesLines, textSize, paraSpacing) + textSize + barHeight + textSize + computeHeight(flavorLines, flavorSize, flavorSize * 0.35);
-      vertAdj = (boxH - totalH + textSize * 0.15) / 2;
-
-      // Pass 2: re-wrap with exclusion-aware widths
-      const rulesLineCount = rulesLines.length;
+      // Wrap with exclusion-aware widths, using vertAdj=0 for conservative Y estimates
       ctx.font = `${textSize}px "${font}"`;
       rulesLines = wrapParagraphs(ctx, ruleParas, (lineIdx: number) => {
-        const lineY = boxY + vertAdj + lineIdx * textSize;
+        const lineY = boxY + lineIdx * textSize;
         return getEffectiveWidth(lineY, textSize, boxX, boxW, exclusionRects);
       }, textSize);
       ctx.font = `${flavorSize}px "MPlantin Italic"`;
       const rulesH = computeHeight(rulesLines, textSize, paraSpacing);
-      const flavorStartY = boxY + vertAdj + rulesH + textSize + barHeight + textSize;
+      const flavorStartY = boxY + rulesH + textSize + barHeight + textSize;
       flavorLines = wrapParagraphs(ctx, flavorParas, (lineIdx: number) => {
         const lineY = flavorStartY + lineIdx * flavorSize;
         return getEffectiveWidth(lineY, flavorSize, boxX, boxW, exclusionRects);

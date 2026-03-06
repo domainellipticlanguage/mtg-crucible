@@ -134,14 +134,14 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
     const rx = L.rules.x * cw, ry = L.rules.y * ch, rw = L.rules.w * cw, rh = L.rules.h * ch, rs = L.rules.size * ch;
 
     // Build exclusion rects for badges that overlap the rules area (e.g. battle defense/backPt)
-    // Add padding so text doesn't butt up against badges
+    // Horizontal padding so text doesn't butt up against badges
     const exclusionRects: ExclusionRect[] = [];
-    const pad = rs * 0.4;
+    const hPad = rs * 0.3;
     if (L.defense && card.battleDefense !== undefined) {
-      exclusionRects.push({ x: L.defense.x * cw - pad, y: L.defense.y * ch - pad, w: L.defense.w * cw + pad, h: L.defense.h * ch + pad });
+      exclusionRects.push({ x: L.defense.x * cw - hPad, y: L.defense.y * ch, w: L.defense.w * cw + hPad, h: L.defense.h * ch });
     }
     if (L.backPt && card.linkedCard?.power !== undefined && card.linkedCard?.toughness !== undefined) {
-      exclusionRects.push({ x: L.backPt.x * cw - pad, y: L.backPt.y * ch - pad, w: L.backPt.w * cw + pad, h: L.backPt.h * ch + pad });
+      exclusionRects.push({ x: L.backPt.x * cw - hPad, y: L.backPt.y * ch, w: L.backPt.w * cw + hPad, h: L.backPt.h * ch });
     }
 
     if (rulesText && card.flavorText) drawRulesAndFlavor(ctx, rulesText, card.flavorText, rx, ry, rw, rh, L.rules.font, rs, exclusionRects);

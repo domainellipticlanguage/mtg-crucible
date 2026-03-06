@@ -350,7 +350,7 @@ async function main() {
   const gobakhanDFC = await render('invasion-gobakhan-dfc', {
     name: 'Invasion of Gobakhan', manaCost: '{1}{W}',
     types: ['battle'], subtypes: ['Siege'],
-    abilities: 'When Invasion of Gobakhan enters the battlefield, look at target opponent\'s hand. You may exile a nonland card from it. For as long as that card remains exiled, its owner may play it. A spell cast this way costs {2} more to cast.',
+    abilities: '(As a Siege enters, choose an opponent to protect it. You and others can attack it. When it’s defeated, exile it, then cast it transformed.)\nWhen Invasion of Gobakhan enters the battlefield, look at target opponent\'s hand. You may exile a nonland card from it. For as long as that card remains exiled, its owner may play it. A spell cast this way costs {2} more to cast.',
     frameColor: 'white', rarity: 'rare',
     artist: 'Zoltan Boros', collectorNumber: '014',
     battleDefense: '3',
