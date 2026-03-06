@@ -193,6 +193,17 @@ export function computeHeight(lines: { paraStart: boolean }[], textSize: number,
   return h;
 }
 
+/** Measure the height text would need at a given font size, without drawing. */
+export function measureWrappedHeight(
+  ctx: SKRSContext2D, text: string, maxWidth: number,
+  font: string, textSize: number,
+): number {
+  ctx.font = `${textSize}px "${font}"`;
+  const paragraphs = text.split('\n').filter(p => p.trim());
+  const lines = wrapParagraphs(ctx, paragraphs, maxWidth, textSize);
+  return computeHeight(lines, textSize, textSize * 0.35);
+}
+
 export function drawWrappedText(
   ctx: SKRSContext2D, text: string,
   boxX: number, boxY: number, boxW: number, boxH: number,

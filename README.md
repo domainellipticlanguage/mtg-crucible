@@ -258,6 +258,8 @@ npm run spike     # render test cards to output/
 - An Unearthly Child - where does that little golden bit come from?
 - Urza's Saga - just straight up broken
 
+- Ability to override text size??
+
 ## Design Decisions
 - should we support multicolored as an alias for gold?
 - '' single letters as aliases?

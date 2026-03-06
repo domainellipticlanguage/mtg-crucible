@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseCard, formatCard } from '../src/parser';
+import { parseCard, formatCard, toScryfallText } from '../src/parser';
 import { renderCard } from '../src';
 
 describe('parseCard', () => {
@@ -943,5 +943,138 @@ Flavor Text: It is a mystery even to its creator.`;
     // Re-parsing the new format preserves it
     const reparsed = parseCard(output);
     expect(reparsed.flavorText).toBe('"Zap."');
+  });
+});
+
+describe('parseCard ↔ toScryfallText round-trip', () => {
+  it('round-trips a simple instant', () => {
+    const card = parseCard(`
+      Lightning Bolt {R}
+      Instant
+      Lightning Bolt deals 3 damage to any target.
+    `);
+    const sfText = toScryfallText(card);
+    expect(sfText).toContain('Lightning Bolt {R}');
+    expect(sfText).toContain('Instant');
+    expect(sfText).toContain('Lightning Bolt deals 3 damage to any target.');
+    // Scryfall text can be re-parsed
+    const reparsed = parseCard(sfText);
+    expect(reparsed.name).toBe('Lightning Bolt');
+    expect(reparsed.manaCost).toBe('{R}');
+    expect(reparsed.types).toEqual(['instant']);
+    expect((reparsed.abilities as any).unstructuredAbilities).toEqual(
+      ['Lightning Bolt deals 3 damage to any target.'],
+    );
+  });
+
+  it('round-trips a creature with P/T', () => {
+    const card = parseCard(`
+      Tarmogoyf {1}{G}
+      Creature \u2014 Lhurgoyf
+      Tarmogoyf's power is equal to the number of card types among cards in all graveyards and its toughness is equal to that number plus 1.
+      0/1
+    `);
+    const sfText = toScryfallText(card);
+    expect(sfText).toContain('0/1');
+    const reparsed = parseCard(sfText);
+    expect(reparsed.name).toBe('Tarmogoyf');
+    expect(reparsed.manaCost).toBe('{1}{G}');
+    expect(reparsed.types).toEqual(['creature']);
+    expect(reparsed.subtypes).toEqual(['Lhurgoyf']);
+    expect(reparsed.power).toBe('0');
+    expect(reparsed.toughness).toBe('1');
+  });
+
+  it('round-trips a legendary creature with multiple abilities', () => {
+    const card = parseCard(`
+      Questing Beast {2}{G}{G}
+      Legendary Creature \u2014 Beast
+      Vigilance, deathtouch, haste
+      Questing Beast can't be blocked by creatures with power 2 or less.
+      4/4
+    `);
+    const sfText = toScryfallText(card);
+    const reparsed = parseCard(sfText);
+    expect(reparsed.name).toBe('Questing Beast');
+    expect(reparsed.supertypes).toEqual(['legendary']);
+    expect(reparsed.power).toBe('4');
+    expect(reparsed.toughness).toBe('4');
+    expect((reparsed.abilities as any).unstructuredAbilities).toEqual([
+      'Vigilance, deathtouch, haste',
+      "Questing Beast can't be blocked by creatures with power 2 or less.",
+    ]);
+  });
+
+  it('round-trips a sorcery with no P/T', () => {
+    const card = parseCard(`
+      Wrath of God {2}{W}{W}
+      Sorcery
+      Destroy all creatures. They can't be regenerated.
+    `);
+    const sfText = toScryfallText(card);
+    const reparsed = parseCard(sfText);
+    expect(reparsed.name).toBe('Wrath of God');
+    expect(reparsed.types).toEqual(['sorcery']);
+    expect(reparsed.power).toBeUndefined();
+    expect(reparsed.toughness).toBeUndefined();
+  });
+
+  it('round-trips a planeswalker with loyalty', () => {
+    const card = parseCard(`
+      Jace, the Mind Sculptor {2}{U}{U}
+      Legendary Planeswalker \u2014 Jace
+      +2: Look at the top card of target player's library.
+      0: Draw three cards, then put two cards from your hand on top of your library.
+      -1: Return target creature to its owner's hand.
+      -12: Exile all cards from target player's library, then that player shuffles their hand into their library.
+      Loyalty: 3
+    `);
+    const sfText = toScryfallText(card);
+    expect(sfText).toContain('Loyalty: 3');
+    const reparsed = parseCard(sfText);
+    expect(reparsed.name).toBe('Jace, the Mind Sculptor');
+    expect(reparsed.startingLoyalty).toBe('3');
+    expect(reparsed.types).toEqual(['planeswalker']);
+  });
+
+  it('round-trips a planeswalker with Unicode minus abilities', () => {
+    const card = parseCard(`
+      Jace, the Mind Sculptor {2}{U}{U}
+      Legendary Planeswalker \u2014 Jace
+      +2: Look at the top card of target player's library.
+      0: Draw three cards, then put two cards from your hand on top of your library.
+      \u22121: Return target creature to its owner's hand.
+      \u221212: Exile all cards from target player's library, then that player shuffles their hand into their library.
+      Loyalty: 3
+    `);
+    const sa = (card.abilities as any).structuredAbilities;
+    expect(sa.kind).toBe('planeswalker');
+    expect(sa.loyaltyAbilities).toHaveLength(4);
+    // Unicode minus should be normalized to ASCII
+    expect(sa.loyaltyAbilities[2].cost).toBe('-1');
+    expect(sa.loyaltyAbilities[3].cost).toBe('-12');
+    // Round-trip through Scryfall text
+    const sfText = toScryfallText(card);
+    const reparsed = parseCard(sfText);
+    const rsa = (reparsed.abilities as any).structuredAbilities;
+    expect(rsa.loyaltyAbilities).toHaveLength(4);
+    expect(rsa.loyaltyAbilities[0].cost).toBe('+2');
+    expect(rsa.loyaltyAbilities[2].cost).toBe('-1');
+    expect(rsa.loyaltyAbilities[3].cost).toBe('-12');
+  });
+
+  it('round-trips a battle with defense', () => {
+    const card = parseCard(`
+      Invasion of Gobakhan {1}{W}
+      Battle \u2014 Siege
+      When Invasion of Gobakhan enters the battlefield, look at target opponent's hand.
+      Defense: 3
+    `);
+    const sfText = toScryfallText(card);
+    expect(sfText).toContain('Defense: 3');
+    const reparsed = parseCard(sfText);
+    expect(reparsed.name).toBe('Invasion of Gobakhan');
+    expect(reparsed.battleDefense).toBe('3');
+    expect(reparsed.types).toEqual(['battle']);
   });
 });

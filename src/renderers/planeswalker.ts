@@ -4,24 +4,62 @@ import * as path from 'path';
 import type { CardData, PlaneswalkerAbilities } from '../types';
 import { ASSETS_DIR } from '../layout';
 import { getParsedAbilities } from './render';
-import { drawSingleLineText, drawWrappedText } from '../text';
+import { drawSingleLineText, drawWrappedText, measureWrappedHeight } from '../text';
+
+/**
+ * Find the largest uniform font size where all abilities fit the total height,
+ * then distribute vertical space proportionally to each ability's text needs.
+ * Returns font size and the Y offset + height for each ability box.
+ */
+function computeAbilityLayout(
+  ctx: SKRSContext2D, abilities: { cost: string; text: string }[],
+  L: Record<string, any>, cw: number, ch: number,
+): { fontSize: number; boxes: { y: number; h: number }[] } {
+  const totalH = L.totalAbilityH * ch;
+  const startY = L.ability.y * ch;
+  const aw = L.ability.w * cw;
+  const font = L.ability.font;
+  const maxSize = L.ability.size * ch;
+  const minBoxH = totalH / abilities.length * 0.5; // no box smaller than half of equal
+
+  for (let size = maxSize; size > 8; size -= 1) {
+    const rawHeights = abilities.map(a =>
+      measureWrappedHeight(ctx, a.text, aw, font, size),
+    );
+    const sumH = rawHeights.reduce((s, h) => s + h, 0);
+    if (sumH <= totalH) {
+      // Distribute proportionally, with a minimum box height
+      const clamped = rawHeights.map(h => Math.max(h, minBoxH));
+      const clampedSum = clamped.reduce((s, h) => s + h, 0);
+      const scale = totalH / clampedSum;
+      const heights = clamped.map(h => h * scale);
+      const boxes: { y: number; h: number }[] = [];
+      let curY = startY;
+      for (const h of heights) {
+        boxes.push({ y: curY, h });
+        curY += h;
+      }
+      return { fontSize: size, boxes };
+    }
+  }
+  // Fallback: equal split
+  const equalH = totalH / abilities.length;
+  const boxes = abilities.map((_, i) => ({ y: startY + i * equalH, h: equalH }));
+  return { fontSize: 8, boxes };
+}
 
 async function preFrame(ctx: SKRSContext2D, card: CardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
   const pw = getParsedAbilities(card).structuredAbilities as PlaneswalkerAbilities;
   const abilities = pw.loyaltyAbilities;
-  const abilityCount = abilities.length;
-  const abilityStartY = L.ability.y;
-  const abilityH = L.totalAbilityH / abilityCount;
+  const { boxes } = computeAbilityLayout(ctx, abilities, L, cw, ch);
 
-  for (let i = 0; i < abilityCount; i++) {
-    const y = (abilityStartY + i * abilityH) * ch;
-    const h = abilityH * ch;
+  for (let i = 0; i < abilities.length; i++) {
     const x = L.abilityBox.x * cw;
     const w = L.abilityBox.w * cw;
     ctx.save();
     if (i % 2 === 0) { ctx.fillStyle = 'white'; ctx.globalAlpha = 0.608; }
     else { ctx.fillStyle = '#a4a4a4'; ctx.globalAlpha = 0.706; }
-    ctx.fillRect(x, y, w, h);
+    ctx.fillRect(x, boxes[i].y, w, boxes[i].h);
     ctx.restore();
 
     // Ability line divider
@@ -31,7 +69,7 @@ async function preFrame(ctx: SKRSContext2D, card: CardData, L: Record<string, an
         : path.join(ASSETS_DIR, 'frames', 'planeswalker', 'abilityLineOdd.png');
       if (fs.existsSync(lineImg)) {
         const transH = ch * 0.0048;
-        ctx.drawImage(await loadImage(lineImg), x, y - transH, w, transH * 2);
+        ctx.drawImage(await loadImage(lineImg), x, boxes[i].y - transH, w, transH * 2);
       }
     }
   }
@@ -40,12 +78,10 @@ async function preFrame(ctx: SKRSContext2D, card: CardData, L: Record<string, an
 async function body(ctx: SKRSContext2D, card: CardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
   const pw = getParsedAbilities(card).structuredAbilities as PlaneswalkerAbilities;
   const abilities = pw.loyaltyAbilities;
-  const abilityCount = abilities.length;
-  const abilityStartY = L.ability.y;
-  const abilityH = L.totalAbilityH / abilityCount;
+  const { fontSize, boxes } = computeAbilityLayout(ctx, abilities, L, cw, ch);
+  const aw = L.ability.w * cw;
 
-  // Loyalty cost icons
-  const iconYPositions = L.abilityIconY[abilityCount] || L.abilityIconY[3];
+  // Loyalty cost icons — positioned at the vertical center of each box
   const plusImg = await loadImage(path.join(ASSETS_DIR, 'frames', 'planeswalker', 'planeswalkerPlus.png'));
   const minusImg = await loadImage(path.join(ASSETS_DIR, 'frames', 'planeswalker', 'planeswalkerMinus.png'));
   const neutralImg = await loadImage(path.join(ASSETS_DIR, 'frames', 'planeswalker', 'planeswalkerNeutral.png'));
@@ -56,8 +92,8 @@ async function body(ctx: SKRSContext2D, card: CardData, L: Record<string, any>, 
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
 
-  for (let i = 0; i < abilityCount; i++) {
-    const iconY = iconYPositions[i] * ch;
+  for (let i = 0; i < abilities.length; i++) {
+    const iconY = boxes[i].y + boxes[i].h / 2;
     const cost = abilities[i].cost;
 
     if (cost.includes('+')) {
@@ -76,13 +112,10 @@ async function body(ctx: SKRSContext2D, card: CardData, L: Record<string, any>, 
   }
   ctx.restore();
 
-  // Ability text
-  for (let i = 0; i < abilityCount; i++) {
-    const ay = (abilityStartY + i * abilityH) * ch;
-    const ah = abilityH * ch;
+  // Ability text — uniform font size, proportional boxes
+  for (let i = 0; i < abilities.length; i++) {
     const ax = L.ability.x * cw;
-    const aw = L.ability.w * cw;
-    drawWrappedText(ctx, abilities[i].text, ax, ay, aw, ah, L.ability.font, L.ability.size * ch);
+    drawWrappedText(ctx, abilities[i].text, ax, boxes[i].y, aw, boxes[i].h, L.ability.font, fontSize);
   }
 
   // Starting loyalty

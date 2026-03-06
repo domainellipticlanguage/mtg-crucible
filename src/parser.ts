@@ -13,7 +13,7 @@ const FRAME_REGEX = /^Frame:\s*(.+)$/i;
 const PT_REGEX = /^([*\d+]+)\/([*\d+]+)$/;
 const LOYALTY_REGEX = /^Loyalty:\s*(\S+)$/i;
 const DEFENSE_REGEX = /^Defense:\s*(\S+)$/i;
-const PW_ABILITY_REGEX = /^([+-]?\d+):\s*(.+)$/;
+const PW_ABILITY_REGEX = /^([+\-\u2212]?\d+):\s*(.+)$/;
 // TODO make this more general - any IVXL
 const SAGA_CHAPTER_REGEX = /^((?:I{1,3}|IV|V|VI)(?:\s*,\s*(?:I{1,3}|IV|V|VI))*)\s*[—–-]\s*(.+)$/;
 const CLASS_LEVEL_REGEX = /^((?:\{[^}]+\})+):\s*(Level\s+\d+)$/;
@@ -217,7 +217,7 @@ export function parseAbilities(text: string, kind?: StructuredAbilities['kind'])
     for (const line of lines) {
       const m = line.match(PW_ABILITY_REGEX);
       if (m) {
-        loyaltyAbilities.push({ cost: m[1], text: m[2] });
+        loyaltyAbilities.push({ cost: m[1].replace(/\u2212/g, '-'), text: m[2] });
       } else {
         loyaltyAbilities.push({ cost: '', text: line });
       }
