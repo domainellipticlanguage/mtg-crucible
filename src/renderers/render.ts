@@ -15,7 +15,7 @@ import {
   getTypeLine, primaryFrameColorCode, normalizeFrameColors, normalizeAccentColors,
   drawColorIndicator, drawFrame, drawGradientCrowns,
 } from '../helpers';
-import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor } from '../text';
+import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor, type ExclusionRect } from '../text';
 import { planeswalkerHooks } from './planeswalker';
 import { sagaHooks } from './saga';
 import { classHooks } from './class';
@@ -132,9 +132,21 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
   const rulesText = pa.unstructuredAbilities?.join('\n');
   if (L.rules && (rulesText || card.flavorText)) {
     const rx = L.rules.x * cw, ry = L.rules.y * ch, rw = L.rules.w * cw, rh = L.rules.h * ch, rs = L.rules.size * ch;
-    if (rulesText && card.flavorText) drawRulesAndFlavor(ctx, rulesText, card.flavorText, rx, ry, rw, rh, L.rules.font, rs);
-    else if (rulesText) drawWrappedText(ctx, rulesText, rx, ry, rw, rh, L.rules.font, rs);
-    else if (card.flavorText) drawWrappedText(ctx, card.flavorText, rx, ry, rw, rh, L.rules.font, rs, { fontFamily: 'MPlantin Italic' });
+
+    // Build exclusion rects for badges that overlap the rules area (e.g. battle defense/backPt)
+    // Add padding so text doesn't butt up against badges
+    const exclusionRects: ExclusionRect[] = [];
+    const pad = rs * 0.4;
+    if (L.defense && card.battleDefense !== undefined) {
+      exclusionRects.push({ x: L.defense.x * cw - pad, y: L.defense.y * ch - pad, w: L.defense.w * cw + pad, h: L.defense.h * ch + pad });
+    }
+    if (L.backPt && card.linkedCard?.power !== undefined && card.linkedCard?.toughness !== undefined) {
+      exclusionRects.push({ x: L.backPt.x * cw - pad, y: L.backPt.y * ch - pad, w: L.backPt.w * cw + pad, h: L.backPt.h * ch + pad });
+    }
+
+    if (rulesText && card.flavorText) drawRulesAndFlavor(ctx, rulesText, card.flavorText, rx, ry, rw, rh, L.rules.font, rs, exclusionRects);
+    else if (rulesText) drawWrappedText(ctx, rulesText, rx, ry, rw, rh, L.rules.font, rs, { exclusionRects });
+    else if (card.flavorText) drawWrappedText(ctx, card.flavorText, rx, ry, rw, rh, L.rules.font, rs, { fontFamily: 'MPlantin Italic', exclusionRects });
   }
 
   // P/T text
