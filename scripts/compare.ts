@@ -142,11 +142,20 @@ async function buildComparison(scryfallPng: Buffer, ourPng: Buffer, label: strin
   const sfImg = await loadImage(scryfallPng);
   const ourImg = await loadImage(ourPng);
 
+  // Detect if Scryfall image is portrait but ours is landscape (battle cards)
+  // If so, rotate Scryfall 90° clockwise to match our orientation
+  const sfIsPortrait = sfImg.height > sfImg.width;
+  const ourIsLandscape = ourImg.width > ourImg.height;
+  const needsRotation = sfIsPortrait && ourIsLandscape;
+
+  const sfDisplayW = needsRotation ? sfImg.height : sfImg.width;
+  const sfDisplayH = needsRotation ? sfImg.width : sfImg.height;
+
   // Scale both to same height
   const targetH = 1040;
-  const sfScale = targetH / sfImg.height;
+  const sfScale = targetH / sfDisplayH;
   const ourScale = targetH / ourImg.height;
-  const sfW = Math.round(sfImg.width * sfScale);
+  const sfW = Math.round(sfDisplayW * sfScale);
   const ourW = Math.round(ourImg.width * ourScale);
 
   const gap = 20;
@@ -168,8 +177,18 @@ async function buildComparison(scryfallPng: Buffer, ourPng: Buffer, label: strin
   ctx.fillText(`Scryfall`, sfW / 2, 28);
   ctx.fillText(`mtg-crucible`, sfW + gap + ourW / 2, 28);
 
-  // Draw images
-  ctx.drawImage(sfImg, 0, labelH, sfW, targetH);
+  // Draw Scryfall image (rotate if needed)
+  if (needsRotation) {
+    ctx.save();
+    ctx.translate(sfW / 2, labelH + targetH / 2);
+    ctx.rotate(Math.PI / 2);
+    ctx.drawImage(sfImg, -targetH / 2, -sfW / 2, targetH, sfW);
+    ctx.restore();
+  } else {
+    ctx.drawImage(sfImg, 0, labelH, sfW, targetH);
+  }
+
+  // Draw our image
   ctx.drawImage(ourImg, sfW + gap, labelH, ourW, targetH);
 
   return canvas.toBuffer('image/png');
@@ -185,29 +204,59 @@ async function compareCard(name: string, set?: string): Promise<string> {
 
   console.log(`  Found: ${sf.name} (${sf.set.toUpperCase()} #${sf.collector_number})`);
 
+  // Handle DFC: use front face for text + image, pass back face as linkedCard
+  const frontFace = sf.card_faces?.[0] ?? sf;
+  const backFace = sf.card_faces?.[1] ?? null;
+  const imageUris = frontFace.image_uris ?? sf.image_uris;
+
   // Build text definition and render through the public API
-  const text = scryfallToText(sf);
+  const text = scryfallToText({
+    ...frontFace,
+    rarity: sf.rarity,
+    set: sf.set,
+    collector_number: sf.collector_number,
+    image_uris: imageUris,
+  });
   console.log(`  Text definition:\n${text}\n`);
 
   console.log(`  Rendering our version...`);
-  const { frontFace: ourPng } = await renderCard(text);
+  // If DFC, attach linkedCard
+  let cardInput: CardData | string = text;
+  if (backFace) {
+    const { parseCard } = await import('../src');
+    const parsed = parseCard(text);
+    parsed.linkType = 'transform';
+    parsed.linkedCard = {
+      name: backFace.name,
+      types: backFace.type_line?.toLowerCase().includes('creature') ? ['creature'] as any : undefined,
+      abilities: backFace.oracle_text?.replace(/\u2212/g, '-'),
+      power: backFace.power,
+      toughness: backFace.toughness,
+      artUrl: backFace.image_uris?.art_crop,
+    };
+    if (backFace.color_indicator?.length > 0) {
+      parsed.linkedCard.colorIndicator = backFace.color_indicator.map((c: string) => SF_COLOR_NAMES[c]) as any;
+    }
+    cardInput = parsed;
+  }
+  const rendered = await renderCard(cardInput);
 
   // Fetch Scryfall's rendered PNG
   await sleep(100); // respect rate limit
   console.log(`  Fetching Scryfall PNG...`);
-  const scryfallPng = await fetchBuffer(sf.image_uris.png);
+  const scryfallPng = await fetchBuffer(imageUris.png);
 
   // Build comparison
   console.log(`  Building comparison image...`);
-  const comparison = await buildComparison(scryfallPng, ourPng, sf.name);
+  const comparison = await buildComparison(scryfallPng, rendered.frontFace, sf.name);
 
   // Write outputs
-  const slug = sf.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  const slug = sf.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-');
   const compPath = path.join(OUT, `${slug}.png`);
   const ourPath = path.join(OUT, `${slug}-ours.png`);
   const sfPath = path.join(OUT, `${slug}-scryfall.png`);
   fs.writeFileSync(compPath, comparison);
-  fs.writeFileSync(ourPath, ourPng);
+  fs.writeFileSync(ourPath, rendered.frontFace);
   fs.writeFileSync(sfPath, scryfallPng);
   console.log(`  Wrote: ${compPath}`);
   return compPath;
