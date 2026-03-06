@@ -9,6 +9,13 @@ async function body(ctx: SKRSContext2D, card: CardData, L: Record<string, any>, 
       L.defense.x * cw, L.defense.y * ch, L.defense.w * cw, L.defense.h * ch,
       L.defense.font, L.defense.size * ch, 'center', 'white');
   }
+
+  // Back face P/T (shown on battle front when back transforms into a creature)
+  if (L.backPt && card.linkedCard?.power !== undefined && card.linkedCard?.toughness !== undefined) {
+    drawSingleLineText(ctx, `${card.linkedCard.power}/${card.linkedCard.toughness}`,
+      L.backPt.x * cw, L.backPt.y * ch, L.backPt.w * cw, L.backPt.h * ch,
+      L.backPt.font, L.backPt.size * ch, 'center', 'white');
+  }
 }
 
 export const battleHooks = { body };

@@ -96,5 +96,6 @@ export const BTL_LAYOUT = {
   type:    { x: 268/2100, y: 873/1500, w: 1667/2100, h: 114/1500, size: (0.0324*2100)/1500, font: 'Beleren Bold' },
   rules:   { x: 272/2100, y: 1008/1500, w: 1661/2100, h: 414/1500, size: (0.0362*2100)/1500, font: 'MPlantin' },
   defense: { x: 1920/2100, y: 1320/1500, w: 86/2100, h: 123/1500, size: (0.0372*2100)/1500, font: 'Beleren Bold SmCaps' },
+  backPt: { x: 60/2100, y: 1320/1500, w: 140/2100, h: 123/1500, size: (0.0320*2100)/1500, font: 'Beleren Bold SmCaps' },
   setSymbol: { x: 0.93, y: 0.62, w: 0.12, h: 0.098 },
 };
