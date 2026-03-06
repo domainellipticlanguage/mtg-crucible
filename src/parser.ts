@@ -17,7 +17,8 @@ const PW_ABILITY_REGEX = /^([+-]?\d+):\s*(.+)$/;
 // TODO make this more general - any IVXL
 const SAGA_CHAPTER_REGEX = /^((?:I{1,3}|IV|V|VI)(?:\s*,\s*(?:I{1,3}|IV|V|VI))*)\s*[—–-]\s*(.+)$/;
 const CLASS_LEVEL_REGEX = /^((?:\{[^}]+\})+):\s*(Level\s+\d+)$/;
-// TODO Use an explicit Flavor Text: instead
+const FLAVOR_TEXT_REGEX = /^Flavor Text:\s*(.+)$/i;
+// Legacy format, kept for backward compat
 const FLAVOR_REGEX = /^\*(.+)\*$/;
 
 const ZERO_WIDTH_REGEX = /[\u200B-\u200D\uFEFF]/g;
@@ -396,6 +397,7 @@ export function parseCard(text: string): CardData {
   let colorIndicator: Color[] | undefined;
   let explicitAccent: AccentColor | AccentColor[] | undefined;
   let explicitFrame: FrameColor | FrameColor[] | undefined;
+  let flavorText: string | undefined;
   let nextLine = 1;
   while (nextLine < lines.length) {
     const current = lines[nextLine];
@@ -468,6 +470,8 @@ export function parseCard(text: string): CardData {
       }
       nextLine++; continue;
     }
+    const flavorTextMatch = current.match(FLAVOR_TEXT_REGEX);
+    if (flavorTextMatch) { flavorText = flavorTextMatch[1].trim(); nextLine++; continue; }
     if (/^[A-Za-z][A-Za-z0-9\/\s]+:\s*/.test(current)) { nextLine++; continue; }
     break;
   }
@@ -491,7 +495,6 @@ export function parseCard(text: string): CardData {
   let battleDefense: string | undefined;
   let power: string | undefined;
   let toughness: string | undefined;
-  let flavorText: string | undefined;
 
   // Planeswalker: extract Loyalty: N
   if (kind === 'planeswalker') {
@@ -517,17 +520,34 @@ export function parseCard(text: string): CardData {
     if (!battleDefense) battleDefense = '0';
   }
 
+  // Extract "Flavor Text:" lines from body (any card type)
+  {
+    const filtered: string[] = [];
+    const flavorParts: string[] = [];
+    for (const line of body) {
+      const m = line.match(FLAVOR_TEXT_REGEX);
+      if (m) flavorParts.push(m[1].trim());
+      else filtered.push(line);
+    }
+    if (flavorParts.length > 0) {
+      body = filtered;
+      flavorText = flavorParts.join('\n');
+    }
+  }
+
   // Standard cards: extract trailing flavor text (*...*) and P/T
   if (!kind && !lowerType.includes('battle')) {
-    // Flavor text: trailing *...* lines
-    let flavorStart = body.length;
-    while (flavorStart > 0 && isFlavorLine(body[flavorStart - 1])) {
-      flavorStart--;
-    }
-    if (flavorStart < body.length) {
-      const flavorLines = body.slice(flavorStart);
-      body = body.slice(0, flavorStart);
-      flavorText = flavorLines.map(l => l.match(FLAVOR_REGEX)![1]).join('\n');
+    // Legacy flavor text: trailing *...* lines (only if no Flavor Text: was found)
+    if (!flavorText) {
+      let flavorStart = body.length;
+      while (flavorStart > 0 && isFlavorLine(body[flavorStart - 1])) {
+        flavorStart--;
+      }
+      if (flavorStart < body.length) {
+        const flavorLines = body.slice(flavorStart);
+        body = body.slice(0, flavorStart);
+        flavorText = flavorLines.map(l => l.match(FLAVOR_REGEX)![1]).join('\n');
+      }
     }
 
     // P/T: last line matching N/N for creatures/vehicles
@@ -618,7 +638,7 @@ export function formatCard(card: CardData): string {
   // Flavor text
   if (card.flavorText) {
     for (const fl of card.flavorText.split('\n')) {
-      lines.push(`*${fl}*`);
+      lines.push(`Flavor Text: ${fl}`);
     }
   }
 

@@ -113,10 +113,10 @@ function scryfallToText(sf: any): string {
     }
   }
 
-  // Flavor text (wrapped in asterisks)
+  // Flavor text
   if (sf.flavor_text) {
     for (const line of sf.flavor_text.split('\n')) {
-      lines.push(`*${line}*`);
+      lines.push(`Flavor Text: ${line}`);
     }
   }
 

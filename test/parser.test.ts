@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseCard } from '../src/parser';
+import { parseCard, formatCard } from '../src/parser';
 import { renderCard } from '../src';
 
 describe('parseCard', () => {
@@ -806,6 +806,46 @@ Deal 2 damage to any target.\r
     });
   });
 
+  it('parses Flavor Text: syntax', () => {
+    const card = parseCard(`
+      Lightning Bolt {R}
+      Instant
+      Lightning Bolt deals 3 damage to any target.
+      Flavor Text: "The sparkmage shrieked."
+    `);
+    expect(card).toMatchObject({
+      abilities: { unstructuredAbilities: ['Lightning Bolt deals 3 damage to any target.'] },
+      flavorText: '"The sparkmage shrieked."',
+    });
+  });
+
+  it('parses Flavor Text: in metadata section (before type line)', () => {
+    const card = parseCard(`
+      Lightning Bolt {R}
+      Flavor Text: "The sparkmage shrieked."
+      Instant
+      Lightning Bolt deals 3 damage to any target.
+    `);
+    expect(card).toMatchObject({
+      abilities: { unstructuredAbilities: ['Lightning Bolt deals 3 damage to any target.'] },
+      flavorText: '"The sparkmage shrieked."',
+    });
+  });
+
+  it('parses multi-line Flavor Text:', () => {
+    const card = parseCard(`
+      Wrath of God {2}{W}{W}
+      Sorcery
+      Destroy all creatures. They can't be regenerated.
+      Flavor Text: "Legend speaks of the Creators' rage"
+      Flavor Text: "at their most prized creation."
+    `);
+    expect(card).toMatchObject({
+      abilities: { unstructuredAbilities: ["Destroy all creatures. They can't be regenerated."] },
+      flavorText: '"Legend speaks of the Creators\' rage"\n"at their most prized creation."',
+    });
+  });
+
   it('renderCard with frameColor array produces valid PNG', async () => {
     const { frontFace } = await renderCard({
       name: 'Gradient Test',
@@ -819,4 +859,89 @@ Deal 2 damage to any target.\r
     expect(frontFace[0]).toBe(0x89);
     expect(frontFace[1]).toBe(0x50);
   }, 30000);
+});
+
+describe('parseCard ↔ formatCard round-trip', () => {
+  it('round-trips a simple instant with flavor text', () => {
+    const input = `Lightning Bolt {R}
+Rarity: uncommon
+Instant
+Lightning Bolt deals 3 damage to any target.
+Flavor Text: "The sparkmage shrieked."`;
+    const card = parseCard(input);
+    const output = formatCard(card);
+    const reparsed = parseCard(output);
+    expect(reparsed.name).toBe(card.name);
+    expect(reparsed.manaCost).toBe(card.manaCost);
+    expect(reparsed.types).toEqual(card.types);
+    expect(reparsed.flavorText).toBe(card.flavorText);
+    expect((reparsed.abilities as any).unstructuredAbilities).toEqual(
+      (card.abilities as any).unstructuredAbilities,
+    );
+  });
+
+  it('round-trips a creature with P/T and flavor', () => {
+    const input = `Grizzly Bears {1}{G}
+Rarity: common
+Creature \u2014 Bear
+Flavor Text: "Don't try to outrun one; it'll just make you a meal on the go."
+2/2`;
+    const card = parseCard(input);
+    const output = formatCard(card);
+    const reparsed = parseCard(output);
+    expect(reparsed.name).toBe('Grizzly Bears');
+    expect(reparsed.power).toBe('2');
+    expect(reparsed.toughness).toBe('2');
+    expect(reparsed.flavorText).toBe(card.flavorText);
+    expect(reparsed.types).toEqual(['creature']);
+    expect(reparsed.subtypes).toEqual(['Bear']);
+  });
+
+  it('round-trips a legendary creature with abilities', () => {
+    const input = `Questing Beast {2}{G}{G}
+Rarity: mythic
+Legendary Creature \u2014 Beast
+Vigilance, deathtouch, haste
+Questing Beast can't be blocked by creatures with power 2 or less.
+4/4`;
+    const card = parseCard(input);
+    const output = formatCard(card);
+    const reparsed = parseCard(output);
+    expect(reparsed.name).toBe(card.name);
+    expect(reparsed.supertypes).toEqual(['legendary']);
+    expect(reparsed.power).toBe('4');
+    expect(reparsed.toughness).toBe('4');
+    expect((reparsed.abilities as any).unstructuredAbilities).toEqual(
+      (card.abilities as any).unstructuredAbilities,
+    );
+  });
+
+  it('round-trips a card with no abilities, only flavor', () => {
+    const input = `Darksteel Relic {0}
+Rarity: uncommon
+Artifact
+Flavor Text: It is a mystery even to its creator.`;
+    const card = parseCard(input);
+    expect(card.flavorText).toBe('It is a mystery even to its creator.');
+    const output = formatCard(card);
+    const reparsed = parseCard(output);
+    expect(reparsed.flavorText).toBe(card.flavorText);
+    expect(reparsed.name).toBe('Darksteel Relic');
+  });
+
+  it('preserves flavor text through legacy *asterisk* format', () => {
+    const card = parseCard(`
+      Bolt {R}
+      Instant
+      Deal 3 damage.
+      *"Zap."*
+    `);
+    expect(card.flavorText).toBe('"Zap."');
+    // formatCard outputs Flavor Text: format
+    const output = formatCard(card);
+    expect(output).toContain('Flavor Text: "Zap."');
+    // Re-parsing the new format preserves it
+    const reparsed = parseCard(output);
+    expect(reparsed.flavorText).toBe('"Zap."');
+  });
 });
