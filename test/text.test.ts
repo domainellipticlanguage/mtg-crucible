@@ -55,7 +55,7 @@ describe('wrapParagraphs', () => {
     const ctx = canvas.getContext('2d');
     ctx.font = '24px "MPlantin"';
     const lines = wrapParagraphs(ctx, ['Short.'], 400, 24);
-    expect(lines).toEqual([{ text: 'Short.', paraStart: false }]);
+    expect(lines).toEqual([{ text: 'Short.', paraStart: false, insideParens: false }]);
   });
 });
 

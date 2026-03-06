@@ -287,6 +287,9 @@ npm run spike     # render test cards to output/
 - Flavor Name (nickname)
 
 
+# bugs
+Arni Slays the Troll - saga drawable areay is rectangle...
+
 - fix reminder text italics
 
 https://cran.r-project.org/web/packages/scryr/vignettes/frames.html

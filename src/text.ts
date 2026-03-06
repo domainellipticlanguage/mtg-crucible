@@ -1,5 +1,5 @@
 import type { SKRSContext2D } from '@napi-rs/canvas';
-export type RichToken = { type: 'text' | 'symbol'; value: string };
+export type RichToken = { type: 'text' | 'symbol'; value: string; italic?: boolean };
 import { FONT_HEIGHT_RATIO } from './layout';
 import { getManaSymbolSync } from './symbols';
 
@@ -34,17 +34,42 @@ export function fillTextHeavy(ctx: SKRSContext2D, text: string, x: number, y: nu
   ctx.restore();
 }
 
-export function tokenize(text: string): RichToken[] {
+/** Tokenize text into symbols ({X}), italic regions ((...)), and plain text.
+ *  @param initialItalic — true if this text starts inside a parenthesized region from a previous line */
+export function tokenize(text: string, initialItalic = false): RichToken[] {
+  // First split into italic/non-italic regions based on parens
+  const regions: { text: string; italic: boolean }[] = [];
+  let rest = text;
+  let inParen = initialItalic;
+  while (rest.length > 0) {
+    if (!inParen) {
+      const openIdx = rest.indexOf('(');
+      if (openIdx === -1) { regions.push({ text: rest, italic: false }); break; }
+      if (openIdx > 0) regions.push({ text: rest.slice(0, openIdx), italic: false });
+      rest = rest.slice(openIdx);
+      inParen = true;
+    } else {
+      const closeIdx = rest.indexOf(')');
+      if (closeIdx === -1) { regions.push({ text: rest, italic: true }); break; }
+      regions.push({ text: rest.slice(0, closeIdx + 1), italic: true });
+      rest = rest.slice(closeIdx + 1);
+      inParen = false;
+    }
+  }
+
+  // Then tokenize each region for {symbols}
   const result: RichToken[] = [];
-  let remaining = text;
-  while (remaining.length > 0) {
-    const idx = remaining.indexOf('{');
-    if (idx === -1) { result.push({ type: 'text', value: remaining }); break; }
-    if (idx > 0) result.push({ type: 'text', value: remaining.slice(0, idx) });
-    const endIdx = remaining.indexOf('}', idx);
-    if (endIdx === -1) { result.push({ type: 'text', value: remaining.slice(idx) }); break; }
-    result.push({ type: 'symbol', value: remaining.slice(idx + 1, endIdx) });
-    remaining = remaining.slice(endIdx + 1);
+  for (const region of regions) {
+    let remaining = region.text;
+    while (remaining.length > 0) {
+      const idx = remaining.indexOf('{');
+      if (idx === -1) { result.push({ type: 'text', value: remaining, italic: region.italic }); break; }
+      if (idx > 0) result.push({ type: 'text', value: remaining.slice(0, idx), italic: region.italic });
+      const endIdx = remaining.indexOf('}', idx);
+      if (endIdx === -1) { result.push({ type: 'text', value: remaining.slice(idx), italic: region.italic }); break; }
+      result.push({ type: 'symbol', value: remaining.slice(idx + 1, endIdx) });
+      remaining = remaining.slice(endIdx + 1);
+    }
   }
   return result;
 }
@@ -53,26 +78,38 @@ export function measureTokenWidth(ctx: SKRSContext2D, tokens: RichToken[], textS
   const symbolSize = textSize * 0.78;
   const spacing = textSize * 0.06;
   let width = 0;
+  const origFont = ctx.font;
   for (const token of tokens) {
-    if (token.type === 'text') width += ctx.measureText(token.value).width;
-    else width += symbolSize + spacing;
+    if (token.type === 'text') {
+      if (token.italic && !origFont.includes('Italic')) {
+        ctx.font = origFont.replace(/"([^"]*)"/, '"$1 Italic"');
+      }
+      width += ctx.measureText(token.value).width;
+      if (token.italic && !origFont.includes('Italic')) ctx.font = origFont;
+    } else {
+      width += symbolSize + spacing;
+    }
   }
   return width;
 }
 
-export function measureRichText(ctx: SKRSContext2D, text: string, textSize: number): number {
-  return measureTokenWidth(ctx, tokenize(text), textSize);
+export function measureRichText(ctx: SKRSContext2D, text: string, textSize: number, initialItalic = false): number {
+  return measureTokenWidth(ctx, tokenize(text, initialItalic), textSize);
 }
 
-export function drawRichLine(ctx: SKRSContext2D, text: string, x: number, baselineY: number, textSize: number, strokeWidth = 0.4): void {
-  const tokens = tokenize(text);
+export function drawRichLine(ctx: SKRSContext2D, text: string, x: number, baselineY: number, textSize: number, strokeWidth = 0.4, initialItalic = false): void {
+  const tokens = tokenize(text, initialItalic);
   const symbolSize = textSize * 0.78;
   const spacing = textSize * 0.03;
+  const origFont = ctx.font;
+  const isBaseItalic = origFont.includes('Italic');
   let curX = x;
   for (const token of tokens) {
     if (token.type === 'text') {
+      if (token.italic && !isBaseItalic) ctx.font = origFont.replace(/"([^"]*)"/, '"$1 Italic"');
       fillTextHeavy(ctx, token.value, curX, baselineY, strokeWidth);
       curX += ctx.measureText(token.value).width;
+      if (token.italic && !isBaseItalic) ctx.font = origFont;
     } else {
       const img = getManaSymbolSync(token.value);
       if (img) {
@@ -110,25 +147,39 @@ export function drawSingleLineText(
 
 export function wrapParagraphs(
   ctx: SKRSContext2D, paragraphs: string[], maxWidth: number | ((lineIndex: number) => number), textSize: number,
-): { text: string; paraStart: boolean }[] {
+): { text: string; paraStart: boolean; insideParens: boolean }[] {
   const getWidth = typeof maxWidth === 'function' ? maxWidth : () => maxWidth;
-  const lines: { text: string; paraStart: boolean }[] = [];
+  const lines: { text: string; paraStart: boolean; insideParens: boolean }[] = [];
+  let inParens = false;
   for (let p = 0; p < paragraphs.length; p++) {
     const words = paragraphs[p].split(' ');
     let cur = '';
     let first = true;
+    let lineStartParens = inParens;
     for (const word of words) {
       const test = cur ? `${cur} ${word}` : word;
       const w = getWidth(lines.length);
-      if (measureRichText(ctx, test, textSize) > w && cur) {
-        lines.push({ text: cur, paraStart: first && p > 0 });
+      if (measureRichText(ctx, test, textSize, lineStartParens) > w && cur) {
+        lines.push({ text: cur, paraStart: first && p > 0, insideParens: lineStartParens });
+        // Track paren state: count unmatched parens in the emitted line
+        for (const ch of cur) {
+          if (ch === '(') inParens = true;
+          else if (ch === ')') inParens = false;
+        }
+        lineStartParens = inParens;
         cur = word;
         first = false;
       } else {
         cur = test;
       }
     }
-    if (cur) lines.push({ text: cur, paraStart: first && p > 0 });
+    if (cur) {
+      lines.push({ text: cur, paraStart: first && p > 0, insideParens: lineStartParens });
+      for (const ch of cur) {
+        if (ch === '(') inParens = true;
+        else if (ch === ')') inParens = false;
+      }
+    }
   }
   return lines;
 }
@@ -158,7 +209,7 @@ export function drawWrappedText(
     ctx.font = `${textSize}px "${fontFamily}"`;
     const paraSpacing = textSize * 0.35;
 
-    let lines: { text: string; paraStart: boolean }[];
+    let lines: { text: string; paraStart: boolean; insideParens: boolean }[];
     let totalH: number;
     let vertAdj: number;
 
@@ -182,7 +233,7 @@ export function drawWrappedText(
       let curY = 0;
       for (let i = 0; i < lines.length; i++) {
         if (i > 0) { curY += textSize; if (lines[i].paraStart) curY += paraSpacing; }
-        drawRichLine(ctx, lines[i].text, boxX, boxY + vertAdj + curY + textSize * FONT_HEIGHT_RATIO, textSize);
+        drawRichLine(ctx, lines[i].text, boxX, boxY + vertAdj + curY + textSize * FONT_HEIGHT_RATIO, textSize, 0.4, lines[i].insideParens);
       }
       return { usedSize: textSize, usedHeight: totalH };
     }
@@ -208,8 +259,8 @@ export function drawRulesAndFlavor(
     const barHeight = 8;
     const flavorSize = textSize;
 
-    let rulesLines: { text: string; paraStart: boolean }[];
-    let flavorLines: { text: string; paraStart: boolean }[];
+    let rulesLines: { text: string; paraStart: boolean; insideParens: boolean }[];
+    let flavorLines: { text: string; paraStart: boolean; insideParens: boolean }[];
     let totalH: number;
     let vertAdj: number;
 
@@ -243,7 +294,7 @@ export function drawRulesAndFlavor(
       ctx.fillStyle = 'black';
       for (let i = 0; i < rulesLines.length; i++) {
         if (i > 0) { curY += textSize; if (rulesLines[i].paraStart) curY += paraSpacing; }
-        drawRichLine(ctx, rulesLines[i].text, boxX, boxY + vertAdj + curY + textSize * FONT_HEIGHT_RATIO, textSize);
+        drawRichLine(ctx, rulesLines[i].text, boxX, boxY + vertAdj + curY + textSize * FONT_HEIGHT_RATIO, textSize, 0.4, rulesLines[i].insideParens);
       }
       curY += textSize + textSize * 0.5;
       const barY = boxY + vertAdj + curY;

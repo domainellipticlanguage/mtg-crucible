@@ -5,7 +5,7 @@ import { parseManaString } from '../src/symbols';
 describe('tokenize', () => {
   it('returns plain text as a single token', () => {
     expect(tokenize('Hello world')).toEqual([
-      { type: 'text', value: 'Hello world' },
+      { type: 'text', value: 'Hello world', italic: false },
     ]);
   });
 
@@ -18,10 +18,10 @@ describe('tokenize', () => {
   it('parses text with inline symbols', () => {
     expect(tokenize('{T}: Add {C}{C}.')).toEqual([
       { type: 'symbol', value: 'T' },
-      { type: 'text', value: ': Add ' },
+      { type: 'text', value: ': Add ', italic: false },
       { type: 'symbol', value: 'C' },
       { type: 'symbol', value: 'C' },
-      { type: 'text', value: '.' },
+      { type: 'text', value: '.', italic: false },
     ]);
   });
 
@@ -37,19 +37,34 @@ describe('tokenize', () => {
 
   it('handles unclosed brace as text', () => {
     expect(tokenize('some {broken')).toEqual([
-      { type: 'text', value: 'some ' },
-      { type: 'text', value: '{broken' },
+      { type: 'text', value: 'some ', italic: false },
+      { type: 'text', value: '{broken', italic: false },
     ]);
   });
 
   it('handles text before and after symbols', () => {
     expect(tokenize('Pay {1}{G/P}, {T}, Sacrifice')).toEqual([
-      { type: 'text', value: 'Pay ' },
+      { type: 'text', value: 'Pay ', italic: false },
       { type: 'symbol', value: '1' },
       { type: 'symbol', value: 'G/P' },
-      { type: 'text', value: ', ' },
+      { type: 'text', value: ', ', italic: false },
       { type: 'symbol', value: 'T' },
-      { type: 'text', value: ', Sacrifice' },
+      { type: 'text', value: ', Sacrifice', italic: false },
+    ]);
+  });
+
+  it('marks parenthesized text as italic', () => {
+    expect(tokenize('Flying (This creature can fly.)')).toEqual([
+      { type: 'text', value: 'Flying ', italic: false },
+      { type: 'text', value: '(This creature can fly.)', italic: true },
+    ]);
+  });
+
+  it('handles symbols inside parenthesized text', () => {
+    expect(tokenize('(Pay {2}.)')).toEqual([
+      { type: 'text', value: '(Pay ', italic: true },
+      { type: 'symbol', value: '2' },
+      { type: 'text', value: '.)', italic: true },
     ]);
   });
 });
