@@ -56,7 +56,8 @@ export function resolveTemplate(card: CardData): string {
   const pa = getParsedAbilities(card);
   if (pa.structuredAbilities?.kind === 'planeswalker') {
     const pw = pa.structuredAbilities as PlaneswalkerAbilities;
-    return pw.loyaltyAbilities.length >= 4 ? 'planeswalker_tall' : 'planeswalker';
+    const totalAbilities = (pa.unstructuredAbilities?.length ?? 0) + pw.loyaltyAbilities.length;
+    return totalAbilities >= 4 ? 'planeswalker_tall' : 'planeswalker';
   }
   if (pa.structuredAbilities?.kind === 'saga') return 'saga';
   if (pa.structuredAbilities?.kind === 'class') return 'class';

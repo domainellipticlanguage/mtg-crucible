@@ -4,6 +4,14 @@ import * as path from 'path';
 import type { CardData, PlaneswalkerAbilities } from '../types';
 import { ASSETS_DIR } from '../layout';
 import { getParsedAbilities } from './render';
+
+/** Combine unstructured abilities (as cost-less entries) with loyalty abilities. */
+function getAllAbilities(card: CardData): { cost: string; text: string }[] {
+  const pa = getParsedAbilities(card);
+  const pw = pa.structuredAbilities as PlaneswalkerAbilities;
+  const statics = (pa.unstructuredAbilities ?? []).map(text => ({ cost: '', text }));
+  return [...statics, ...pw.loyaltyAbilities];
+}
 import { drawSingleLineText, drawWrappedText, measureWrappedHeight } from '../text';
 
 /**
@@ -49,8 +57,7 @@ function computeAbilityLayout(
 }
 
 async function preFrame(ctx: SKRSContext2D, card: CardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
-  const pw = getParsedAbilities(card).structuredAbilities as PlaneswalkerAbilities;
-  const abilities = pw.loyaltyAbilities;
+  const abilities = getAllAbilities(card);
   const { boxes } = computeAbilityLayout(ctx, abilities, L, cw, ch);
 
   for (let i = 0; i < abilities.length; i++) {
@@ -76,8 +83,7 @@ async function preFrame(ctx: SKRSContext2D, card: CardData, L: Record<string, an
 }
 
 async function body(ctx: SKRSContext2D, card: CardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
-  const pw = getParsedAbilities(card).structuredAbilities as PlaneswalkerAbilities;
-  const abilities = pw.loyaltyAbilities;
+  const abilities = getAllAbilities(card);
   const { fontSize, boxes } = computeAbilityLayout(ctx, abilities, L, cw, ch);
   const aw = L.ability.w * cw;
 
