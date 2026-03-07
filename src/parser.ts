@@ -90,7 +90,6 @@ function parseTypeLine(typeLine: string): { supertypes: Supertype[]; types: Type
 }
 
 const MANA_COLOR_MAP: Record<string, Color> = { W: 'white', U: 'blue', B: 'black', R: 'red', G: 'green' };
-const REVERSE_MANA_COLOR_MAP: Record<string, string> = { white: 'W', blue: 'U', black: 'B', red: 'R', green: 'G' };
 const WUBRG = ['W', 'U', 'B', 'R', 'G'];
 
 function extractManaColors(manaCost: string | undefined): Set<string> {
@@ -164,47 +163,41 @@ function colorsToAccent(colors: Set<string>): AccentColor | AccentColor[] | unde
 type DerivedFrame = { frameColor: FrameColor | FrameColor[]; accentColor?: AccentColor | AccentColor[] };
 
 export function deriveFrameColor(card: Pick<CardData, 'subtypes' | 'types' | 'manaCost' | 'colorIndicator'> & { abilitiesText?: string }): DerivedFrame {
+  // Effective colors: from mana cost, or fall back to color indicator
   const colors = extractManaColors(card.manaCost);
-  const twoColors: Color[] | undefined = colors.size === 2 ? colorsInOrder(colors) : undefined;
-  const isHybrid = twoColors !== undefined && hasHybridMana(card.manaCost, colors);
+  const fromIndicator = colors.size === 0 && card.colorIndicator && card.colorIndicator.length > 0;
+  if (fromIndicator) {
+    for (const [letter, name] of Object.entries(MANA_COLOR_MAP)) {
+      if (card.colorIndicator!.includes(name)) colors.add(letter);
+    }
+  }
 
-  // Mana-cost-derived accent (universal: 2 colors → array, 1 → scalar, 3+ → 'multicolor')
-  const manaAccent = colorsToAccent(colors);
+  const twoColors: Color[] | undefined = colors.size === 2 ? colorsInOrder(colors) : undefined;
+  // Dual frames for hybrid mana OR color-indicator-only 2-color cards
+  const isDualFrame = twoColors !== undefined && (fromIndicator || hasHybridMana(card.manaCost, colors));
+  const accent = colorsToAccent(colors);
 
   // 1. Vehicle subtype
   if (card.subtypes?.some(s => s.toLowerCase() === 'vehicle')) return { frameColor: 'vehicle' };
 
-  // 2. Land type — accent from produced colors, then colorIndicator fallback
+  // 2. Land type — accent from produced colors, then card colors fallback
   if (card.types?.includes('land')) {
     const produced = extractProducedColors(card.subtypes, card.abilitiesText);
     const landAccent = colorsToAccent(produced);
     if (landAccent) return { frameColor: 'land', accentColor: landAccent };
-    if (manaAccent) return { frameColor: 'land', accentColor: manaAccent };
-    if (card.colorIndicator?.length === 1) return { frameColor: 'land', accentColor: card.colorIndicator[0] };
-    if (card.colorIndicator && card.colorIndicator.length > 1) return { frameColor: 'land', accentColor: 'multicolor' };
+    if (accent) return { frameColor: 'land', accentColor: accent };
     return { frameColor: 'land' };
   }
 
   // 3. Artifact type
   if (card.types?.includes('artifact')) {
-    return manaAccent
-      ? { frameColor: 'artifact', accentColor: manaAccent }
-      : { frameColor: 'artifact' };
+    return accent ? { frameColor: 'artifact', accentColor: accent } : { frameColor: 'artifact' };
   }
 
-  // 4. Normal cards — fall back to colorIndicator when no mana cost
-  if (colors.size === 0 && card.colorIndicator) {
-    const ci = card.colorIndicator;
-    if (ci.length === 1) return { frameColor: ci[0] };
-    if (ci.length === 2) {
-      const ordered = colorsInOrder(new Set(ci.map(c => REVERSE_MANA_COLOR_MAP[c])));
-      return { frameColor: ordered, accentColor: ordered };
-    }
-    return { frameColor: 'multicolor' };
-  }
+  // 4. Normal cards
   if (colors.size === 0) return { frameColor: 'artifact' };
   if (colors.size === 1) return { frameColor: MANA_COLOR_MAP[[...colors][0]] };
-  if (isHybrid) return { frameColor: twoColors!, accentColor: twoColors };
+  if (isDualFrame) return { frameColor: twoColors!, accentColor: twoColors };
   if (twoColors) return { frameColor: 'multicolor', accentColor: twoColors };
   return { frameColor: 'multicolor' };
 }
