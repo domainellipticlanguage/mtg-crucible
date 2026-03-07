@@ -115,8 +115,9 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
   if (hooks?.body) await hooks.body(ctx, card, L, cw, ch);
 
   // Set symbol
+  let setSymW = 0;
   if (L.setSymbol) {
-    await drawSetSymbol(ctx, card.rarity || 'common', L.setSymbol, ch, cw);
+    setSymW = await drawSetSymbol(ctx, card.rarity || 'common', L.setSymbol, ch, cw);
   }
 
   // Mana cost
@@ -127,12 +128,13 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
   const nameW = L.name.w * cw - manaW;
   drawSingleLineText(ctx, card.name ?? '', L.name.x * cw, L.name.y * ch, nameW, L.name.h * ch, L.name.font, L.name.size * ch);
 
-  // Type line + color indicator
+  // Type line + color indicator (shrink available width to avoid set symbol)
   const typeX = L.type.x * cw;
   const typeY = L.type.y * ch;
   const typeH = L.type.h * ch;
   const indicatorOffset = drawColorIndicator(ctx, card.colorIndicator, typeX, typeY, typeH);
-  drawSingleLineText(ctx, getTypeLine(card), typeX + indicatorOffset, typeY, L.type.w * cw - indicatorOffset, typeH, L.type.font, L.type.size * ch);
+  const typeW = L.type.w * cw - indicatorOffset - setSymW;
+  drawSingleLineText(ctx, getTypeLine(card), typeX + indicatorOffset, typeY, typeW, typeH, L.type.font, L.type.size * ch);
 
   // Rules + flavor text (for templates with a rules area)
   const pa = getParsedAbilities(card);

@@ -432,15 +432,16 @@ export async function drawSetSymbol(
   ctx: SKRSContext2D, rarity: string,
   layout: { x: number; y: number; w: number; h: number },
   ch: number, cw: number,
-): Promise<void> {
+): Promise<number> {
   const setSymPath = path.join(ASSETS_DIR, 'symbols', `set-${rarity}.svg`);
-  if (!fs.existsSync(setSymPath)) return;
+  if (!fs.existsSync(setSymPath)) return 0;
   const setImg = await loadImage(setSymPath);
   const sh = layout.h * ch;
   const sw = sh * (setImg.width / setImg.height);
   const sx = layout.x * cw - sw;
   const sy = layout.y * ch - sh / 2;
   ctx.drawImage(setImg, sx, sy, sw, sh);
+  return sw;
 }
 
 export function drawBottomInfo(ctx: SKRSContext2D, card: CardData, cw: number, ch: number): void {

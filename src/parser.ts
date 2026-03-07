@@ -90,6 +90,7 @@ function parseTypeLine(typeLine: string): { supertypes: Supertype[]; types: Type
 }
 
 const MANA_COLOR_MAP: Record<string, Color> = { W: 'white', U: 'blue', B: 'black', R: 'red', G: 'green' };
+const REVERSE_MANA_COLOR_MAP: Record<string, string> = { white: 'W', blue: 'U', black: 'B', red: 'R', green: 'G' };
 const WUBRG = ['W', 'U', 'B', 'R', 'G'];
 
 function extractManaColors(manaCost: string | undefined): Set<string> {
@@ -191,7 +192,16 @@ export function deriveFrameColor(card: Pick<CardData, 'subtypes' | 'types' | 'ma
       : { frameColor: 'artifact' };
   }
 
-  // 4. Normal cards
+  // 4. Normal cards — fall back to colorIndicator when no mana cost
+  if (colors.size === 0 && card.colorIndicator) {
+    const ci = card.colorIndicator;
+    if (ci.length === 1) return { frameColor: ci[0] };
+    if (ci.length === 2) {
+      const ordered = colorsInOrder(new Set(ci.map(c => REVERSE_MANA_COLOR_MAP[c])));
+      return { frameColor: ordered, accentColor: ordered };
+    }
+    return { frameColor: 'multicolor' };
+  }
   if (colors.size === 0) return { frameColor: 'artifact' };
   if (colors.size === 1) return { frameColor: MANA_COLOR_MAP[[...colors][0]] };
   if (isHybrid) return { frameColor: twoColors!, accentColor: twoColors };
