@@ -1,4 +1,4 @@
-import type { CardData, ParsedAbilities, RenderedCard } from './types';
+import type { CardData, ParsedAbilities, RenderedCard, RenderedCardDisplay } from './types';
 import { ensureInitialized } from './helpers';
 import { renderCardImage } from './renderers/render';
 import { parseCard, parseAbilities, formatAbilities, formatCard, toScryfallJson, toScryfallText, computeRotations, deriveFrameColor, resolveTemplate, getArtDimensions } from './parser';
@@ -8,7 +8,7 @@ export type {
   Rarity, CardTemplate, TemplateName, Color, AccentColor, FrameColor, Supertype, Type, Subtype, LinkType,
   PlaneswalkerAbilities, SagaAbilities, ClassAbilities, LevelerAbilities, CaseAbilities, PrototypeAbilities,
   StructuredAbilities, ParsedAbilities,
-  CardData, Rotation, RenderedCard,
+  CardData, Rotation, RenderedCard, RenderedCardDisplay,
 } from './types';
 export { renderCardImage } from './renderers/render';
 export { parseCard, parseAbilities, formatAbilities, formatCard, toScryfallJson, toScryfallText, computeRotations, resolveTemplate, getArtDimensions } from './parser';
@@ -90,5 +90,19 @@ export async function renderCard(input: CardData | string): Promise<RenderedCard
     scryfallJson: toScryfallJson(normalized),
     scryfallText: toScryfallText(normalized),
     crucibleText: formatCard(normalized),
+  };
+}
+
+export function toDisplayCard(rendered: RenderedCard): RenderedCardDisplay {
+  return {
+    frontFace: `data:image/png;base64,${rendered.frontFace.toString('base64')}`,
+    frontFaceOrientation: rendered.frontFaceOrientation,
+    backFace: rendered.backFace ? `data:image/png;base64,${rendered.backFace.toString('base64')}` : undefined,
+    backFaceOrientation: rendered.backFaceOrientation,
+    name: rendered.normalizedCardData.name ?? '',
+    rotations: rendered.rotations,
+    scryfallJson: rendered.scryfallJson,
+    scryfallText: rendered.scryfallText,
+    crucibleText: rendered.crucibleText,
   };
 }

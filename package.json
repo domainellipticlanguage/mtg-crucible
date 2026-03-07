@@ -4,9 +4,21 @@
   "description": "",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./dist/react/react/index.d.ts",
+      "default": "./dist/react/react/index.js"
+    }
+  },
   "scripts": {
     "test": "vitest",
-    "build": "tsc",
+    "build": "tsc && tsc -p tsconfig.react.json",
+    "build:core": "tsc",
+    "build:react": "tsc -p tsconfig.react.json",
     "dev": "npx tsx scripts/dev-server.ts",
     "spike": "npx tsx scripts/spike.ts",
     "generate-assets": "npx tsx logo/generate-assets.ts"
@@ -18,8 +30,18 @@
   "dependencies": {
     "@napi-rs/canvas": "^0.1.92"
   },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@types/node": "^25.2.3",
+    "@types/react": "^19.2.14",
+    "react": "^19.2.4",
     "sst": "^4.0.6",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",

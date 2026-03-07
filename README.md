@@ -343,3 +343,15 @@ Could we support hybrid borders via draw tools? linear gradient to shift between
 
 # Tech Debt
 - The Class level one is still messed up - tried changing it and it got messed up. I think we do need to parse it as level one?
+
+# React Component
+- Let's create a react component for displaying a RenderedCard object
+- rotations - you can click likee on scryfall
+- Card name rendered in an invisible span so that people can ctrl+F
+- right click to copy scryfall text, copy crucible text, copy scryfall json, copy crucible json, copy card image (the face you are currently looking at)
+- some way to control zoom/scale (maybe that's just regular styling and the component doesn't need to care?)
+- This should be structured so that people can independently import the component or the parser or the renderer. The react component will have a peer dependency on react.
+
+devoid cards are full art
+
+Remove support for asterisk-bounded flavor text

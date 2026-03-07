@@ -1,5 +1,5 @@
 import * as http from 'http';
-import { parseCard, renderCard } from '../src';
+import { parseCard, renderCard, toDisplayCard } from '../src';
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 
@@ -28,11 +28,21 @@ const HTML = `<!DOCTYPE html>
   .output-panel { align-items: center; justify-content: flex-start; }
   .output-panel h2 { font-size: 1rem; margin-bottom: 0.75rem; color: #888; }
   #output { width: 100%; min-height: 360px; display: flex; align-items: center; justify-content: center; background: #16213e; border-radius: 6px; border: 1px solid #444; overflow: auto; }
-  #output img { max-width: 100%; height: auto; }
   #output pre { padding: 1rem; font-size: 12px; white-space: pre-wrap; word-break: break-word; width: 100%; max-height: 500px; overflow: auto; }
   .error { color: #ff6b6b; }
   .spinner { border: 3px solid #444; border-top: 3px solid #c4a35a; border-radius: 50%; width: 32px; height: 32px; animation: spin 0.8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Card display */
+  .mtg-card-wrapper { display: inline-block; position: relative; perspective: 1000px; max-width: 100%; }
+  .mtg-card-wrapper img { display: block; max-width: 100%; height: auto; transition: transform 0.3s ease; border-radius: 4.5% / 3.2%; user-select: none; -webkit-user-drag: none; }
+  .mtg-card-wrapper.clickable { cursor: pointer; }
+  .mtg-card-wrapper .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+
+  /* Context menu */
+  .ctx-menu { position: fixed; z-index: 10000; background: #2a2a2a; border: 1px solid #444; border-radius: 6px; padding: 4px 0; box-shadow: 0 4px 16px rgba(0,0,0,0.4); min-width: 180; font-size: 13px; }
+  .ctx-menu-item { padding: 6px 14px; cursor: pointer; color: #e0e0e0; transition: background 0.1s; }
+  .ctx-menu-item:hover { background: #3a3a5a; }
 </style>
 </head>
 <body>
@@ -51,7 +61,7 @@ Whenever a legendary creature you control dies, return it to your hand at the be
   </div>
   <div class="output-panel">
     <div class="tabs" id="tabs">
-      <button class="active" data-tab="image">Image</button>
+      <button class="active" data-tab="card">Card</button>
       <button data-tab="cardData">CardData</button>
       <button data-tab="scryfallJson">Scryfall JSON</button>
       <button data-tab="scryfallText">Scryfall Text</button>
@@ -64,7 +74,13 @@ Whenever a legendary creature you control dies, return it to your hand at the be
 </div>
 <script>
 let lastResult = null;
-let activeTab = 'image';
+let activeTab = 'card';
+let faceIndex = 0;
+let isFlipping = false;
+
+function rotationToCss(r) {
+  return 'rotateX(' + r.x + 'deg) rotateY(' + r.y + 'deg) rotateZ(' + r.z + 'deg)';
+}
 
 function showTab(tab) {
   activeTab = tab;
@@ -75,24 +91,127 @@ function showTab(tab) {
   const output = document.getElementById('output');
   const r = lastResult;
   switch (tab) {
-    case 'image':
-      output.innerHTML = '<img src="' + r.imageUrl + '" alt="Rendered card">';
+    case 'card':
+      renderCardDisplay(output, r);
       break;
     case 'cardData':
       output.innerHTML = '<pre>' + escapeHtml(JSON.stringify(r.cardData, null, 2)) + '</pre>';
       break;
     case 'scryfallJson':
-      output.innerHTML = '<pre>' + escapeHtml(JSON.stringify(JSON.parse(r.scryfallJson), null, 2)) + '</pre>';
+      output.innerHTML = '<pre>' + escapeHtml(JSON.stringify(JSON.parse(r.display.scryfallJson), null, 2)) + '</pre>';
       break;
     case 'scryfallText':
-      output.innerHTML = '<pre>' + escapeHtml(r.scryfallText) + '</pre>';
+      output.innerHTML = '<pre>' + escapeHtml(r.display.scryfallText) + '</pre>';
       break;
     case 'crucibleText':
-      output.innerHTML = '<pre>' + escapeHtml(r.crucibleText) + '</pre>';
+      output.innerHTML = '<pre>' + escapeHtml(r.display.crucibleText) + '</pre>';
       break;
     case 'rotations':
-      output.innerHTML = '<pre>' + escapeHtml(JSON.stringify(r.rotations, null, 2)) + '</pre>';
+      output.innerHTML = '<pre>' + escapeHtml(JSON.stringify(r.display.rotations, null, 2)) + '</pre>';
       break;
+  }
+}
+
+function renderCardDisplay(container, r) {
+  const d = r.display;
+  const hasBack = !!d.backFace;
+  const rotation = d.rotations[faceIndex] || { x: 0, y: 0, z: 0 };
+  const currentFace = faceIndex === 0 ? d.frontFace : d.backFace;
+
+  container.innerHTML = '';
+  const wrapper = document.createElement('div');
+  wrapper.className = 'mtg-card-wrapper' + (hasBack ? ' clickable' : '');
+
+  const srSpan = document.createElement('span');
+  srSpan.className = 'sr-only';
+  srSpan.textContent = d.name;
+  wrapper.appendChild(srSpan);
+
+  const img = document.createElement('img');
+  img.src = currentFace;
+  img.alt = d.name;
+  img.draggable = false;
+  img.style.transform = rotationToCss(rotation);
+  wrapper.appendChild(img);
+
+  if (hasBack) {
+    wrapper.addEventListener('click', () => {
+      if (isFlipping) return;
+      isFlipping = true;
+      const nextIndex = faceIndex === 0 ? 1 : 0;
+      const nextRotation = d.rotations[nextIndex] || { x: 0, y: 0, z: 0 };
+      img.style.transform = rotationToCss(nextRotation);
+      setTimeout(() => {
+        faceIndex = nextIndex;
+        const newFace = faceIndex === 0 ? d.frontFace : d.backFace;
+        const finalRotation = d.rotations[faceIndex] || { x: 0, y: 0, z: 0 };
+        img.src = newFace;
+        img.style.transform = rotationToCss(finalRotation);
+        isFlipping = false;
+      }, 300);
+    });
+  }
+
+  wrapper.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    showContextMenu(e.clientX, e.clientY, d);
+  });
+
+  container.appendChild(wrapper);
+}
+
+function showContextMenu(x, y, display) {
+  closeContextMenu();
+  const menu = document.createElement('div');
+  menu.className = 'ctx-menu';
+  menu.id = 'ctxMenu';
+  menu.style.left = x + 'px';
+  menu.style.top = y + 'px';
+
+  const items = [
+    { label: 'Copy Card Image', action: () => copyImage(display) },
+    { label: 'Copy Scryfall Text', action: () => copyText(display.scryfallText) },
+    { label: 'Copy Crucible Text', action: () => copyText(display.crucibleText) },
+    { label: 'Copy Scryfall JSON', action: () => copyText(display.scryfallJson) },
+    { label: 'Copy Card Data JSON', action: () => copyText(JSON.stringify(JSON.parse(display.scryfallJson), null, 2)) },
+  ];
+
+  items.forEach(item => {
+    const el = document.createElement('div');
+    el.className = 'ctx-menu-item';
+    el.textContent = item.label;
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      item.action();
+      closeContextMenu();
+    });
+    menu.appendChild(el);
+  });
+
+  menu.addEventListener('mousedown', e => e.stopPropagation());
+  document.body.appendChild(menu);
+  document.addEventListener('mousedown', closeContextMenu);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeContextMenu(); });
+}
+
+function closeContextMenu() {
+  const menu = document.getElementById('ctxMenu');
+  if (menu) menu.remove();
+}
+
+async function copyText(text) {
+  await navigator.clipboard.writeText(text);
+}
+
+async function copyImage(display) {
+  const src = faceIndex === 0 ? display.frontFace : display.backFace;
+  if (!src) return;
+  try {
+    const res = await fetch(src);
+    const blob = await res.blob();
+    await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+  } catch (e) {
+    console.error('Failed to copy image:', e);
   }
 }
 
@@ -109,6 +228,7 @@ async function doRender() {
   btn.disabled = true;
   output.innerHTML = '<div class="spinner"></div>';
   timing.textContent = '';
+  faceIndex = 0;
   const t0 = performance.now();
 
   try {
@@ -126,16 +246,9 @@ async function doRender() {
     }
 
     const json = await res.json();
-    const blob = new Blob([Uint8Array.from(atob(json.image), c => c.charCodeAt(0))], { type: 'image/png' });
-    const imageUrl = URL.createObjectURL(blob);
-
     lastResult = {
-      imageUrl,
+      display: json.display,
       cardData: json.cardData,
-      scryfallJson: json.scryfallJson,
-      scryfallText: json.scryfallText,
-      crucibleText: json.crucibleText,
-      rotations: json.rotations,
     };
 
     showTab(activeTab);
@@ -181,15 +294,12 @@ const server = http.createServer(async (req, res) => {
       try { input = JSON.parse(text); } catch {}
       const t0 = performance.now();
       const rendered = await renderCard(input);
+      const display = toDisplayCard(rendered);
       const ms = Math.round(performance.now() - t0);
       res.writeHead(200, { 'Content-Type': 'application/json', 'X-Render-Time-Ms': String(ms) });
       res.end(JSON.stringify({
-        image: rendered.frontFace.toString('base64'),
+        display,
         cardData: rendered.normalizedCardData,
-        scryfallJson: rendered.scryfallJson,
-        scryfallText: rendered.scryfallText,
-        crucibleText: rendered.crucibleText,
-        rotations: rendered.rotations,
       }));
     } catch (err: any) {
       res.writeHead(500, { 'Content-Type': 'text/plain' });

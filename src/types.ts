@@ -181,3 +181,16 @@ export interface RenderedCard {
   scryfallText: string;
   crucibleText: string;
 }
+
+/** Browser-friendly version of RenderedCard — image data as base64 data URIs instead of Buffers. */
+export interface RenderedCardDisplay {
+  frontFace: string;           // data:image/png;base64,...
+  frontFaceOrientation: 'horizontal' | 'vertical';
+  backFace?: string;           // data:image/png;base64,...
+  backFaceOrientation?: 'horizontal' | 'vertical';
+  name: string;
+  rotations: Rotation[];
+  scryfallJson: string;
+  scryfallText: string;
+  crucibleText: string;
+}
