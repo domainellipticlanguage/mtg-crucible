@@ -11,7 +11,7 @@ import {
   ASSETS_DIR,
 } from '../layout';
 import {
-  drawArt, drawCorners, drawSetSymbol, drawBottomInfo, drawManaCost,
+  drawArt, drawCorners, drawSetSymbol, drawBottomInfo, drawManaCost, measureManaCostWidth,
   getTypeLine, primaryFrameColorCode, normalizeFrameColors, normalizeAccentColors,
   drawColorIndicator, drawFrame, drawGradientCrowns,
 } from '../helpers';
@@ -119,11 +119,13 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
     await drawSetSymbol(ctx, card.rarity || 'common', L.setSymbol, ch, cw);
   }
 
-  // Name
-  drawSingleLineText(ctx, card.name ?? '', L.name.x * cw, L.name.y * ch, L.name.w * cw, L.name.h * ch, L.name.font, L.name.size * ch);
-
   // Mana cost
   if (card.manaCost) await drawManaCost(ctx, card.manaCost, cw, ch, L.mana);
+
+  // Name (shrink available width to avoid mana cost)
+  const manaW = card.manaCost ? measureManaCostWidth(card.manaCost, ch, L.mana.size) : 0;
+  const nameW = L.name.w * cw - manaW;
+  drawSingleLineText(ctx, card.name ?? '', L.name.x * cw, L.name.y * ch, nameW, L.name.h * ch, L.name.font, L.name.size * ch);
 
   // Type line + color indicator
   const typeX = L.type.x * cw;

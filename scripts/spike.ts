@@ -380,7 +380,7 @@ async function main() {
 
   // 29. Tall planeswalker with multicolored frame
   await render('nicol-bolas-dragon-god', {
-    name: 'Nicol Bolas, Dragon-God', manaCost: '{U}{B}{B}{B}{R}',
+    name: 'Nicol Bolas, Dragon-God', manaCost: '{U}{B}{B}{B}{R}{U}{B}{B}{B}{R}',
     supertypes: ['legendary'], types: ['planeswalker'], subtypes: ['Bolas'],
     frameColor: 'multicolor', accentColor: ['blue', 'black', 'red'], rarity: 'mythic',
     artist: 'Raymond Swanland', collectorNumber: '207',

@@ -464,6 +464,15 @@ export function drawBottomInfo(ctx: SKRSContext2D, card: CardData, cw: number, c
   ctx.restore();
 }
 
+export function measureManaCostWidth(manaStr: string, ch: number, manaSize: number): number {
+  const symbols = parseManaString(manaStr);
+  if (symbols.length === 0) return 0;
+  const textSize = manaSize * ch;
+  const symbolSize = textSize * 0.78;
+  const spacing = textSize * 0.04;
+  return symbols.length * symbolSize + symbols.length * spacing * 2;
+}
+
 export async function drawManaCost(
   ctx: SKRSContext2D, manaStr: string,
   cw: number, ch: number,
