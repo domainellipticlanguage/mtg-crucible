@@ -233,9 +233,9 @@ npm run spike     # render test cards to output/
     - Four ability planeswalkers seem to have a different template?
 - Fix planeswalker templates to have transparency
     - pretty sure our current setup can handle this
-- Revamp parser - Flavor Text: or Flavor:
+- Revamp parser - Flavor Text: or Flavor:       X
 - More lenient parsing - we can ...
-- Fix planeswalker art render positioning
+- Fix planeswalker art render positioning   X
 - Fix common set logo
 - Fix colored artifacts using wrong border (do we support accents though?)
 - Fix land accents - why is command tower gold?
@@ -259,6 +259,8 @@ npm run spike     # render test cards to output/
 - Urza's Saga - just straight up broken
 
 - Ability to override text size??
+
+- Parsing - should the unstructured PW ability use the PW ability template with '' cost?
 
 ## Design Decisions
 - should we support multicolored as an alias for gold?

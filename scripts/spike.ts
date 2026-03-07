@@ -6,11 +6,15 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { execSync } from 'child_process';
 import { renderCard } from '../src';
 import type { CardData, RenderedCard } from '../src';
 
 const OUT = path.resolve(__dirname, '..', '.output', 'spike');
-const ONLY = process.argv[2] ? new Set(process.argv.slice(2).map(Number)) : null;
+const args = process.argv.slice(2);
+const openFlag = args.includes('--open');
+const indices = args.filter(a => a !== '--open').map(Number).filter(n => !isNaN(n));
+const ONLY = indices.length > 0 ? new Set(indices) : null;
 
 let idx = 0;
 
@@ -19,7 +23,9 @@ async function render(name: string, card: CardData | string): Promise<RenderedCa
   if (ONLY && !ONLY.has(idx)) return null;
   console.log(`${idx}. ${name}`);
   const result = await renderCard(card);
-  fs.writeFileSync(path.join(OUT, `${String(idx).padStart(2, '0')}-${name}.png`), result.frontFace);
+  const outPath = path.join(OUT, `${String(idx).padStart(2, '0')}-${name}.png`);
+  fs.writeFileSync(outPath, result.frontFace);
+  if (openFlag && ONLY) execSync(`open "${outPath}"`);
   return result;
 }
 
@@ -371,6 +377,28 @@ async function main() {
       fs.writeFileSync(path.join(OUT, `${String(idx).padStart(2, '0')}-invasion-gobakhan-back.png`), gobakhanDFC.backFace);
     }
   }
+
+  // 29. Tall planeswalker with multicolored frame
+  await render('nicol-bolas-dragon-god', {
+    name: 'Nicol Bolas, Dragon-God', manaCost: '{U}{B}{B}{B}{R}',
+    supertypes: ['legendary'], types: ['planeswalker'], subtypes: ['Bolas'],
+    frameColor: 'multicolor', accentColor: ['blue', 'black', 'red'], rarity: 'mythic',
+    artist: 'Raymond Swanland', collectorNumber: '207',
+    startingLoyalty: '4',
+    abilities: { 
+      unstructuredAbilities: [
+        'Nicol Bolas, Dragon-God has all loyalty abilities of all other planeswalkers on the battlefield.'
+      ],
+      structuredAbilities: {
+      kind: 'planeswalker',
+      loyaltyAbilities: [
+        // { cost: '', text: 'Nicol Bolas, Dragon-God has all loyalty abilities of all other planeswalkers on the battlefield.' },
+        { cost: '+21', text: 'You draw a card. Each opponent exiles a card from their hand or a permanent they control.' },
+        { cost: '-3', text: 'Destroy target creature or planeswalker.' },
+        { cost: '-8', text: 'Each opponent who doesn\'t control a legendary creature or planeswalker loses the game.' },
+      ],
+    } },
+  });
 
   console.log(`\nDone! ${idx} cards total, rendered to ${OUT}`);
 }
