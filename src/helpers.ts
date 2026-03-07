@@ -515,13 +515,21 @@ export function drawBottomInfo(ctx: SKRSContext2D, card: CardData, cw: number, c
   ctx.restore();
 }
 
+const HYBRID_SCALE = 1.2;
+function isHybridSymbol(sym: string): boolean { return sym.includes('/'); }
+
 export function measureManaCostWidth(manaStr: string, ch: number, manaSize: number): number {
   const symbols = parseManaString(manaStr);
   if (symbols.length === 0) return 0;
   const textSize = manaSize * ch;
-  const symbolSize = textSize * 0.78;
+  const baseSize = textSize * 0.78;
   const spacing = textSize * 0.04;
-  return symbols.length * symbolSize + symbols.length * spacing * 2;
+  let total = 0;
+  for (const sym of symbols) {
+    const size = isHybridSymbol(sym) ? baseSize * HYBRID_SCALE : baseSize;
+    total += size + spacing * 2;
+  }
+  return total;
 }
 
 export async function drawManaCost(
@@ -533,9 +541,9 @@ export async function drawManaCost(
   if (symbols.length === 0) return;
 
   const textSize = manaLayout.size * ch;
-  const symbolSize = textSize * 0.78;
+  const baseSize = textSize * 0.78;
   const spacing = textSize * 0.04;
-  const totalWidth = symbols.length * symbolSize + symbols.length * spacing * 2;
+  const totalWidth = measureManaCostWidth(manaStr, ch, manaLayout.size);
   const rightX = manaLayout.w * cw;
   const textY = manaLayout.y * ch;
   const symbolCenterY = textY + textSize * 0.32;
@@ -548,11 +556,12 @@ export async function drawManaCost(
 
   let x = rightX - totalWidth;
   for (const sym of symbols) {
+    const size = isHybridSymbol(sym) ? baseSize * HYBRID_SCALE : baseSize;
     const img = await loadManaSymbol(sym);
     if (img) {
-      ctx.drawImage(img, x + spacing, symbolCenterY - symbolSize / 2, symbolSize, symbolSize);
+      ctx.drawImage(img, x + spacing, symbolCenterY - size / 2, size, size);
     }
-    x += symbolSize + spacing * 2;
+    x += size + spacing * 2;
   }
   ctx.restore();
 }

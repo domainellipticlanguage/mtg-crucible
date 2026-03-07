@@ -74,8 +74,11 @@ export function tokenize(text: string, initialItalic = false): RichToken[] {
   return result;
 }
 
+const HYBRID_SCALE = 1.2;
+function isHybridSymbol(sym: string): boolean { return sym.includes('/'); }
+
 export function measureTokenWidth(ctx: SKRSContext2D, tokens: RichToken[], textSize: number): number {
-  const symbolSize = textSize * 0.78;
+  const baseSymbolSize = textSize * 0.78;
   const spacing = textSize * 0.06;
   let width = 0;
   const origFont = ctx.font;
@@ -87,7 +90,8 @@ export function measureTokenWidth(ctx: SKRSContext2D, tokens: RichToken[], textS
       width += ctx.measureText(token.value).width;
       if (token.italic && !origFont.includes('Italic')) ctx.font = origFont;
     } else {
-      width += symbolSize + spacing;
+      const symSize = isHybridSymbol(token.value) ? baseSymbolSize * HYBRID_SCALE : baseSymbolSize;
+      width += symSize + spacing;
     }
   }
   return width;
@@ -99,7 +103,7 @@ export function measureRichText(ctx: SKRSContext2D, text: string, textSize: numb
 
 export function drawRichLine(ctx: SKRSContext2D, text: string, x: number, baselineY: number, textSize: number, strokeWidth = 0.4, initialItalic = false): void {
   const tokens = tokenize(text, initialItalic);
-  const symbolSize = textSize * 0.78;
+  const baseSymbolSize = textSize * 0.78;
   const spacing = textSize * 0.03;
   const origFont = ctx.font;
   const isBaseItalic = origFont.includes('Italic');
@@ -111,12 +115,13 @@ export function drawRichLine(ctx: SKRSContext2D, text: string, x: number, baseli
       curX += ctx.measureText(token.value).width;
       if (token.italic && !isBaseItalic) ctx.font = origFont;
     } else {
+      const symSize = isHybridSymbol(token.value) ? baseSymbolSize * HYBRID_SCALE : baseSymbolSize;
       const img = getManaSymbolSync(token.value);
       if (img) {
-        const symbolY = baselineY - symbolSize * 0.85;
-        ctx.drawImage(img, curX + spacing, symbolY, symbolSize, symbolSize);
+        const symbolY = baselineY - symSize * 0.85;
+        ctx.drawImage(img, curX + spacing, symbolY, symSize, symSize);
       }
-      curX += symbolSize + spacing * 2;
+      curX += symSize + spacing * 2;
     }
   }
 }

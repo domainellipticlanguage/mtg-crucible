@@ -404,6 +404,24 @@ async function main() {
     } },
   });
 
+  // 30. All mana symbols
+  await render('mana-symbols', {
+    name: 'Mana Symbol Test', manaCost: '{W}{U}{B}{R}{G}{W/U}{B/R}{G/W}',
+    types: ['sorcery'],
+    abilities: 'Regular: {W}{U}{B}{R}{G}{C}{S}{X}\nGeneric: {0}{1}{2}{3}{4}{5}{6}{7}{8}{9}{10}\nAllied hybrid: {W/U}{U/B}{B/R}{R/G}{G/W}\nEnemy hybrid: {W/B}{U/R}{B/G}{R/W}{G/U}\nPhyrexian: {W/P}{U/P}{B/P}{R/P}{G/P}\nPhyrexian hybrid allied: {W/U/P}{U/B/P}{B/R/P}{R/G/P}{G/W/P}\nPhyrexian hybrid enemy: {W/B/P}{U/R/P}{B/G/P}{R/W/P}{G/U/P}\nColorless hybrid: {C/W}{C/U}{C/B}{C/R}{C/G}\nTwobrid: {2/W}{2/U}{2/B}{2/R}{2/G}',
+    frameColor: 'multicolor', rarity: 'rare',
+  });
+
+  // 31. Colorless hybrid mana (Eldrazi devoid)
+  await render('ulalek-fused-atrocity', {
+    name: 'Ulalek, Fused Atrocity', manaCost: '{C/W}{C/U}{C/B}{C/R}{C/G}',
+    supertypes: ['legendary'], types: ['creature'], subtypes: ['Eldrazi'],
+    abilities: 'Devoid (This card has no color.)\nWhenever you cast an Eldrazi spell, you may pay {C}{C}. If you do, copy all spells you control, then copy all other activated and triggered abilities you control. You may choose new targets for the copies. (Mana abilities can\'t be copied.)',
+    power: '2', toughness: '5', frameColor: 'artifact', rarity: 'mythic',
+    artist: 'Alex Konstad', collectorNumber: '4',
+    artUrl: 'https://cards.scryfall.io/art_crop/front/f/d/fdad1b0e-d3cc-4d76-ae7e-fee12558cf2c.jpg?1735676761',
+  });
+
   console.log(`\nDone! ${idx} cards total, rendered to ${OUT}`);
 }
 
