@@ -483,7 +483,7 @@ export async function drawSetSymbol(
   layout: { x: number; y: number; w: number; h: number },
   ch: number, cw: number,
 ): Promise<number> {
-  const setSymPath = path.join(ASSETS_DIR, 'symbols', `set-${rarity}.svg`);
+  const setSymPath = path.join(ASSETS_DIR, 'symbols', 'set', `set-${rarity}.svg`);
   if (!fs.existsSync(setSymPath)) return 0;
   const setImg = await loadImage(setSymPath);
   const sh = layout.h * ch;
