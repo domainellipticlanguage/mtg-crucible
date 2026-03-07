@@ -387,7 +387,8 @@ async function main() {
     startingLoyalty: '4',
     abilities: { 
       unstructuredAbilities: [
-        'Nicol Bolas, Dragon-God has all loyalty abilities of all other planeswalkers on the battlefield.'
+        'Flying, Lifelink, Trample, Haste\ncool stuff',
+        // 'Nicol Bolas, Dragon-God has all loyalty abilities of all other planeswalkers on the battlefield.'
       ],
       structuredAbilities: {
       kind: 'planeswalker',
