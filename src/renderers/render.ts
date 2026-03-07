@@ -1,10 +1,10 @@
 import { createCanvas, loadImage, type SKRSContext2D } from '@napi-rs/canvas';
 import * as fs from 'fs';
 import * as path from 'path';
-import type { CardData, ParsedAbilities } from '../types';
+import type { CardData, ParsedAbilities, PlaneswalkerAbilities } from '../types';
 import {
   STD_W, STD_H, STD_LAYOUT,
-  PW_W, PW_H, PW_LAYOUT,
+  PW_W, PW_H, PW_LAYOUT, PW_TALL_LAYOUT,
   SAGA_LAYOUT,
   BTL_W, BTL_H, BTL_LAYOUT,
   CLASS_LAYOUT,
@@ -38,11 +38,12 @@ interface TemplateConfig {
 }
 
 const TEMPLATES: Record<string, TemplateConfig> = {
-  standard:     { layout: STD_LAYOUT, w: STD_W, h: STD_H, frame: 'standard' },
-  planeswalker: { layout: PW_LAYOUT, w: PW_W, h: PW_H, frame: 'planeswalker', hooks: planeswalkerHooks },
-  saga:         { layout: SAGA_LAYOUT, w: PW_W, h: PW_H, frame: 'saga', hooks: sagaHooks },
-  class:        { layout: CLASS_LAYOUT, w: PW_W, h: PW_H, frame: 'class', hooks: classHooks },
-  battle:       { layout: BTL_LAYOUT, w: BTL_W, h: BTL_H, frame: 'battle', hooks: battleHooks },
+  standard:           { layout: STD_LAYOUT, w: STD_W, h: STD_H, frame: 'standard' },
+  planeswalker:       { layout: PW_LAYOUT, w: PW_W, h: PW_H, frame: 'planeswalker', hooks: planeswalkerHooks },
+  'planeswalker_tall': { layout: PW_TALL_LAYOUT, w: PW_W, h: PW_H, frame: 'planeswalker_tall', hooks: planeswalkerHooks },
+  saga:               { layout: SAGA_LAYOUT, w: PW_W, h: PW_H, frame: 'saga', hooks: sagaHooks },
+  class:              { layout: CLASS_LAYOUT, w: PW_W, h: PW_H, frame: 'class', hooks: classHooks },
+  battle:             { layout: BTL_LAYOUT, w: BTL_W, h: BTL_H, frame: 'battle', hooks: battleHooks },
 };
 
 /** Extract ParsedAbilities from card, handling string | ParsedAbilities | undefined. */
@@ -53,7 +54,10 @@ export function getParsedAbilities(card: CardData): ParsedAbilities {
 
 export function resolveTemplate(card: CardData): string {
   const pa = getParsedAbilities(card);
-  if (pa.structuredAbilities?.kind === 'planeswalker') return 'planeswalker';
+  if (pa.structuredAbilities?.kind === 'planeswalker') {
+    const pw = pa.structuredAbilities as PlaneswalkerAbilities;
+    return pw.loyaltyAbilities.length >= 4 ? 'planeswalker_tall' : 'planeswalker';
+  }
   if (pa.structuredAbilities?.kind === 'saga') return 'saga';
   if (pa.structuredAbilities?.kind === 'class') return 'class';
   if (card.battleDefense) return 'battle';
@@ -87,7 +91,7 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
   await drawFrame(ctx, frame, card.frameColor, card.accentColor, cw, ch);
 
   // Legend crown (planeswalkers use their own frame treatment)
-  if (L.crown && card.supertypes?.includes('legendary') && templateKey !== 'planeswalker') {
+  if (L.crown && card.supertypes?.includes('legendary') && !templateKey.startsWith('planeswalker')) {
     const crownPath = path.join(ASSETS_DIR, 'crowns', `${crownCodes[0]}.png`);
     if (fs.existsSync(crownPath)) {
       ctx.fillStyle = 'black';

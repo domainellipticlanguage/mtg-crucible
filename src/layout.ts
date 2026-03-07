@@ -38,7 +38,7 @@ export const PW_LAYOUT = {
   name:      { x: 0.0867, y: 0.0372, w: 0.8267, h: 0.0548, size: 0.0381, font: 'Beleren Bold' },
   mana:      { y: 0.0481, w: 0.9292, size: 71/1638, shadowX: -0.001, shadowY: 0.0029 },
   type:      { x: 0.0867, y: 0.5625, w: 0.8267, h: 0.0548, size: 0.0324, font: 'Beleren Bold' },
-  ability:   { x: 0.18, y: 0.6239, w: 0.7467, h: 0.0972, size: 0.0353, font: 'MPlantin' },
+  ability:   { x: 0.18, y: 0.6239, w: 0.7467, h: 0.0972, size: 0.0284, font: 'MPlantin' },
   loyalty:   { x: 0.806, y: 0.902, w: 0.14, h: 0.0372, size: 0.0372, font: 'Beleren Bold SmCaps' },
   abilityIconY: {
     1: [0.7467],
@@ -55,6 +55,31 @@ export const PW_LAYOUT = {
   totalAbilityH: 0.2916,
   crown:     { x: 44/2010, y: 53/2814, w: 1922/2010, h: 493/2814 },
   setSymbol: { x: 0.9227, y: 0.5899, w: 0.12, h: 0.0700 },
+};
+
+// Planeswalker Tall layout (packPlaneswalkerTall.js)
+export const PW_TALL_LAYOUT = {
+  art:       { x: 0.0767, y: 0.05, w: 0.8476, h: 0.7966 },
+  name:      { x: 0.0867, y: 0.0372, w: 0.8267, h: 0.0548, size: 0.0381, font: 'Beleren Bold' },
+  mana:      { y: 0.0481, w: 0.9292, size: 71/1638, shadowX: -0.001, shadowY: 0.0029 },
+  type:      { x: 0.0867, y: 0.4967, w: 0.8267, h: 0.0548, size: 0.0324, font: 'Beleren Bold' },
+  ability:   { x: 0.18, y: 0.5581, w: 0.7467, h: 0.0896, size: 0.0260, font: 'MPlantin' },
+  loyalty:   { x: 0.806, y: 0.902, w: 0.14, h: 0.0372, size: 0.0372, font: 'Beleren Bold SmCaps' },
+  abilityIconY: {
+    1: [0.72],
+    2: [0.6391, 0.801],
+    3: [0.5986, 0.72, 0.8415],
+    4: [0.5986, 0.6796, 0.7605, 0.8415],
+  } as Record<number, number[]>,
+  plusIcon:    { x: 0.0294, yOff: -0.0258, w: 0.14, h: 0.0724 },
+  minusIcon:  { x: 0.028, yOff: -0.0153, w: 0.1414, h: 0.0705 },
+  neutralIcon:{ x: 0.028, yOff: -0.0153, w: 0.1414, h: 0.061 },
+  iconTextX:  0.1027,
+  iconTextSize: 0.0286,
+  abilityBox: { x: 0.1167, w: 0.8094 },
+  totalAbilityH: 0.3574,
+  crown:     { x: 44/2010, y: 53/2814, w: 1922/2010, h: 493/2814 },
+  setSymbol: { x: 0.9227, y: 0.5234, w: 0.12, h: 0.0700 },
 };
 
 // Saga layout (packSagaRegular.js)
