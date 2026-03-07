@@ -113,12 +113,48 @@ async function drawGradientFrames(
  *   1. Draw the accent color frame(s) (the visible inner color, possibly gradient)
  *   2. Overlay the base frame's border using the frame mask (e.g. land rocky border)
  */
+/**
+ * Derive the color code for title/type bars from mana cost and color indicator.
+ * Hybrid-only mana = colorless, unless mixed with non-hybrid colors.
+ */
+export function deriveTitleColorCode(manaCost: string | undefined, colorIndicator: CardData['colorIndicator']): string {
+  const WUBRG = ['W', 'U', 'B', 'R', 'G'];
+  const nonHybrid = new Set<string>();
+  const hybrid = new Set<string>();
+  const symbols = manaCost?.match(/\{([^}]+)\}/g) || [];
+  for (const sym of symbols) {
+    const inner = sym.slice(1, -1).toUpperCase();
+    const isHybrid = inner.includes('/');
+    for (const c of WUBRG) {
+      if (inner.includes(c)) {
+        if (isHybrid) hybrid.add(c); else nonHybrid.add(c);
+      }
+    }
+  }
+  // Hybrid colors only count when mixed with non-hybrid
+  const colors = nonHybrid.size > 0
+    ? new Set([...nonHybrid, ...hybrid])
+    : new Set<string>();
+  // Fall back to color indicator
+  if (colors.size === 0 && colorIndicator) {
+    const COLOR_MAP: Record<string, string> = { white: 'W', blue: 'U', black: 'B', red: 'R', green: 'G' };
+    for (const c of colorIndicator) { if (COLOR_MAP[c]) colors.add(COLOR_MAP[c]); }
+  }
+  if (colors.size === 0) return 'a';
+  if (colors.size === 1) {
+    const MANA_TO_FRAME: Record<string, string> = { W: 'w', U: 'u', B: 'b', R: 'r', G: 'g' };
+    return MANA_TO_FRAME[[...colors][0]];
+  }
+  return 'm';
+}
+
 export async function drawFrame(
   ctx: SKRSContext2D,
   template: string,
   frameColor: CardData['frameColor'],
   accentColor: CardData['accentColor'],
   cw: number, ch: number,
+  titleColorCode?: string,
 ): Promise<void> {
   const frameCodes = normalizeFrameColors(frameColor);
   const accentCodes = normalizeAccentColors(accentColor);
@@ -127,17 +163,31 @@ export async function drawFrame(
     // Draw base frame fully (gold/artifact/land fills name box, type box, PT, etc.)
     await drawGradientFrames(ctx, template, frameCodes, cw, ch);
 
-    // Overlay accent colors on pinlines
-    const pinlinePath = path.join(ASSETS_DIR, 'masks', `${template}-pinline-textbox.png`);
-    if (fs.existsSync(pinlinePath)) {
+    // Pre-render accent frame for pinline/rules regions
+    const accentCanvas = createCanvas(cw, ch);
+    const accentCtx = accentCanvas.getContext('2d');
+    await drawGradientFrames(accentCtx, template, accentCodes, cw, ch);
+
+    // Pre-render title color frame (card's actual color for title/type bars)
+    let titleCanvas = accentCanvas;
+    if (titleColorCode && titleColorCode !== accentCodes[0]) {
+      titleCanvas = createCanvas(cw, ch);
+      const titleCtx = titleCanvas.getContext('2d');
+      await drawGradientFrames(titleCtx, template, [titleColorCode], cw, ch);
+    }
+
+    // Overlay through each available mask region
+    const titleMasks = ['title', 'type'];
+    const accentMasks = ['pinline', 'rules', 'pinline-textbox'];
+    for (const maskName of [...titleMasks, ...accentMasks]) {
+      const maskPath = path.join(ASSETS_DIR, 'masks', `${template}-${maskName}.png`);
+      if (!fs.existsSync(maskPath)) continue;
+      const source = titleMasks.includes(maskName) ? titleCanvas : accentCanvas;
       const offscreen = createCanvas(cw, ch);
       const offCtx = offscreen.getContext('2d');
-      offCtx.drawImage(await loadImage(pinlinePath), 0, 0, cw, ch);
+      offCtx.drawImage(await loadImage(maskPath), 0, 0, cw, ch);
       offCtx.globalCompositeOperation = 'source-in';
-      const accentOffscreen = createCanvas(cw, ch);
-      const accentCtx = accentOffscreen.getContext('2d');
-      await drawGradientFrames(accentCtx, template, accentCodes, cw, ch);
-      offCtx.drawImage(accentOffscreen, 0, 0);
+      offCtx.drawImage(source, 0, 0);
       ctx.drawImage(offscreen, 0, 0);
     }
 

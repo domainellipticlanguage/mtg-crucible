@@ -13,7 +13,7 @@ import {
 import {
   drawArt, drawCorners, drawSetSymbol, drawBottomInfo, drawManaCost, measureManaCostWidth,
   getTypeLine, primaryFrameColorCode, normalizeFrameColors, normalizeAccentColors,
-  drawColorIndicator, drawFrame, drawGradientCrowns,
+  drawColorIndicator, drawFrame, drawGradientCrowns, deriveTitleColorCode,
 } from '../helpers';
 import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor, type ExclusionRect } from '../text';
 import { planeswalkerHooks } from './planeswalker';
@@ -89,7 +89,8 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
   if (hooks?.preFrame) await hooks.preFrame(ctx, card, L, cw, ch);
 
   // Frame
-  await drawFrame(ctx, frame, card.frameColor, card.accentColor, cw, ch);
+  const titleColor = deriveTitleColorCode(card.manaCost, card.colorIndicator);
+  await drawFrame(ctx, frame, card.frameColor, card.accentColor, cw, ch, titleColor);
 
   // Legend crown (planeswalkers use their own frame treatment)
   if (L.crown && card.supertypes?.includes('legendary') && !templateKey.startsWith('planeswalker')) {
@@ -103,14 +104,9 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
     }
   }
 
-  // P/T box image: dual-frame → multicolor, land/artifact with accent → accent color, else frame color
+  // P/T box image: match title/type bar color
   if (L.ptBox && card.power !== undefined && card.toughness !== undefined) {
-    let ptColor = fc;
-    if (normalizeFrameColors(card.frameColor).length > 1) {
-      ptColor = 'm';
-    } else if (card.accentColor && (fc === 'l' || fc === 'a')) {
-      ptColor = primaryFrameColorCode(card.accentColor);
-    }
+    const ptColor = titleColor;
     const ptPath = path.join(ASSETS_DIR, 'pt', `${ptColor}.png`);
     if (fs.existsSync(ptPath)) {
       ctx.drawImage(await loadImage(ptPath), L.ptBox.x * cw, L.ptBox.y * ch, L.ptBox.w * cw, L.ptBox.h * ch);
