@@ -7,16 +7,16 @@ import { ASSETS_DIR } from './layout';
 
 const FRAME_COLOR_CODES: Record<FrameColor, string> = {
   white: 'w', blue: 'u', black: 'b', red: 'r', green: 'g',
-  multicolor: 'm', artifact: 'a', vehicle: 'v', land: 'l',
+  colorless: 'c', multicolor: 'm', artifact: 'a', vehicle: 'v', land: 'l',
 };
 
 export function frameColorCode(fc: FrameColor | undefined): string {
-  return fc ? FRAME_COLOR_CODES[fc] ?? 'a' : 'a';
+  return fc ? FRAME_COLOR_CODES[fc] ?? 'c' : 'c';
 }
 
 /** Normalize frameColor (scalar or array) to an array of color codes. */
 export function normalizeFrameColors(fc: CardData['frameColor']): string[] {
-  if (!fc) return ['a'];
+  if (!fc) return ['c'];
   if (Array.isArray(fc)) return fc.map(c => frameColorCode(c));
   return [frameColorCode(fc)];
 }
@@ -30,7 +30,7 @@ export function normalizeAccentColors(ac: CardData['accentColor']): string[] | u
 
 /** Return the first frame color code (for single-value contexts like P/T). */
 export function primaryFrameColorCode(fc: CardData['frameColor']): string {
-  if (!fc) return 'a';
+  if (!fc) return 'c';
   if (Array.isArray(fc)) return frameColorCode(fc[0]);
   return frameColorCode(fc);
 }

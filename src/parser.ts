@@ -195,7 +195,7 @@ export function deriveFrameColor(card: Pick<CardData, 'subtypes' | 'types' | 'ma
   }
 
   // 4. Normal cards
-  if (colors.size === 0) return { frameColor: 'artifact' };
+  if (colors.size === 0) return { frameColor: 'colorless' };
   if (colors.size === 1) return { frameColor: MANA_COLOR_MAP[[...colors][0]] };
   if (isDualFrame) return { frameColor: twoColors!, accentColor: twoColors };
   if (twoColors) return { frameColor: 'multicolor', accentColor: twoColors };

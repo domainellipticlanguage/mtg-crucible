@@ -4,7 +4,7 @@ export type CardTemplate = 'normal' | 'planeswalker' | 'saga' | 'battle' | 'clas
 
 export type Color = 'white' | 'blue' | 'black' | 'red' | 'green';
 export type AccentColor = Color | 'multicolor';
-export type FrameColor = Color | 'artifact' | 'multicolor' | 'vehicle' | 'land';
+export type FrameColor = Color | 'colorless' | 'artifact' | 'multicolor' | 'vehicle' | 'land';
 export type Supertype = 'legendary' | 'basic' | 'snow' | 'world';
 export type Type = 'creature' | 'instant' | 'sorcery' | 'enchantment' | 'artifact' | 'planeswalker' | 'land' | 'battle';
 // Too many to list. All creatures. All land types. Shrine, Saga, etc.
