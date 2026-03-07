@@ -253,11 +253,11 @@ npm run spike     # render test cards to output/
     - but normalize it to the correct order. Similar for phyrexian mana
 - Update Flavortext parsing
 - Multicolored artifact
+- Urza's Saga - just straight up broken
 - Shrewed Hatchling - P/T box wrong color
 - Drayad Arbor - no P/T box. name and type box are wrong color
-- An Unearthly Child - where does that little golden bit come from?
-- Urza's Saga - just straight up broken
 
+- An Unearthly Child - where does that little golden bit come from?
 - Ability to override text size??
 
 - Parsing - should the unstructured PW ability use the PW ability template with '' cost?

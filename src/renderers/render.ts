@@ -103,9 +103,15 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
     }
   }
 
-  // P/T box image
+  // P/T box image: dual-frame → multicolor, land/artifact with accent → accent color, else frame color
   if (L.ptBox && card.power !== undefined && card.toughness !== undefined) {
-    const ptPath = path.join(ASSETS_DIR, 'pt', `${fc}.png`);
+    let ptColor = fc;
+    if (normalizeFrameColors(card.frameColor).length > 1) {
+      ptColor = 'm';
+    } else if (card.accentColor && (fc === 'l' || fc === 'a')) {
+      ptColor = primaryFrameColorCode(card.accentColor);
+    }
+    const ptPath = path.join(ASSETS_DIR, 'pt', `${ptColor}.png`);
     if (fs.existsSync(ptPath)) {
       ctx.drawImage(await loadImage(ptPath), L.ptBox.x * cw, L.ptBox.y * ch, L.ptBox.w * cw, L.ptBox.h * ch);
     }
