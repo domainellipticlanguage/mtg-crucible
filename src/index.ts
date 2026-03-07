@@ -1,17 +1,17 @@
 import type { CardData, ParsedAbilities, RenderedCard } from './types';
 import { ensureInitialized } from './helpers';
-import { renderCardImage, resolveTemplate } from './renderers/render';
-import { parseCard, parseAbilities, formatAbilities, formatCard, toScryfallJson, toScryfallText, computeRotations, deriveFrameColor } from './parser';
+import { renderCardImage } from './renderers/render';
+import { parseCard, parseAbilities, formatAbilities, formatCard, toScryfallJson, toScryfallText, computeRotations, deriveFrameColor, resolveTemplate, getArtDimensions } from './parser';
 import { deriveTitleColor } from './helpers';
 
 export type {
-  Rarity, CardTemplate, Color, AccentColor, FrameColor, Supertype, Type, Subtype, LinkType,
+  Rarity, CardTemplate, TemplateName, Color, AccentColor, FrameColor, Supertype, Type, Subtype, LinkType,
   PlaneswalkerAbilities, SagaAbilities, ClassAbilities, LevelerAbilities, CaseAbilities, PrototypeAbilities,
   StructuredAbilities, ParsedAbilities,
   CardData, Rotation, RenderedCard,
 } from './types';
 export { renderCardImage } from './renderers/render';
-export { parseCard, parseAbilities, formatAbilities, formatCard, toScryfallJson, toScryfallText, computeRotations } from './parser';
+export { parseCard, parseAbilities, formatAbilities, formatCard, toScryfallJson, toScryfallText, computeRotations, resolveTemplate, getArtDimensions } from './parser';
 
 // Backwards-compatible individual renderer exports
 export const renderStandard = (card: CardData) => renderCardImage(card, 'standard');

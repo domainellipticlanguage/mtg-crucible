@@ -1,7 +1,7 @@
 import { createCanvas, loadImage, type SKRSContext2D } from '@napi-rs/canvas';
 import * as fs from 'fs';
 import * as path from 'path';
-import type { CardData, ParsedAbilities, PlaneswalkerAbilities } from '../types';
+import type { CardData, ParsedAbilities, PlaneswalkerAbilities, TemplateName } from '../types';
 import {
   STD_W, STD_H, STD_LAYOUT,
   PW_W, PW_H, PW_LAYOUT, PW_TALL_LAYOUT,
@@ -10,6 +10,8 @@ import {
   CLASS_LAYOUT,
   ASSETS_DIR,
 } from '../layout';
+import { getParsedAbilities, resolveTemplate } from '../parser';
+
 import {
   drawArt, drawCorners, drawSetSymbol, drawBottomInfo, drawManaCost, measureManaCostWidth,
   getTypeLine, primaryFrameColorCode, normalizeFrameColors, normalizeAccentColors,
@@ -45,25 +47,6 @@ const TEMPLATES: Record<string, TemplateConfig> = {
   class:              { layout: CLASS_LAYOUT, w: PW_W, h: PW_H, frame: 'class', hooks: classHooks },
   battle:             { layout: BTL_LAYOUT, w: BTL_W, h: BTL_H, frame: 'battle', hooks: battleHooks },
 };
-
-/** Extract ParsedAbilities from card, handling string | ParsedAbilities | undefined. */
-export function getParsedAbilities(card: CardData): ParsedAbilities {
-  if (card.abilities && typeof card.abilities === 'object') return card.abilities;
-  return {};
-}
-
-export function resolveTemplate(card: CardData): string {
-  const pa = getParsedAbilities(card);
-  if (pa.structuredAbilities?.kind === 'planeswalker') {
-    const pw = pa.structuredAbilities as PlaneswalkerAbilities;
-    const totalAbilities = (pa.unstructuredAbilities?.length ?? 0) + pw.loyaltyAbilities.length;
-    return totalAbilities >= 4 ? 'planeswalker_tall' : 'planeswalker';
-  }
-  if (pa.structuredAbilities?.kind === 'saga') return 'saga';
-  if (pa.structuredAbilities?.kind === 'class') return 'class';
-  if (card.battleDefense) return 'battle';
-  return 'standard';
-}
 
 export async function renderCardImage(card: CardData, templateOverride?: string): Promise<Buffer> {
   const templateKey = templateOverride ?? resolveTemplate(card);

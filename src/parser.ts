@@ -1,4 +1,11 @@
-import type { CardData, AccentColor, Color, FrameColor, Rarity, Rotation, Supertype, Type, ParsedAbilities, StructuredAbilities } from './types';
+import type { CardData, AccentColor, Color, FrameColor, Rarity, Rotation, Supertype, Type, ParsedAbilities, PlaneswalkerAbilities, StructuredAbilities, TemplateName } from './types';
+import {
+  STD_W, STD_H, STD_LAYOUT,
+  PW_W, PW_H, PW_LAYOUT, PW_TALL_LAYOUT,
+  SAGA_LAYOUT,
+  BTL_W, BTL_H, BTL_LAYOUT,
+  CLASS_LAYOUT,
+} from './layout';
 
 const MANA_COST_REGEX = /^(.+?)\s+((?:\{[^}]+\})+)$/;
 const ART_REGEX = /^Art:\s*(https?:\/\/\S+)$/i;
@@ -851,6 +858,44 @@ export function toScryfallText(card: CardData): string {
 }
 
 /** Compute rotation steps for card face presentation */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const TEMPLATE_CONFIGS: Record<TemplateName, { layout: Record<string, any>; w: number; h: number }> = {
+  standard:           { layout: STD_LAYOUT, w: STD_W, h: STD_H },
+  planeswalker:       { layout: PW_LAYOUT, w: PW_W, h: PW_H },
+  planeswalker_tall:  { layout: PW_TALL_LAYOUT, w: PW_W, h: PW_H },
+  saga:               { layout: SAGA_LAYOUT, w: PW_W, h: PW_H },
+  class:              { layout: CLASS_LAYOUT, w: PW_W, h: PW_H },
+  battle:             { layout: BTL_LAYOUT, w: BTL_W, h: BTL_H },
+};
+
+export function getParsedAbilities(card: CardData): ParsedAbilities {
+  if (card.abilities && typeof card.abilities === 'object') return card.abilities;
+  return {};
+}
+
+export function resolveTemplate(card: CardData): TemplateName {
+  const pa = getParsedAbilities(card);
+  if (pa.structuredAbilities?.kind === 'planeswalker') {
+    const pw = pa.structuredAbilities as PlaneswalkerAbilities;
+    const totalAbilities = (pa.unstructuredAbilities?.length ?? 0) + pw.loyaltyAbilities.length;
+    return totalAbilities >= 4 ? 'planeswalker_tall' : 'planeswalker';
+  }
+  if (pa.structuredAbilities?.kind === 'saga') return 'saga';
+  if (pa.structuredAbilities?.kind === 'class') return 'class';
+  if (card.battleDefense) return 'battle';
+  return 'standard';
+}
+
+export function getArtDimensions(card: CardData, templateOverride?: TemplateName): { width: number; height: number } {
+  const templateKey = templateOverride ?? resolveTemplate(card);
+  const config = TEMPLATE_CONFIGS[templateKey] ?? TEMPLATE_CONFIGS.standard;
+  const { layout: L, w: cw, h: ch } = config;
+  return {
+    width: Math.round(L.art.w * cw),
+    height: Math.round(L.art.h * ch),
+  };
+}
+
 export function computeRotations(card: CardData): Rotation[] {
   const identity: Rotation = { x: 0, y: 0, z: 0 };
 

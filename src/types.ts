@@ -2,6 +2,8 @@ export type Rarity = 'common' | 'uncommon' | 'rare' | 'mythic';
 
 export type CardTemplate = 'normal' | 'planeswalker' | 'saga' | 'battle' | 'class' | 'saga_creature';
 
+export type TemplateName = 'standard' | 'planeswalker' | 'planeswalker_tall' | 'saga' | 'class' | 'battle';
+
 export type Color = 'white' | 'blue' | 'black' | 'red' | 'green';
 // TODO unify these types in a usage agnostic way.
 export type AccentColor = Color | 'colorless' | 'artifact' | 'multicolor' | 'vehicle' | 'land';

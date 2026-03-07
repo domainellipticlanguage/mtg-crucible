@@ -3,7 +3,7 @@ import * as path from 'path';
 import type { CardData, SagaAbilities } from '../types';
 import { ASSETS_DIR } from '../layout';
 import { drawWrappedText, fillTextHeavy, wrapParagraphs, computeHeight } from '../text';
-import { getParsedAbilities } from './render';
+import { getParsedAbilities } from '../parser';
 
 function romanNumeral(n: number): string {
   return [

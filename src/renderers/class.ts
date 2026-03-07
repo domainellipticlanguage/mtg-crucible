@@ -4,7 +4,7 @@ import * as path from 'path';
 import type { CardData, ClassAbilities } from '../types';
 import { ASSETS_DIR, FONT_HEIGHT_RATIO } from '../layout';
 import { drawWrappedText, drawRichLine, wrapParagraphs, computeHeight } from '../text';
-import { getParsedAbilities } from './render';
+import { getParsedAbilities } from '../parser';
 
 /** Measure how tall text would be at a given size without drawing. */
 function measureTextHeight(

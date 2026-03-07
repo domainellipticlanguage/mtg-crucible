@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { CardData, PlaneswalkerAbilities } from '../types';
 import { ASSETS_DIR } from '../layout';
-import { getParsedAbilities } from './render';
+import { getParsedAbilities } from '../parser';
 
 /** Combine unstructured abilities (as cost-less entries) with loyalty abilities. */
 function getAllAbilities(card: CardData): { cost: string; text: string }[] {
