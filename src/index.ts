@@ -2,6 +2,7 @@ import type { CardData, ParsedAbilities, RenderedCard } from './types';
 import { ensureInitialized } from './helpers';
 import { renderCardImage, resolveTemplate } from './renderers/render';
 import { parseCard, parseAbilities, formatAbilities, formatCard, toScryfallJson, toScryfallText, computeRotations, deriveFrameColor } from './parser';
+import { deriveTitleColor } from './helpers';
 
 export type {
   Rarity, CardTemplate, Color, AccentColor, FrameColor, Supertype, Type, Subtype, LinkType,
@@ -45,12 +46,16 @@ export function normalizeCard(card: CardData): CardData {
     abilitiesText,
   });
 
+  const titleColor = card.nameLineColor ?? card.typeLineColor ?? deriveTitleColor(card.manaCost, card.colorIndicator);
+
   return {
     ...card,
     name: card.name ?? '',
     rarity: card.rarity ?? 'rare',
     frameColor: card.frameColor ?? derived?.frameColor,
     accentColor: card.accentColor ?? derived?.accentColor,
+    nameLineColor: card.nameLineColor ?? titleColor,
+    typeLineColor: card.typeLineColor ?? titleColor,
     collectorNumber: card.collectorNumber ?? '000',
     setCode: card.setCode ?? 'CRU',
     abilities,

@@ -422,6 +422,21 @@ async function main() {
     artUrl: 'https://cards.scryfall.io/art_crop/front/f/d/fdad1b0e-d3cc-4d76-ae7e-fee12558cf2c.jpg?1735676761',
   });
 
+  // 32. All 5 colors for nameLineColor and typeLineColor
+  await render('warrior-of-wooburg', {
+    name: 'Warrior of Wooburg', manaCost: '{W}{U}{B}{R}{G}',
+    supertypes: ['legendary'], types: ['creature'], subtypes: ['Human', 'Warrior'],
+    abilities: 'Flying, first strike, deathtouch, haste, trample\nWhenever Warrior of Wooburg attacks, draw a card for each color among permanents you control.',
+    power: '5', toughness: '5',
+    rarity: 'mythic',
+    nameLineColor: ['white', 'blue', 'black', 'red', 'green'],
+    typeLineColor: ['white', 'blue', 'black', 'red', 'green'],
+
+    // frameColor: ['white', 'blue', 'black', 'red', 'green'],
+    // accentColor: ['white', 'blue', 'black', 'red', 'green'],
+    flavorText: '"I am become Wooburg, destroyer of worlds."',
+  });
+
   console.log(`\nDone! ${idx} cards total, rendered to ${OUT}`);
 }
 

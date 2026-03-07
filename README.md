@@ -273,6 +273,9 @@ npm run spike     # render test cards to output/
 # TODO
 - test with LTS
 - Add {S} symbol
+- Should we expose the name and type line colors? Yeah might as well.
+
+- Expose function to Derive the art boundaries.
 
 ## Future Features And Blockers
 - Pass in FrameModifier / FrameVariant / FrameStyle

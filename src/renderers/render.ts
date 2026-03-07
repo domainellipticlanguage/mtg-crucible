@@ -13,7 +13,7 @@ import {
 import {
   drawArt, drawCorners, drawSetSymbol, drawBottomInfo, drawManaCost, measureManaCostWidth,
   getTypeLine, primaryFrameColorCode, normalizeFrameColors, normalizeAccentColors,
-  drawColorIndicator, drawFrame, drawGradientCrowns, deriveTitleColorCode,
+  drawColorIndicator, drawFrame, drawGradientCrowns,
 } from '../helpers';
 import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor, type ExclusionRect } from '../text';
 import { planeswalkerHooks } from './planeswalker';
@@ -89,8 +89,9 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
   if (hooks?.preFrame) await hooks.preFrame(ctx, card, L, cw, ch);
 
   // Frame
-  const titleColor = deriveTitleColorCode(card.manaCost, card.colorIndicator);
-  await drawFrame(ctx, frame, card.frameColor, card.accentColor, cw, ch, titleColor);
+  const nameLineCodes = normalizeFrameColors(card.nameLineColor);
+  const typeLineCodes = normalizeFrameColors(card.typeLineColor);
+  await drawFrame(ctx, frame, card.frameColor, card.accentColor, cw, ch, nameLineCodes, typeLineCodes);
 
   // Legend crown (planeswalkers use their own frame treatment)
   if (L.crown && card.supertypes?.includes('legendary') && !templateKey.startsWith('planeswalker')) {
@@ -104,9 +105,9 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
     }
   }
 
-  // P/T box image: match title/type bar color
+  // P/T box image: match type line bar color
   if (L.ptBox && card.power !== undefined && card.toughness !== undefined) {
-    const ptColor = titleColor;
+    const ptColor = typeLineCodes[0];
     const ptPath = path.join(ASSETS_DIR, 'pt', `${ptColor}.png`);
     if (fs.existsSync(ptPath)) {
       ctx.drawImage(await loadImage(ptPath), L.ptBox.x * cw, L.ptBox.y * ch, L.ptBox.w * cw, L.ptBox.h * ch);

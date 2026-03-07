@@ -10,6 +10,8 @@ const DESIGNER_REGEX = /^Designer:\s*(.+)$/i;
 const COLOR_INDICATOR_REGEX = /^Color Indicator:\s*(.+)$/i;
 const ACCENT_REGEX = /^Accent:\s*(.+)$/i;
 const FRAME_REGEX = /^Frame:\s*(.+)$/i;
+const NAME_LINE_REGEX = /^Name Line:\s*(.+)$/i;
+const TYPE_LINE_COLOR_REGEX = /^Type Line Color:\s*(.+)$/i;
 const PT_REGEX = /^([*\d+]+)\/([*\d+]+)$/;
 const LOYALTY_REGEX = /^Loyalty:\s*(\S+)$/i;
 const DEFENSE_REGEX = /^Defense:\s*(\S+)$/i;
@@ -31,6 +33,27 @@ const COLOR_ALIASES: Record<string, Color> = {
   r: 'red', red: 'red',
   g: 'green', green: 'green',
 };
+const FRAME_ALIASES: Record<string, FrameColor> = {
+  ...COLOR_ALIASES,
+  colorless: 'colorless', c: 'colorless',
+  artifact: 'artifact', a: 'artifact',
+  multicolor: 'multicolor', multi: 'multicolor', gold: 'multicolor', m: 'multicolor',
+  vehicle: 'vehicle', v: 'vehicle',
+  land: 'land', l: 'land',
+};
+
+function parseFrameTokens(input: string): FrameColor | FrameColor[] | undefined {
+  const tokens = input.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+  if (tokens.length === 1) {
+    return FRAME_ALIASES[tokens[0]];
+  }
+  const parsed: FrameColor[] = [];
+  for (const raw of tokens) {
+    const fc = FRAME_ALIASES[raw];
+    if (fc) parsed.push(fc);
+  }
+  return parsed.length > 0 ? parsed : undefined;
+}
 
 function stripZeroWidth(text: string): string {
   return text.replace(ZERO_WIDTH_REGEX, '');
@@ -194,7 +217,11 @@ export function deriveFrameColor(card: Pick<CardData, 'subtypes' | 'types' | 'ma
     return accent ? { frameColor: 'artifact', accentColor: accent } : { frameColor: 'artifact' };
   }
 
-  // 4. Normal cards
+  // 4. Devoid — colorless frame and accent
+  const isDevoid = card.abilitiesText?.toLowerCase().includes('devoid');
+  if (isDevoid) return { frameColor: 'colorless', accentColor: 'colorless' };
+
+  // 5. Normal cards
   if (colors.size === 0) return { frameColor: 'colorless' };
   if (colors.size === 1) return { frameColor: MANA_COLOR_MAP[[...colors][0]] };
   if (isDualFrame) return { frameColor: twoColors!, accentColor: twoColors };
@@ -400,6 +427,8 @@ export function parseCard(text: string): CardData {
   let colorIndicator: Color[] | undefined;
   let explicitAccent: AccentColor | AccentColor[] | undefined;
   let explicitFrame: FrameColor | FrameColor[] | undefined;
+  let explicitNameLine: FrameColor | FrameColor[] | undefined;
+  let explicitTypeLine: FrameColor | FrameColor[] | undefined;
   let flavorText: string | undefined;
   let nextLine = 1;
   while (nextLine < lines.length) {
@@ -452,25 +481,20 @@ export function parseCard(text: string): CardData {
     }
     const frameMatch = current.match(FRAME_REGEX);
     if (frameMatch) {
-      const tokens = frameMatch[1].split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
-      const FRAME_ALIASES: Record<string, FrameColor> = {
-        ...COLOR_ALIASES,
-        artifact: 'artifact', a: 'artifact',
-        multicolor: 'multicolor', multi: 'multicolor', gold: 'multicolor', m: 'multicolor',
-        vehicle: 'vehicle', v: 'vehicle',
-        land: 'land', l: 'land',
-      };
-      if (tokens.length === 1) {
-        const fc = FRAME_ALIASES[tokens[0]];
-        if (fc) explicitFrame = fc;
-      } else if (tokens.length > 1) {
-        const parsed: FrameColor[] = [];
-        for (const raw of tokens) {
-          const fc = FRAME_ALIASES[raw];
-          if (fc) parsed.push(fc);
-        }
-        if (parsed.length > 0) explicitFrame = parsed;
-      }
+      const result = parseFrameTokens(frameMatch[1]);
+      if (result) explicitFrame = result;
+      nextLine++; continue;
+    }
+    const nameLineMatch = current.match(NAME_LINE_REGEX);
+    if (nameLineMatch) {
+      const result = parseFrameTokens(nameLineMatch[1]);
+      if (result) explicitNameLine = result;
+      nextLine++; continue;
+    }
+    const typeLineMatch = current.match(TYPE_LINE_COLOR_REGEX);
+    if (typeLineMatch) {
+      const result = parseFrameTokens(typeLineMatch[1]);
+      if (result) explicitTypeLine = result;
       nextLine++; continue;
     }
     const flavorTextMatch = current.match(FLAVOR_TEXT_REGEX);
@@ -590,6 +614,8 @@ export function parseCard(text: string): CardData {
   if (explicitFrame) card.frameColor = explicitFrame;
   if (explicitAccent) card.accentColor = explicitAccent;
   else if (accentColor) card.accentColor = accentColor;
+  if (explicitNameLine) card.nameLineColor = explicitNameLine;
+  if (explicitTypeLine) card.typeLineColor = explicitTypeLine;
   return card;
 }
 

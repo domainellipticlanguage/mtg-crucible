@@ -117,7 +117,9 @@ async function drawGradientFrames(
  * Derive the color code for title/type bars from mana cost and color indicator.
  * Hybrid-only mana = colorless, unless mixed with non-hybrid colors.
  */
-export function deriveTitleColorCode(manaCost: string | undefined, colorIndicator: CardData['colorIndicator']): string {
+const MANA_LETTER_TO_FRAME: Record<string, FrameColor> = { W: 'white', U: 'blue', B: 'black', R: 'red', G: 'green' };
+
+export function deriveTitleColor(manaCost: string | undefined, colorIndicator: CardData['colorIndicator']): FrameColor {
   const WUBRG = ['W', 'U', 'B', 'R', 'G'];
   const nonHybrid = new Set<string>();
   const hybrid = new Set<string>();
@@ -140,12 +142,9 @@ export function deriveTitleColorCode(manaCost: string | undefined, colorIndicato
     const COLOR_MAP: Record<string, string> = { white: 'W', blue: 'U', black: 'B', red: 'R', green: 'G' };
     for (const c of colorIndicator) { if (COLOR_MAP[c]) colors.add(COLOR_MAP[c]); }
   }
-  if (colors.size === 0) return 'a';
-  if (colors.size === 1) {
-    const MANA_TO_FRAME: Record<string, string> = { W: 'w', U: 'u', B: 'b', R: 'r', G: 'g' };
-    return MANA_TO_FRAME[[...colors][0]];
-  }
-  return 'm';
+  if (colors.size === 0) return 'artifact';
+  if (colors.size === 1) return MANA_LETTER_TO_FRAME[[...colors][0]];
+  return 'multicolor';
 }
 
 export async function drawFrame(
@@ -154,7 +153,8 @@ export async function drawFrame(
   frameColor: CardData['frameColor'],
   accentColor: CardData['accentColor'],
   cw: number, ch: number,
-  titleColorCode?: string,
+  nameLineCodes?: string[],
+  typeLineCodes?: string[],
 ): Promise<void> {
   const frameCodes = normalizeFrameColors(frameColor);
   const accentCodes = normalizeAccentColors(accentColor);
@@ -168,21 +168,30 @@ export async function drawFrame(
     const accentCtx = accentCanvas.getContext('2d');
     await drawGradientFrames(accentCtx, template, accentCodes, cw, ch);
 
-    // Pre-render title color frame (card's actual color for title/type bars)
-    let titleCanvas = accentCanvas;
-    if (titleColorCode && titleColorCode !== accentCodes[0]) {
-      titleCanvas = createCanvas(cw, ch);
-      const titleCtx = titleCanvas.getContext('2d');
-      await drawGradientFrames(titleCtx, template, [titleColorCode], cw, ch);
+    // Pre-render name line color canvas
+    const nlCodes = nameLineCodes ?? accentCodes;
+    let nameCanvas = accentCanvas;
+    if (nlCodes.join() !== accentCodes.join()) {
+      nameCanvas = createCanvas(cw, ch);
+      await drawGradientFrames(nameCanvas.getContext('2d'), template, nlCodes, cw, ch);
+    }
+
+    // Pre-render type line color canvas
+    const tlCodes = typeLineCodes ?? accentCodes;
+    let typeCanvas = accentCanvas;
+    if (tlCodes.join() !== accentCodes.join()) {
+      typeCanvas = createCanvas(cw, ch);
+      await drawGradientFrames(typeCanvas.getContext('2d'), template, tlCodes, cw, ch);
+    } else if (tlCodes.join() === nlCodes.join()) {
+      typeCanvas = nameCanvas;
     }
 
     // Overlay through each available mask region
-    const titleMasks = ['title', 'type'];
-    const accentMasks = ['pinline', 'rules', 'pinline-textbox'];
-    for (const maskName of [...titleMasks, ...accentMasks]) {
+    const allMasks = ['title', 'type', 'pinline', 'rules', 'pinline-textbox'];
+    for (const maskName of allMasks) {
       const maskPath = path.join(ASSETS_DIR, 'masks', `${template}-${maskName}.png`);
       if (!fs.existsSync(maskPath)) continue;
-      const source = titleMasks.includes(maskName) ? titleCanvas : accentCanvas;
+      const source = maskName === 'title' ? nameCanvas : maskName === 'type' ? typeCanvas : accentCanvas;
       const offscreen = createCanvas(cw, ch);
       const offCtx = offscreen.getContext('2d');
       offCtx.drawImage(await loadImage(maskPath), 0, 0, cw, ch);
@@ -236,6 +245,36 @@ export async function drawFrame(
   } else {
     // No accent — draw frame(s) with gradient blending
     await drawGradientFrames(ctx, template, frameCodes, cw, ch);
+
+    // Overlay name/type line colors if they differ from the frame
+    const overlays: { mask: string; codes: string[] }[] = [];
+    if (nameLineCodes && nameLineCodes.join() !== frameCodes.join()) {
+      overlays.push({ mask: 'title', codes: nameLineCodes });
+    }
+    if (typeLineCodes && typeLineCodes.join() !== frameCodes.join()) {
+      overlays.push({ mask: 'type', codes: typeLineCodes });
+    }
+    // Cache pre-rendered canvases by codes key to avoid duplicating work
+    const canvasCache = new Map<string, typeof ctx>();
+    for (const { mask, codes } of overlays) {
+      const key = codes.join();
+      if (!canvasCache.has(key)) {
+        const c = createCanvas(cw, ch);
+        await drawGradientFrames(c.getContext('2d'), template, codes, cw, ch);
+        canvasCache.set(key, c.getContext('2d'));
+      }
+    }
+    for (const { mask, codes } of overlays) {
+      const maskPath = path.join(ASSETS_DIR, 'masks', `${template}-${mask}.png`);
+      if (!fs.existsSync(maskPath)) continue;
+      const srcCtx = canvasCache.get(codes.join())!;
+      const offscreen = createCanvas(cw, ch);
+      const offCtx = offscreen.getContext('2d');
+      offCtx.drawImage(await loadImage(maskPath), 0, 0, cw, ch);
+      offCtx.globalCompositeOperation = 'source-in';
+      offCtx.drawImage(srcCtx.canvas, 0, 0);
+      ctx.drawImage(offscreen, 0, 0);
+    }
   }
 }
 
