@@ -382,14 +382,17 @@ async function main() {
   await render('nicol-bolas-dragon-god', {
     name: 'Nicol Bolas, Dragon-God', manaCost: '{U}{B}{B}{B}{R}{U}{B}{B}{B}{R}',
     supertypes: ['legendary'], types: ['planeswalker'], subtypes: ['Bolas'],
-    frameColor: 'multicolor', accentColor: ['blue', 'black', 'red'], rarity: 'mythic',
+    // frameColor: 'multicolor', 
+    accentColor: ['blue', 'black', 'red'], 
+    // frameColor: ['blue', 'black', 'red'], 
+    rarity: 'mythic',
     artist: 'Raymond Swanland', collectorNumber: '207',
     startingLoyalty: '4',
     abilities: { 
-      unstructuredAbilities: [
-        'Flying, Lifelink, Trample, Haste\ncool stuff',
-        // 'Nicol Bolas, Dragon-God has all loyalty abilities of all other planeswalkers on the battlefield.'
-      ],
+      // unstructuredAbilities: [
+      //   'Flying, Lifelink, Trample, Haste\ncool stuff',
+      //   // 'Nicol Bolas, Dragon-God has all loyalty abilities of all other planeswalkers on the battlefield.'
+      // ],
       structuredAbilities: {
       kind: 'planeswalker',
       loyaltyAbilities: [
