@@ -355,3 +355,10 @@ Could we support hybrid borders via draw tools? linear gradient to shift between
 devoid cards are full art
 
 Remove support for asterisk-bounded flavor text
+
+Normal form - I guess we should use caps for everything? titel case? Avoid conversions...
+
+
+Normal form - abilities should be converted to an array?
+    - should have a Null StructuredAbilities new type of Parsed
+    
