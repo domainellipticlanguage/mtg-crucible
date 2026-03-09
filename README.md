@@ -174,8 +174,22 @@ Colors are extracted from all mana symbols including hybrid (`{G/U}`) and phyrex
 ```bash
 npm test          # run tests (vitest)
 npm run build     # compile TypeScript
+npm run dev       # start local dev server on port 3000
 npm run spike     # render test cards to output/
 ```
+
+## Deploy to AWS Lambda
+
+The project uses [SST](https://sst.dev) to deploy a Lambda function that serves the same UI as the dev server.
+
+**Prerequisites:** AWS credentials configured (`~/.aws/credentials` or environment variables).
+
+```bash
+npx sst deploy --stage dev    # deploy
+npx sst remove --stage dev    # tear down
+```
+
+The deploy output will print a function URL you can open in a browser. The Lambda is configured with 2 GB memory, 30s timeout, and x86_64 architecture (required for `@napi-rs/canvas`).
 
 
 ## TODO
