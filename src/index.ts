@@ -5,7 +5,7 @@ import { parseCard, parseAbilities, formatAbilities, formatCard, toScryfallJson,
 import { deriveTitleColor } from './helpers';
 
 export type {
-  Rarity, CardTemplate, TemplateName, Color, AccentColor, FrameColor, Supertype, Type, Subtype, LinkType,
+  Rarity, TemplateName, Color, AccentColor, FrameColor, Supertype, Type, Subtype, LinkType,
   PlaneswalkerAbilities, SagaAbilities, ClassAbilities, LevelerAbilities, CaseAbilities, PrototypeAbilities,
   StructuredAbilities, ParsedAbilities,
   CardData, Rotation, RenderedCard, RenderedCardDisplay,
@@ -111,7 +111,7 @@ export async function renderCard(input: CardData | string): Promise<RenderedCard
   await ensureInitialized();
   const frontFace = await renderCardImage(normalized);
   const frontTemplate = resolveTemplate(normalized);
-  const frontFaceOrientation = frontTemplate === 'battle' ? 'horizontal' : 'vertical' as const;
+  const frontFaceOrientation = frontTemplate === 'battle' ? 'horizontal' : 'vertical';
 
   let backFace: Buffer | undefined;
   let backFaceOrientation: 'horizontal' | 'vertical' | undefined;

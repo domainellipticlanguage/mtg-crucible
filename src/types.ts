@@ -1,7 +1,5 @@
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'mythic';
 
-export type CardTemplate = 'normal' | 'planeswalker' | 'saga' | 'battle' | 'class' | 'saga_creature';
-
 export type TemplateName = 'standard' | 'planeswalker' | 'planeswalker_tall' | 'saga' | 'class' | 'battle';
 
 export type Color = 'white' | 'blue' | 'black' | 'red' | 'green';
@@ -122,7 +120,7 @@ export interface ParsedAbilities {
 
 export interface CardData {
   // Will be inferred if not provided
-  cardTemplate?: CardTemplate;
+  cardTemplate?: TemplateName;
   // Will be inferred if not provided
   // Array = gradient blend left-to-right (e.g. ['blue','red'] for hybrid)
   frameColor?: FrameColor | FrameColor[];
@@ -218,7 +216,7 @@ export interface RenderedCard {
   frontFaceOrientation: 'horizontal' | 'vertical';
   backFace?: Buffer;
   backFaceOrientation?: 'horizontal' | 'vertical';
-  normalizedCardData: CardData;
+  normalizedCardData: NormalizedCardData;
   rotations: Rotation[];
   scryfallJson: string;
   scryfallText: string;
