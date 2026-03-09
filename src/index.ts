@@ -1,4 +1,4 @@
-import type { CardData, ParsedAbilities, RenderedCard, RenderedCardDisplay } from './types';
+import type { CardData, NormalizedCardData, ParsedAbilities, RenderedCard, RenderedCardDisplay, FrameColor, AccentColor } from './types';
 import { ensureInitialized } from './helpers';
 import { renderCardImage } from './renderers/render';
 import { parseCard, parseAbilities, formatAbilities, formatCard, toScryfallJson, toScryfallText, computeRotations, deriveFrameColor, resolveTemplate, getArtDimensions } from './parser';
@@ -29,7 +29,12 @@ function inferAbilityKind(card: CardData): ParsedAbilities['structuredAbilities'
   return undefined as any;
 }
 
-export function normalizeCard(card: CardData): CardData {
+function toArray<T>(v: T | T[] | undefined): T[] {
+  if (v == null) return [];
+  return Array.isArray(v) ? v : [v];
+}
+
+export function normalizeCard(card: CardData): NormalizedCardData {
   // Resolve abilities to ParsedAbilities
   let abilities: ParsedAbilities;
   if (typeof card.abilities === 'string') {
@@ -46,19 +51,56 @@ export function normalizeCard(card: CardData): CardData {
     abilitiesText,
   });
 
+  const frameColor = toArray<FrameColor>(card.frameColor ?? derived?.frameColor);
+  const accentColor = toArray<AccentColor>(card.accentColor ?? derived?.accentColor);
   const titleColor = card.nameLineColor ?? card.typeLineColor ?? deriveTitleColor(card.manaCost, card.colorIndicator);
+  const nameLineColor = toArray<FrameColor>(card.nameLineColor ?? titleColor);
+  const typeLineColor = toArray<FrameColor>(card.typeLineColor ?? titleColor);
+
+  const partial: CardData = {
+    ...card,
+    frameColor,
+    accentColor,
+    nameLineColor,
+    typeLineColor,
+    abilities,
+  };
 
   return {
-    ...card,
+    cardTemplate: resolveTemplate(partial),
+    frameColor,
+    accentColor,
+    nameLineColor,
+    typeLineColor,
+
     name: card.name ?? '',
+    manaCost: card.manaCost ?? '',
+    supertypes: card.supertypes ?? [],
+    types: card.types ?? [],
+    subtypes: card.subtypes ?? [],
     rarity: card.rarity ?? 'rare',
-    frameColor: card.frameColor ?? derived?.frameColor,
-    accentColor: card.accentColor ?? derived?.accentColor,
-    nameLineColor: card.nameLineColor ?? titleColor,
-    typeLineColor: card.typeLineColor ?? titleColor,
-    collectorNumber: card.collectorNumber ?? '000',
-    setCode: card.setCode ?? 'CRU',
+
+    colorIndicator: card.colorIndicator ?? [],
+
     abilities,
+
+    power: card.power ?? '',
+    toughness: card.toughness ?? '',
+
+    artUrl: card.artUrl ?? '',
+
+    flavorText: card.flavorText ?? '',
+
+    startingLoyalty: card.startingLoyalty ?? '',
+    battleDefense: card.battleDefense ?? '',
+
+    linkedCard: card.linkedCard ? normalizeCard(card.linkedCard) : undefined,
+    linkType: card.linkType,
+
+    collectorNumber: card.collectorNumber ?? '000',
+    artist: card.artist ?? '',
+    setCode: card.setCode ?? 'CRU',
+    designer: card.designer ?? '',
   };
 }
 

@@ -102,13 +102,18 @@ export interface PrototypeAbilities {
   prototype: { manaCost: string; power: string; toughness: string };
 }
 
+export interface NoneAbilities {
+  kind: 'none';
+}
+
 export type StructuredAbilities =
   | PlaneswalkerAbilities
   | SagaAbilities
   | ClassAbilities
   | LevelerAbilities
   | CaseAbilities
-  | PrototypeAbilities;
+  | PrototypeAbilities
+  | NoneAbilities;
 
 export interface ParsedAbilities {
   unstructuredAbilities?: string[];
@@ -163,6 +168,44 @@ export interface CardData {
 }
 
 
+
+/** CardData with all fields resolved — no optionals, no convenience unions. */
+export interface NormalizedCardData {
+  cardTemplate: TemplateName;
+  frameColor: FrameColor[];
+  accentColor: AccentColor[];
+  nameLineColor: FrameColor[];
+  typeLineColor: FrameColor[];
+
+  name: string;
+  manaCost: string;
+  supertypes: Supertype[];
+  types: Type[];
+  subtypes: string[];
+  rarity: Rarity;
+
+  colorIndicator: Color[];
+
+  abilities: ParsedAbilities;
+
+  power: string;
+  toughness: string;
+
+  artUrl: string;
+
+  flavorText: string;
+
+  startingLoyalty: string;
+  battleDefense: string;
+
+  linkedCard?: NormalizedCardData;
+  linkType?: LinkType;
+
+  collectorNumber: string;
+  artist: string;
+  setCode: string;
+  designer: string;
+}
 
 export interface Rotation {
   x: number;
