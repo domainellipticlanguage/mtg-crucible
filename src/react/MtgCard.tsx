@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import type { RenderedCardDisplay, Rotation } from '../types';
+import type { RenderedCardDisplay } from '../types';
 
 export interface MtgCardProps {
   card: RenderedCardDisplay;
@@ -12,32 +12,41 @@ interface ContextMenuItem {
   action: () => void;
 }
 
-function rotationToCss(r: Rotation): string {
-  return `rotateX(${r.x}deg) rotateY(${r.y}deg) rotateZ(${r.z}deg)`;
-}
+// Flip phases: idle -> hiding (rotate to 90deg) -> showing (swap image, rotate back from 90deg) -> idle
+type FlipPhase = 'idle' | 'hiding' | 'showing';
+
+// Standard MTG card aspect ratio: width / height
+const CARD_ASPECT = 5 / 7;
+// Inverse: how much wider a landscape image is relative to the portrait container width
+const LANDSCAPE_SCALE = 1 / CARD_ASPECT; // ~1.4
 
 export function MtgCard({ card, className, style }: MtgCardProps) {
   const [faceIndex, setFaceIndex] = useState(0);
-  const [isFlipping, setIsFlipping] = useState(false);
+  const [flipPhase, setFlipPhase] = useState<FlipPhase>('idle');
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const hasMultipleFaces = card.backFace !== undefined && card.rotations.length > 1;
-  const currentRotation = card.rotations[faceIndex] ?? { x: 0, y: 0, z: 0 };
   const showingFront = faceIndex === 0;
+  const currentFace = showingFront ? card.frontFace : card.backFace!;
+  const currentOrientation = showingFront
+    ? card.frontFaceOrientation
+    : (card.backFaceOrientation ?? 'vertical');
+  const isLandscape = currentOrientation === 'horizontal';
 
   const handleClick = useCallback(() => {
-    if (!hasMultipleFaces || isFlipping) return;
-    setIsFlipping(true);
-    const nextIndex = faceIndex === 0 ? 1 : 0;
-    setTimeout(() => {
-      setFaceIndex(nextIndex);
-      setIsFlipping(false);
-    }, 300);
-  }, [hasMultipleFaces, isFlipping, faceIndex]);
+    if (!hasMultipleFaces || flipPhase !== 'idle') return;
+    setFlipPhase('hiding');
+  }, [hasMultipleFaces, flipPhase]);
 
-  const currentFace = showingFront ? card.frontFace : card.backFace!;
-  const currentOrientation = showingFront ? card.frontFaceOrientation : (card.backFaceOrientation ?? 'vertical');
+  const handleTransitionEnd = useCallback(() => {
+    if (flipPhase === 'hiding') {
+      setFaceIndex(i => i === 0 ? 1 : 0);
+      setFlipPhase('showing');
+    } else if (flipPhase === 'showing') {
+      setFlipPhase('idle');
+    }
+  }, [flipPhase]);
 
   // Close context menu on click outside or escape
   useEffect(() => {
@@ -85,11 +94,40 @@ export function MtgCard({ card, className, style }: MtgCardProps) {
     { label: 'Copy Card Data JSON', action: () => copyText(card.scryfallJson) },
   ];
 
-  // Determine flip animation transform
-  const rotation = card.rotations[faceIndex] ?? { x: 0, y: 0, z: 0 };
-  const flipTransform = isFlipping
-    ? rotationToCss(card.rotations[faceIndex === 0 ? 1 : 0] ?? rotation)
-    : rotationToCss(currentRotation);
+  // Flip axis: diagonal for orientation changes, Y-axis otherwise
+  const orientationChanges = card.frontFaceOrientation !== (card.backFaceOrientation ?? card.frontFaceOrientation);
+  const flipAxis = orientationChanges ? 'rotate3d(1,1,0,' : 'rotateY(';
+
+  let flipPart = '';
+  if (flipPhase === 'hiding') {
+    flipPart = flipAxis + '90deg)';
+  }
+
+  // Image styles differ for portrait vs landscape:
+  // Portrait: fills the container directly.
+  // Landscape: sized to container height (wider), centered, rotated 90deg.
+  //   After rotation the visual dimensions exactly match the portrait container.
+  const imgStyle: React.CSSProperties = isLandscape
+    ? {
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        width: `${LANDSCAPE_SCALE * 100}%`,
+        height: 'auto',
+        transform: [
+          'translate(-50%, -50%)',
+          'rotate(90deg)',
+          flipPart,
+        ].filter(Boolean).join(' '),
+        transition: flipPhase !== 'idle' ? 'transform 0.25s ease-in-out' : 'none',
+      }
+    : {
+        display: 'block',
+        width: '100%',
+        height: '100%',
+        transform: flipPart || 'none',
+        transition: flipPhase !== 'idle' ? 'transform 0.25s ease-in-out' : 'none',
+      };
 
   return (
     <div
@@ -114,10 +152,16 @@ export function MtgCard({ card, className, style }: MtgCardProps) {
         {card.name}
       </span>
 
+      {/* Portrait-ratio container */}
       <div
         style={{
           perspective: '1000px',
           cursor: hasMultipleFaces ? 'pointer' : 'default',
+          width: '100%',
+          aspectRatio: `${CARD_ASPECT}`,
+          position: 'relative',
+          overflow: 'hidden',
+          borderRadius: '4.5% / 3.2%',
         }}
         onClick={handleClick}
         onContextMenu={handleContextMenu}
@@ -126,14 +170,8 @@ export function MtgCard({ card, className, style }: MtgCardProps) {
           src={currentFace}
           alt={card.name}
           draggable={false}
-          style={{
-            display: 'block',
-            width: '100%',
-            height: 'auto',
-            transition: 'transform 0.3s ease',
-            transform: flipTransform,
-            borderRadius: '4.5% / 3.2%',
-          }}
+          onTransitionEnd={handleTransitionEnd}
+          style={imgStyle}
         />
       </div>
 

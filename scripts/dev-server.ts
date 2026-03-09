@@ -34,8 +34,9 @@ const HTML = `<!DOCTYPE html>
   @keyframes spin { to { transform: rotate(360deg); } }
 
   /* Card display */
-  .mtg-card-wrapper { display: inline-block; position: relative; perspective: 1000px; max-width: 100%; }
-  .mtg-card-wrapper img { display: block; max-width: 100%; height: auto; transition: transform 0.3s ease; border-radius: 4.5% / 3.2%; user-select: none; -webkit-user-drag: none; }
+  .mtg-card-wrapper { display: inline-block; position: relative; perspective: 1000px; }
+  .mtg-card-inner { width: 100%; aspect-ratio: 5/7; overflow: hidden; border-radius: 4.5% / 3.2%; }
+  .mtg-card-inner img { display: block; width: 100%; height: 100%; object-fit: cover; user-select: none; -webkit-user-drag: none; }
   .mtg-card-wrapper.clickable { cursor: pointer; }
   .mtg-card-wrapper .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
 
@@ -78,9 +79,7 @@ let activeTab = 'card';
 let faceIndex = 0;
 let isFlipping = false;
 
-function rotationToCss(r) {
-  return 'rotateX(' + r.x + 'deg) rotateY(' + r.y + 'deg) rotateZ(' + r.z + 'deg)';
-}
+// no longer needed
 
 function showTab(tab) {
   activeTab = tab;
@@ -112,43 +111,82 @@ function showTab(tab) {
   }
 }
 
+var CARD_ASPECT = 5 / 7;
+var LANDSCAPE_SCALE = 1 / CARD_ASPECT; // ~1.4
+
+function applyImgStyle(img, orientation, flipPart) {
+  if (orientation === 'horizontal') {
+    img.style.position = 'absolute';
+    img.style.top = '50%';
+    img.style.left = '50%';
+    img.style.width = (LANDSCAPE_SCALE * 100) + '%';
+    img.style.height = 'auto';
+    var parts = ['translate(-50%, -50%)', 'rotate(90deg)'];
+    if (flipPart) parts.push(flipPart);
+    img.style.transform = parts.join(' ');
+  } else {
+    img.style.position = '';
+    img.style.top = '';
+    img.style.left = '';
+    img.style.display = 'block';
+    img.style.width = '100%';
+    img.style.height = '100%';
+    img.style.transform = flipPart || 'none';
+  }
+}
+
 function renderCardDisplay(container, r) {
   const d = r.display;
   const hasBack = !!d.backFace;
-  const rotation = d.rotations[faceIndex] || { x: 0, y: 0, z: 0 };
-  const currentFace = faceIndex === 0 ? d.frontFace : d.backFace;
+
+  function currentOrientation() {
+    return faceIndex === 0 ? d.frontFaceOrientation : (d.backFaceOrientation || 'vertical');
+  }
 
   container.innerHTML = '';
   const wrapper = document.createElement('div');
   wrapper.className = 'mtg-card-wrapper' + (hasBack ? ' clickable' : '');
+  wrapper.style.width = '100%';
 
   const srSpan = document.createElement('span');
   srSpan.className = 'sr-only';
   srSpan.textContent = d.name;
   wrapper.appendChild(srSpan);
 
+  const inner = document.createElement('div');
+  inner.className = 'mtg-card-inner';
+
   const img = document.createElement('img');
-  img.src = currentFace;
+  img.src = faceIndex === 0 ? d.frontFace : d.backFace;
   img.alt = d.name;
   img.draggable = false;
-  img.style.transform = rotationToCss(rotation);
-  wrapper.appendChild(img);
+  img.style.transition = 'none';
+  applyImgStyle(img, currentOrientation(), '');
+  inner.appendChild(img);
+  wrapper.appendChild(inner);
 
   if (hasBack) {
+    const orientationChanges = d.frontFaceOrientation !== (d.backFaceOrientation || d.frontFaceOrientation);
+    const axis = orientationChanges ? 'rotate3d(1,1,0,' : 'rotateY(';
     wrapper.addEventListener('click', () => {
       if (isFlipping) return;
       isFlipping = true;
-      const nextIndex = faceIndex === 0 ? 1 : 0;
-      const nextRotation = d.rotations[nextIndex] || { x: 0, y: 0, z: 0 };
-      img.style.transform = rotationToCss(nextRotation);
-      setTimeout(() => {
-        faceIndex = nextIndex;
-        const newFace = faceIndex === 0 ? d.frontFace : d.backFace;
-        const finalRotation = d.rotations[faceIndex] || { x: 0, y: 0, z: 0 };
-        img.src = newFace;
-        img.style.transform = rotationToCss(finalRotation);
-        isFlipping = false;
-      }, 300);
+      img.style.transition = 'transform 0.25s ease-in-out';
+      applyImgStyle(img, currentOrientation(), axis + '90deg)');
+      img.addEventListener('transitionend', function onHide() {
+        img.removeEventListener('transitionend', onHide);
+        faceIndex = faceIndex === 0 ? 1 : 0;
+        img.src = faceIndex === 0 ? d.frontFace : d.backFace;
+        applyImgStyle(img, currentOrientation(), '');
+        // Force reflow so browser sees the new base transform before animating
+        img.offsetHeight;
+        img.style.transition = 'transform 0.25s ease-in-out';
+        applyImgStyle(img, currentOrientation(), '');
+        img.addEventListener('transitionend', function onShow() {
+          img.removeEventListener('transitionend', onShow);
+          isFlipping = false;
+        });
+      });
     });
   }
 
