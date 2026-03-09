@@ -406,7 +406,31 @@ export function formatAbilities(abilities: ParsedAbilities): string {
   return parts.join('\n');
 }
 
+const FACE_DELIMITER = /^-{3,}$/;
+
 export function parseCard(text: string): CardData {
+  // Split on delimiter (3+ hyphens on a line by itself) for multi-face cards
+  const faces = text.split(/\n/).reduce<string[][]>((acc, line) => {
+    if (FACE_DELIMITER.test(line.trim())) {
+      acc.push([]);
+    } else {
+      acc[acc.length - 1].push(line);
+    }
+    return acc;
+  }, [[]]);
+
+  if (faces.length > 1) {
+    const front = parseSingleFace(faces[0].join('\n'));
+    const back = parseSingleFace(faces[1].join('\n'));
+    front.linkedCard = back;
+    front.linkType = front.linkType ?? 'transform';
+    return front;
+  }
+
+  return parseSingleFace(text);
+}
+
+function parseSingleFace(text: string): CardData {
   const lines = normalizeLines(text);
 
   if (lines.length < 2) {
