@@ -297,6 +297,7 @@ The deploy output will print a function URL you can open in a browser. The Lambd
 - Support devoid borders
 - Support nyx borders
 - Support Snow borders
+- Support miracle borders
 
 - Support various borders
 - Support hybrid mana borders

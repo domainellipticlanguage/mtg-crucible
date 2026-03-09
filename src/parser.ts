@@ -203,8 +203,8 @@ export function deriveFrameColor(card: Pick<CardData, 'subtypes' | 'types' | 'ma
   }
 
   const twoColors: Color[] | undefined = colors.size === 2 ? colorsInOrder(colors) : undefined;
-  // Dual frames for hybrid mana OR color-indicator-only 2-color cards
-  const isDualFrame = twoColors !== undefined && (fromIndicator || hasHybridMana(card.manaCost, colors));
+  // Dual frames for hybrid mana only
+  const isDualFrame = twoColors !== undefined && hasHybridMana(card.manaCost, colors);
   const accent = colorsToAccent(colors);
 
   // 1. Vehicle subtype
