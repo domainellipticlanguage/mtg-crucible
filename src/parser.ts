@@ -667,7 +667,7 @@ export function formatCard(card: CardData): string {
   if (oracleText) lines.push(oracleText);
 
   // P/T for creatures
-  if (card.power !== undefined && card.toughness !== undefined) {
+  if (card.power && card.toughness) {
     lines.push(`${card.power}/${card.toughness}`);
   }
 
@@ -771,8 +771,8 @@ function buildScryfallFace(card: CardData): Record<string, any> {
   const oracleText = getOracleText(card);
   if (oracleText) face.oracle_text = oracleText;
 
-  if (card.power !== undefined) face.power = card.power;
-  if (card.toughness !== undefined) face.toughness = card.toughness;
+  if (card.power) face.power = card.power;
+  if (card.toughness) face.toughness = card.toughness;
   if (card.startingLoyalty) face.loyalty = card.startingLoyalty;
   if (card.battleDefense) face.defense = card.battleDefense;
   if (card.flavorText) face.flavor_text = card.flavorText;
@@ -836,7 +836,7 @@ function formatScryfallFaceText(card: CardData): string {
   const oracleText = getOracleText(card);
   if (oracleText) lines.push(oracleText);
 
-  if (card.power !== undefined && card.toughness !== undefined) {
+  if (card.power && card.toughness) {
     lines.push(`${card.power}/${card.toughness}`);
   } else if (card.startingLoyalty) {
     lines.push(`Loyalty: ${card.startingLoyalty}`);

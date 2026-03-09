@@ -11,7 +11,7 @@ async function body(ctx: SKRSContext2D, card: CardData, L: Record<string, any>, 
   }
 
   // Back face P/T (shown on battle front when back transforms into a creature)
-  if (L.backPt && card.linkedCard?.power !== undefined && card.linkedCard?.toughness !== undefined) {
+  if (L.backPt && card.linkedCard?.power && card.linkedCard?.toughness) {
     drawSingleLineText(ctx, `${card.linkedCard.power}/${card.linkedCard.toughness}`,
       L.backPt.x * cw, L.backPt.y * ch, L.backPt.w * cw, L.backPt.h * ch,
       L.backPt.font, L.backPt.size * ch, 'center', 'black');

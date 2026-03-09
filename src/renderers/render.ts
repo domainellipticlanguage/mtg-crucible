@@ -89,7 +89,7 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
   }
 
   // P/T box image: match type line bar color
-  if (L.ptBox && card.power !== undefined && card.toughness !== undefined) {
+  if (L.ptBox && card.power && card.toughness) {
     const ptColor = typeLineCodes[0];
     const ptPath = path.join(ASSETS_DIR, 'pt', `${ptColor}.png`);
     if (fs.existsSync(ptPath)) {
@@ -132,10 +132,10 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
     // Horizontal padding so text doesn't butt up against badges
     const exclusionRects: ExclusionRect[] = [];
     const hPad = rs * 0.3;
-    if (L.defense && card.battleDefense !== undefined) {
+    if (L.defense && card.battleDefense) {
       exclusionRects.push({ x: L.defense.x * cw - hPad, y: L.defense.y * ch, w: L.defense.w * cw + hPad, h: L.defense.h * ch });
     }
-    if (L.backPt && card.linkedCard?.power !== undefined && card.linkedCard?.toughness !== undefined) {
+    if (L.backPt && card.linkedCard?.power && card.linkedCard?.toughness) {
       exclusionRects.push({ x: L.backPt.x * cw - hPad, y: L.backPt.y * ch, w: L.backPt.w * cw + hPad, h: L.backPt.h * ch });
     }
 
@@ -145,7 +145,7 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
   }
 
   // P/T text
-  if (L.pt && card.power !== undefined && card.toughness !== undefined) {
+  if (L.pt && card.power && card.toughness) {
     const ptFrameColor = Array.isArray(card.frameColor) ? card.frameColor[0] : card.frameColor;
     const ptColor = ptFrameColor === 'vehicle' ? 'white' : 'black';
     drawSingleLineText(ctx, `${card.power}/${card.toughness}`, L.pt.x * cw, L.pt.y * ch, L.pt.w * cw, L.pt.h * ch, L.pt.font, L.pt.size * ch, 'center', ptColor);
