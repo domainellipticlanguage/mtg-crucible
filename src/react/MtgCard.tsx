@@ -15,11 +15,6 @@ interface ContextMenuItem {
 // Flip phases: idle -> hiding (rotate to 90deg) -> showing (swap image, rotate back from 90deg) -> idle
 type FlipPhase = 'idle' | 'hiding' | 'showing';
 
-// Standard MTG card aspect ratio: width / height
-const CARD_ASPECT = 5 / 7;
-// Inverse: how much wider a landscape image is relative to the portrait container width
-const LANDSCAPE_SCALE = 1 / CARD_ASPECT; // ~1.4
-
 export function MtgCard({ card, className, style }: MtgCardProps) {
   const [faceIndex, setFaceIndex] = useState(0);
   const [flipPhase, setFlipPhase] = useState<FlipPhase>('idle');
@@ -98,36 +93,19 @@ export function MtgCard({ card, className, style }: MtgCardProps) {
   const orientationChanges = card.frontFaceOrientation !== (card.backFaceOrientation ?? card.frontFaceOrientation);
   const flipAxis = orientationChanges ? 'rotate3d(1,1,0,' : 'rotateY(';
 
-  let flipPart = '';
+  let flipTransform = 'none';
   if (flipPhase === 'hiding') {
-    flipPart = flipAxis + '90deg)';
+    flipTransform = flipAxis + '90deg)';
   }
 
-  // Image styles differ for portrait vs landscape:
-  // Portrait: fills the container directly.
-  // Landscape: sized to container height (wider), centered, rotated 90deg.
-  //   After rotation the visual dimensions exactly match the portrait container.
-  const imgStyle: React.CSSProperties = isLandscape
-    ? {
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        width: `${LANDSCAPE_SCALE * 100}%`,
-        height: 'auto',
-        transform: [
-          'translate(-50%, -50%)',
-          'rotate(90deg)',
-          flipPart,
-        ].filter(Boolean).join(' '),
-        transition: flipPhase !== 'idle' ? 'transform 0.25s ease-in-out' : 'none',
-      }
-    : {
-        display: 'block',
-        width: '100%',
-        height: '100%',
-        transform: flipPart || 'none',
-        transition: flipPhase !== 'idle' ? 'transform 0.25s ease-in-out' : 'none',
-      };
+  // Container aspect ratio matches the current face orientation
+  const aspectRatio = isLandscape ? '7 / 5' : '5 / 7';
+  const borderRadius = isLandscape ? '3.2% / 4.5%' : '4.5% / 3.2%';
+
+  // Sizing: the consumer provides a height. The card uses aspect-ratio to
+  // derive width. Portrait = 5:7, landscape = 7:5. Both orientations share
+  // the same longer dimension (the portrait height = the landscape width),
+  // so the card looks like the same physical rectangle turned on its side.
 
   return (
     <div
@@ -152,16 +130,15 @@ export function MtgCard({ card, className, style }: MtgCardProps) {
         {card.name}
       </span>
 
-      {/* Portrait-ratio container */}
       <div
         style={{
           perspective: '1000px',
           cursor: hasMultipleFaces ? 'pointer' : 'default',
-          width: '100%',
-          aspectRatio: `${CARD_ASPECT}`,
+          height: '100%',
+          aspectRatio,
           position: 'relative',
           overflow: 'hidden',
-          borderRadius: '4.5% / 3.2%',
+          borderRadius,
         }}
         onClick={handleClick}
         onContextMenu={handleContextMenu}
@@ -171,7 +148,13 @@ export function MtgCard({ card, className, style }: MtgCardProps) {
           alt={card.name}
           draggable={false}
           onTransitionEnd={handleTransitionEnd}
-          style={imgStyle}
+          style={{
+            display: 'block',
+            width: '100%',
+            height: '100%',
+            transform: flipTransform,
+            transition: flipPhase !== 'idle' ? 'transform 0.25s ease-in-out' : 'none',
+          }}
         />
       </div>
 
