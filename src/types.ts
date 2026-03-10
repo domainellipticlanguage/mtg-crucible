@@ -6,6 +6,7 @@ export type Color = 'white' | 'blue' | 'black' | 'red' | 'green';
 // TODO unify these types in a usage agnostic way.
 export type AccentColor = Color | 'colorless' | 'artifact' | 'multicolor' | 'vehicle' | 'land';
 export type FrameColor = Color | 'colorless' | 'artifact' | 'multicolor' | 'vehicle' | 'land';
+export type FrameEffect = 'normal' | 'nyx' | 'snow' | 'devoid' | 'miracle';
 export type Supertype = 'legendary' | 'basic' | 'snow' | 'world';
 export type Type = 'creature' | 'instant' | 'sorcery' | 'enchantment' | 'artifact' | 'planeswalker' | 'land' | 'battle';
 // Too many to list. All creatures. All land types. Shrine, Saga, etc.
@@ -127,6 +128,7 @@ export interface CardData {
   // Optional accent tint for land/artifact frames (e.g. blue land, green artifact)
   // Array = gradient blend (e.g. ['red','blue'] for R/U crown on gold legendary)
   accentColor?: AccentColor | AccentColor[];
+  frameEffect?: FrameEffect | FrameEffect[];
   // Color of the name line bar. Derived from card's actual color if not set.
   // Array = gradient blend (e.g. ['blue','red'] for multicolor)
   nameLineColor?: FrameColor | FrameColor[];
@@ -171,6 +173,7 @@ export interface CardData {
 export interface NormalizedCardData {
   cardTemplate: TemplateName;
   frameColor: FrameColor[];
+  frameEffect: FrameEffect[];
   accentColor: AccentColor[];
   nameLineColor: FrameColor[];
   typeLineColor: FrameColor[];

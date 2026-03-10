@@ -1,4 +1,4 @@
-import type { CardData, AccentColor, Color, FrameColor, Rarity, Rotation, Supertype, Type, ParsedAbilities, PlaneswalkerAbilities, StructuredAbilities, TemplateName } from './types';
+import type { CardData, AccentColor, Color, FrameColor, FrameEffect, Rarity, Rotation, Supertype, Type, ParsedAbilities, PlaneswalkerAbilities, StructuredAbilities, TemplateName } from './types';
 import {
   STD_W, STD_H, STD_LAYOUT,
   PW_W, PW_H, PW_LAYOUT, PW_TALL_LAYOUT,
@@ -17,6 +17,7 @@ const DESIGNER_REGEX = /^Designer:\s*(.+)$/i;
 const COLOR_INDICATOR_REGEX = /^Color Indicator:\s*(.+)$/i;
 const ACCENT_REGEX = /^Accent:\s*(.+)$/i;
 const FRAME_REGEX = /^Frame:\s*(.+)$/i;
+const FRAME_EFFECT_REGEX = /^Frame Effect:\s*(.+)$/i;
 const NAME_LINE_REGEX = /^Name Line:\s*(.+)$/i;
 const TYPE_LINE_COLOR_REGEX = /^Type Line Color:\s*(.+)$/i;
 const PT_REGEX = /^([*\d+]+)\/([*\d+]+)$/;
@@ -58,6 +59,27 @@ function parseFrameTokens(input: string): FrameColor | FrameColor[] | undefined 
   for (const raw of tokens) {
     const fc = FRAME_ALIASES[raw];
     if (fc) parsed.push(fc);
+  }
+  return parsed.length > 0 ? parsed : undefined;
+}
+
+const FRAME_EFFECT_ALIASES: Record<string, FrameEffect> = {
+  normal: 'normal',
+  nyx: 'nyx',
+  snow: 'snow',
+  devoid: 'devoid',
+  miracle: 'miracle',
+};
+
+function parseFrameEffectTokens(input: string): FrameEffect | FrameEffect[] | undefined {
+  const tokens = input.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+  if (tokens.length === 1) {
+    return FRAME_EFFECT_ALIASES[tokens[0]];
+  }
+  const parsed: FrameEffect[] = [];
+  for (const raw of tokens) {
+    const fe = FRAME_EFFECT_ALIASES[raw];
+    if (fe) parsed.push(fe);
   }
   return parsed.length > 0 ? parsed : undefined;
 }
@@ -458,6 +480,7 @@ function parseSingleFace(text: string): CardData {
   let colorIndicator: Color[] | undefined;
   let explicitAccent: AccentColor | AccentColor[] | undefined;
   let explicitFrame: FrameColor | FrameColor[] | undefined;
+  let explicitFrameEffect: FrameEffect | FrameEffect[] | undefined;
   let explicitNameLine: FrameColor | FrameColor[] | undefined;
   let explicitTypeLine: FrameColor | FrameColor[] | undefined;
   let flavorText: string | undefined;
@@ -514,6 +537,12 @@ function parseSingleFace(text: string): CardData {
     if (frameMatch) {
       const result = parseFrameTokens(frameMatch[1]);
       if (result) explicitFrame = result;
+      nextLine++; continue;
+    }
+    const frameEffectMatch = current.match(FRAME_EFFECT_REGEX);
+    if (frameEffectMatch) {
+      const result = parseFrameEffectTokens(frameEffectMatch[1]);
+      if (result) explicitFrameEffect = result;
       nextLine++; continue;
     }
     const nameLineMatch = current.match(NAME_LINE_REGEX);
@@ -643,6 +672,7 @@ function parseSingleFace(text: string): CardData {
   if (designer) card.designer = designer;
   if (colorIndicator && colorIndicator.length > 0) card.colorIndicator = colorIndicator;
   if (explicitFrame) card.frameColor = explicitFrame;
+  if (explicitFrameEffect) card.frameEffect = explicitFrameEffect;
   if (explicitAccent) card.accentColor = explicitAccent;
   else if (accentColor) card.accentColor = accentColor;
   if (explicitNameLine) card.nameLineColor = explicitNameLine;
@@ -676,6 +706,10 @@ export function formatCard(card: CardData): string {
   if (card.frameColor) {
     const frames = Array.isArray(card.frameColor) ? card.frameColor : [card.frameColor];
     lines.push(`Frame: ${frames.join(', ')}`);
+  }
+  if (card.frameEffect) {
+    const effects = Array.isArray(card.frameEffect) ? card.frameEffect : [card.frameEffect];
+    lines.push(`Frame Effect: ${effects.join(', ')}`);
   }
 
   // Type line

@@ -78,21 +78,22 @@ function createGradientMask(
  */
 async function drawGradientFrames(
   ctx: SKRSContext2D,
-  template: string,
+  template: string | string[],
   colorCodes: string[],
   cw: number, ch: number,
 ): Promise<void> {
   if (colorCodes.length === 0) return;
+  const dirs = Array.isArray(template) ? template : colorCodes.map(() => template);
 
   // Draw base frame
-  const basePath = path.join(ASSETS_DIR, 'frames', template, `${colorCodes[0]}.png`);
+  const basePath = path.join(ASSETS_DIR, 'frames', dirs[0], `${colorCodes[0]}.png`);
   if (fs.existsSync(basePath)) {
     ctx.drawImage(await loadImage(basePath), 0, 0, cw, ch);
   }
 
   // Overlay each subsequent frame through gradient mask
   for (let i = 1; i < colorCodes.length; i++) {
-    const framePath = path.join(ASSETS_DIR, 'frames', template, `${colorCodes[i]}.png`);
+    const framePath = path.join(ASSETS_DIR, 'frames', dirs[i], `${colorCodes[i]}.png`);
     if (!fs.existsSync(framePath)) continue;
 
     const mask = createGradientMask(cw, ch, i, colorCodes.length);
@@ -149,7 +150,7 @@ export function deriveTitleColor(manaCost: string | undefined, colorIndicator: C
 
 export async function drawFrame(
   ctx: SKRSContext2D,
-  template: string,
+  template: string | string[],
   frameColor: CardData['frameColor'],
   accentColor: CardData['accentColor'],
   cw: number, ch: number,
@@ -158,6 +159,8 @@ export async function drawFrame(
 ): Promise<void> {
   const frameCodes = normalizeFrameColors(frameColor);
   const accentCodes = normalizeAccentColors(accentColor);
+  // Mask paths always use the base template name (e.g. 'standard'), not effect dirs
+  const maskTemplate = Array.isArray(template) ? template.find(t => ['standard', 'planeswalker', 'planeswalker_tall', 'saga', 'class', 'battle'].includes(t)) ?? 'standard' : template;
 
   if (accentCodes) {
     // Draw base frame fully (gold/artifact/land fills name box, type box, PT, etc.)
@@ -189,7 +192,7 @@ export async function drawFrame(
     // Overlay through each available mask region
     const allMasks = ['title', 'type', 'pinline', 'rules', 'pinline-textbox'];
     for (const maskName of allMasks) {
-      const maskPath = path.join(ASSETS_DIR, 'masks', `${template}-${maskName}.png`);
+      const maskPath = path.join(ASSETS_DIR, 'masks', `${maskTemplate}-${maskName}.png`);
       if (!fs.existsSync(maskPath)) continue;
       const source = maskName === 'title' ? nameCanvas : maskName === 'type' ? typeCanvas : accentCanvas;
       const offscreen = createCanvas(cw, ch);
@@ -201,7 +204,7 @@ export async function drawFrame(
     }
 
     // Overlay accent colors on banner (N-color vertical split)
-    const bannerPath = path.join(ASSETS_DIR, 'masks', `${template}-banner.png`);
+    const bannerPath = path.join(ASSETS_DIR, 'masks', `${maskTemplate}-banner.png`);
     if (fs.existsSync(bannerPath)) {
       const bannerMask = await loadImage(bannerPath);
       const n = accentCodes.length;
@@ -224,7 +227,8 @@ export async function drawFrame(
       const stripW = Math.ceil(bannerW / n);
 
       for (let i = 0; i < n; i++) {
-        const framePath = path.join(ASSETS_DIR, 'frames', template, `${accentCodes[i]}.png`);
+        const dirs = Array.isArray(template) ? template : accentCodes.map(() => template);
+        const framePath = path.join(ASSETS_DIR, 'frames', dirs[i % dirs.length], `${accentCodes[i]}.png`);
         if (!fs.existsSync(framePath)) continue;
 
         const strip = createCanvas(cw, ch);
@@ -265,7 +269,7 @@ export async function drawFrame(
       }
     }
     for (const { mask, codes } of overlays) {
-      const maskPath = path.join(ASSETS_DIR, 'masks', `${template}-${mask}.png`);
+      const maskPath = path.join(ASSETS_DIR, 'masks', `${maskTemplate}-${mask}.png`);
       if (!fs.existsSync(maskPath)) continue;
       const srcCtx = canvasCache.get(codes.join())!;
       const offscreen = createCanvas(cw, ch);
@@ -273,6 +277,63 @@ export async function drawFrame(
       offCtx.drawImage(await loadImage(maskPath), 0, 0, cw, ch);
       offCtx.globalCompositeOperation = 'source-in';
       offCtx.drawImage(srcCtx.canvas, 0, 0);
+      ctx.drawImage(offscreen, 0, 0);
+    }
+  }
+}
+
+/**
+ * Draw overlay effect frames (e.g. miracle) on top of existing frames.
+ * overlayDirs[i] is the effect directory name or null (skip that color).
+ * Each overlay is clipped to its gradient zone so it only covers its portion.
+ */
+export async function drawFrameOverlay(
+  ctx: SKRSContext2D,
+  overlayDirs: (string | null)[],
+  colorCodes: string[],
+  cw: number, ch: number,
+): Promise<void> {
+  if (colorCodes.length === 0) return;
+  const n = colorCodes.length;
+
+  if (n === 1) {
+    // Single color: overlay covers the whole card
+    const dir = overlayDirs[0];
+    if (!dir) return;
+    const imgPath = path.join(ASSETS_DIR, 'frames', dir, `${colorCodes[0]}.png`);
+    if (fs.existsSync(imgPath)) {
+      ctx.drawImage(await loadImage(imgPath), 0, 0, cw, ch);
+    }
+    return;
+  }
+
+  // Multiple colors: each overlay is drawn through its gradient zone mask
+  for (let i = 0; i < n; i++) {
+    const dir = overlayDirs[i];
+    if (!dir) continue;
+    const imgPath = path.join(ASSETS_DIR, 'frames', dir, `${colorCodes[i]}.png`);
+    if (!fs.existsSync(imgPath)) continue;
+
+    if (i === 0) {
+      // First zone: use inverted mask of zone 1 (opaque on left, transparent on right)
+      const mask = createGradientMask(cw, ch, 1, n);
+      const data = mask.data;
+      for (let j = 3; j < data.length; j += 4) {
+        data[j] = 255 - data[j];
+      }
+      const offscreen = createCanvas(cw, ch);
+      const offCtx = offscreen.getContext('2d');
+      offCtx.putImageData(mask, 0, 0);
+      offCtx.globalCompositeOperation = 'source-in';
+      offCtx.drawImage(await loadImage(imgPath), 0, 0, cw, ch);
+      ctx.drawImage(offscreen, 0, 0);
+    } else {
+      const mask = createGradientMask(cw, ch, i, n);
+      const offscreen = createCanvas(cw, ch);
+      const offCtx = offscreen.getContext('2d');
+      offCtx.putImageData(mask, 0, 0);
+      offCtx.globalCompositeOperation = 'source-in';
+      offCtx.drawImage(await loadImage(imgPath), 0, 0, cw, ch);
       ctx.drawImage(offscreen, 0, 0);
     }
   }

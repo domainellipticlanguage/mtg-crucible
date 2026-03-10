@@ -1,11 +1,11 @@
-import type { CardData, NormalizedCardData, ParsedAbilities, RenderedCard, RenderedCardDisplay, FrameColor, AccentColor } from './types';
+import type { CardData, NormalizedCardData, ParsedAbilities, RenderedCard, RenderedCardDisplay, FrameColor, FrameEffect, AccentColor } from './types';
 import { ensureInitialized } from './helpers';
 import { renderCardImage } from './renderers/render';
 import { parseCard, parseAbilities, formatAbilities, formatCard, toScryfallJson, toScryfallText, computeRotations, deriveFrameColor, resolveTemplate, getArtDimensions } from './parser';
 import { deriveTitleColor } from './helpers';
 
 export type {
-  Rarity, TemplateName, Color, AccentColor, FrameColor, Supertype, Type, Subtype, LinkType,
+  Rarity, TemplateName, Color, AccentColor, FrameColor, FrameEffect, Supertype, Type, Subtype, LinkType,
   PlaneswalkerAbilities, SagaAbilities, ClassAbilities, LevelerAbilities, CaseAbilities, PrototypeAbilities,
   StructuredAbilities, ParsedAbilities,
   CardData, Rotation, RenderedCard, RenderedCardDisplay,
@@ -52,6 +52,7 @@ export function normalizeCard(card: CardData): NormalizedCardData {
   });
 
   const frameColor = toArray<FrameColor>(card.frameColor ?? derived?.frameColor);
+  const frameEffect = toArray<FrameEffect>(card.frameEffect ?? 'normal');
   const accentColor = toArray<AccentColor>(card.accentColor ?? derived?.accentColor);
   const titleColor = card.nameLineColor ?? card.typeLineColor ?? deriveTitleColor(card.manaCost, card.colorIndicator);
   const nameLineColor = toArray<FrameColor>(card.nameLineColor ?? titleColor);
@@ -69,6 +70,7 @@ export function normalizeCard(card: CardData): NormalizedCardData {
   return {
     cardTemplate: resolveTemplate(partial),
     frameColor,
+    frameEffect,
     accentColor,
     nameLineColor,
     typeLineColor,

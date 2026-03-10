@@ -15,7 +15,7 @@ import { getParsedAbilities, resolveTemplate } from '../parser';
 import {
   drawArt, drawCorners, drawSetSymbol, drawBottomInfo, drawManaCost, measureManaCostWidth,
   getTypeLine, primaryFrameColorCode, normalizeFrameColors, normalizeAccentColors,
-  drawColorIndicator, drawFrame, drawGradientCrowns,
+  drawColorIndicator, drawFrame, drawFrameOverlay, drawGradientCrowns,
 } from '../helpers';
 import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor, type ExclusionRect } from '../text';
 import { planeswalkerHooks } from './planeswalker';
@@ -71,10 +71,36 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
   // Pre-frame hook (e.g. planeswalker ability backgrounds)
   if (hooks?.preFrame) await hooks.preFrame(ctx, card, L, cw, ch);
 
-  // Frame
+  // Frame — resolve per-color directories based on frame effects
+  // Overlay effects (e.g. miracle) draw the standard frame first, then overlay on top.
+  const OVERLAY_EFFECTS = new Set(['miracle']);
+  const effects = Array.isArray(card.frameEffect) ? card.frameEffect : [card.frameEffect ?? 'normal'];
+  const frameDirs = frameCodes.map((_, i) => {
+    const effect = effects[i % effects.length] ?? 'normal';
+    if (effect === 'normal' || OVERLAY_EFFECTS.has(effect)) return frame;
+    if (frame !== 'standard') {
+      console.warn(`Frame effect '${effect}' is not supported for '${frame}' layout, falling back to normal`);
+      return frame;
+    }
+    return effect;
+  });
   const nameLineCodes = normalizeFrameColors(card.nameLineColor);
   const typeLineCodes = normalizeFrameColors(card.typeLineColor);
-  await drawFrame(ctx, frame, card.frameColor, card.accentColor, cw, ch, nameLineCodes, typeLineCodes);
+  await drawFrame(ctx, frameDirs, card.frameColor, card.accentColor, cw, ch, nameLineCodes, typeLineCodes);
+
+  // Overlay effects: draw effect frames on top of the standard frame
+  const overlayDirs = frameCodes.map((_, i) => {
+    const effect = effects[i % effects.length] ?? 'normal';
+    if (!OVERLAY_EFFECTS.has(effect)) return null;
+    if (frame !== 'standard') {
+      console.warn(`Frame effect '${effect}' is not supported for '${frame}' layout, skipping overlay`);
+      return null;
+    }
+    return effect;
+  });
+  if (overlayDirs.some(d => d !== null)) {
+    await drawFrameOverlay(ctx, overlayDirs, frameCodes, cw, ch);
+  }
 
   // Legend crown (planeswalkers use their own frame treatment)
   if (L.crown && card.supertypes?.includes('legendary') && !templateKey.startsWith('planeswalker')) {

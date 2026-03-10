@@ -377,3 +377,6 @@ Normal form - I guess we should use caps for everything? titel case? Avoid conve
 Normal form - abilities should be converted to an array?
     - should have a Null StructuredAbilities new type of Parsed
     
+# Parser
+Explicit legendCrown field
+Refactor stuff under flavor or style

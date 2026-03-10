@@ -437,6 +437,26 @@ async function main() {
     flavorText: '"I am become Wooburg, destroyer of worlds."',
   });
 
+  // 33. Sword of Fire and Ice — Snow blue / Nyx red
+  await render('sword-fire-ice', {
+    name: 'Sword of Fire and Ice', manaCost: '{3}',
+    types: ['artifact'], subtypes: ['Equipment'],
+    frameColor: ['blue', 'red'],
+    frameEffect: ['snow', 'nyx'],
+    rarity: 'mythic',
+    abilities: 'Equipped creature gets +2/+2 and has protection from red and from blue.\nWhenever equipped creature deals combat damage to a player, Sword of Fire and Ice deals 2 damage to any target and you draw a card.\nEquip {2}',
+  });
+
+  // 34. Sword of Light and Shadow — Miracle white / Devoid black
+  await render('sword-light-shadow', {
+    name: 'Sword of Light and Shadow', manaCost: '{3}',
+    types: ['artifact'], subtypes: ['Equipment'],
+    frameColor: ['white', 'black'],
+    frameEffect: ['miracle', 'devoid'],
+    rarity: 'mythic',
+    abilities: 'Equipped creature gets +2/+2 and has protection from white and from black.\nWhenever equipped creature deals combat damage to a player, you gain 3 life and you may return up to one target creature card from your graveyard to your hand.\nEquip {2}',
+  });
+
   console.log(`\nDone! ${idx} cards total, rendered to ${OUT}`);
 }
 
