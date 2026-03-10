@@ -98,14 +98,10 @@ export function MtgCard({ card, className, style }: MtgCardProps) {
     flipTransform = flipAxis + '90deg)';
   }
 
-  // Container aspect ratio matches the current face orientation
-  const aspectRatio = isLandscape ? '7 / 5' : '5 / 7';
-  const borderRadius = isLandscape ? '3.2% / 4.5%' : '4.5% / 3.2%';
-
-  // Sizing: the consumer provides a height. The card uses aspect-ratio to
-  // derive width. Portrait = 5:7, landscape = 7:5. Both orientations share
-  // the same longer dimension (the portrait height = the landscape width),
-  // so the card looks like the same physical rectangle turned on its side.
+  // Always render in portrait aspect ratio; landscape cards are shown
+  // as a smaller inset on a black background (like real MTG battle cards).
+  const aspectRatio = '5 / 7';
+  const borderRadius = '4.5% / 3.2%';
 
   return (
     <div
@@ -139,23 +135,71 @@ export function MtgCard({ card, className, style }: MtgCardProps) {
           position: 'relative',
           overflow: 'hidden',
           borderRadius,
+          background: isLandscape ? '#000' : undefined,
         }}
         onClick={handleClick}
         onContextMenu={handleContextMenu}
       >
-        <img
-          src={currentFace}
-          alt={card.name}
-          draggable={false}
-          onTransitionEnd={handleTransitionEnd}
-          style={{
-            display: 'block',
-            width: '100%',
-            height: '100%',
-            transform: flipTransform,
-            transition: flipPhase !== 'idle' ? 'transform 0.25s ease-in-out' : 'none',
-          }}
-        />
+        {isLandscape ? (
+          // Landscape card in portrait frame:
+          // 1) Background: the card image rendered portrait-sized but blacked out
+          // 2) Foreground: a smaller landscape version centered on top
+          <>
+            {/* Blacked-out portrait background */}
+            <img
+              src={currentFace}
+              alt=""
+              draggable={false}
+              style={{
+                display: 'block',
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                filter: 'brightness(0.5)',
+              }}
+            />
+            {/* Small landscape card centered on top */}
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <img
+                src={currentFace}
+                alt={card.name}
+                draggable={false}
+                onTransitionEnd={handleTransitionEnd}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  height: 'auto',
+                  aspectRatio: '7 / 5',
+                  borderRadius: '4.5% / 3.2%',
+                  transform: flipPhase === 'hiding' ? flipAxis + '90deg)' : 'none',
+                  transition: flipPhase !== 'idle' ? 'transform 0.25s ease-in-out' : 'none',
+                }}
+              />
+            </div>
+          </>
+        ) : (
+          <img
+            src={currentFace}
+            alt={card.name}
+            draggable={false}
+            onTransitionEnd={handleTransitionEnd}
+            style={{
+              display: 'block',
+              width: '100%',
+              height: '100%',
+              transform: flipTransform,
+              transition: flipPhase !== 'idle' ? 'transform 0.25s ease-in-out' : 'none',
+            }}
+          />
+        )}
       </div>
 
       {/* Custom context menu */}

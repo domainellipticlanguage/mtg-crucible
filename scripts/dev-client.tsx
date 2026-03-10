@@ -19,12 +19,32 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'rotations', label: 'Rotations' },
 ];
 
-const DEFAULT_TEXT = `Crucible of Legends {3}
-Art: https://raw.githubusercontent.com/nathanfdunn/mtg-crucible/refs/heads/main/logo/banner-image.png
-Rarity: Mythic Rare
-Legendary Artifact
-Whenever a legendary creature you control dies, return it to your hand at the beginning of the next end step.
-*Every great story begins with fire.*`;
+// const DEFAULT_TEXT = `Crucible of Legends {3}
+// Art: https://raw.githubusercontent.com/nathanfdunn/mtg-crucible/refs/heads/main/logo/banner-image.png
+// Rarity: Mythic Rare
+// Legendary Artifact
+// Whenever a legendary creature you control dies, return it to your hand at the beginning of the next end step.
+// *Every great story begins with fire.*`;
+const DEFAULT_TEXT = `{
+  "name": "Invasion of Gobakhan",
+  "manaCost": "{1}{W}",
+  "types": ["battle"],
+  "subtypes": ["Siege"],
+  "abilities": "When Invasion of Gobakhan enters the battlefield, look at target opponent's hand. You may exile a nonland card from it. For as long as that card remains exiled, its owner may play it. A spell cast this way costs {2} more to cast.",
+  "frameColor": "white",
+  "rarity": "rare",
+  "battleDefense": "3",
+  "linkType": "transform",
+  "linkedCard": {
+    "name": "Lightshield Array",
+    "types": ["enchantment", "creature"],
+    "frameColor": "white",
+    "rarity": "rare",
+    "abilities": "At the beginning of your end step, put a +1/+1 counter on each creature you control.\nSacrifice Lightshield Array: Creatures you control gain hexproof and indestructible until end of turn.",
+    "power": "0",
+    "toughness": "4"
+  }
+}`;
 
 function App() {
   const [cardText, setCardText] = useState(DEFAULT_TEXT);
