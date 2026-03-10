@@ -154,7 +154,7 @@ export function MtgCard({ card, className, style }: MtgCardProps) {
                   height: 'auto',
                   top: '50%',
                   left: '50%',
-                  transform: 'translate(-50%, -50%) rotate(90deg)',
+                  transform: 'translate(-50%, -50%) rotate(-90deg)',
                   filter: 'brightness(0.5)',
                 }}
               />
