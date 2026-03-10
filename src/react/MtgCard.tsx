@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import type { RenderedCardDisplay } from '../types';
 
 export interface MtgCardProps {
@@ -19,7 +19,6 @@ export function MtgCard({ card, className, style }: MtgCardProps) {
   const [faceIndex, setFaceIndex] = useState(0);
   const [flipPhase, setFlipPhase] = useState<FlipPhase>('idle');
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
 
   const hasMultipleFaces = card.backFace !== undefined && card.rotations.length > 1;
   const showingFront = faceIndex === 0;
@@ -41,15 +40,6 @@ export function MtgCard({ card, className, style }: MtgCardProps) {
     } else if (flipPhase === 'showing') {
       setFlipPhase('idle');
     }
-  }, [flipPhase]);
-
-  // When the face swaps between landscape/portrait, the img element with
-  // onTransitionEnd gets unmounted, so 'showing' → 'idle' never fires.
-  // Detect this and resolve it with a timeout fallback.
-  useEffect(() => {
-    if (flipPhase !== 'showing') return;
-    const timer = setTimeout(() => setFlipPhase('idle'), 300);
-    return () => clearTimeout(timer);
   }, [flipPhase]);
 
   // Close context menu on click outside or escape
@@ -98,10 +88,7 @@ export function MtgCard({ card, className, style }: MtgCardProps) {
     { label: 'Copy Card Data JSON', action: () => copyText(card.scryfallJson) },
   ];
 
-  let flipTransform = 'none';
-  if (flipPhase === 'hiding') {
-    flipTransform = 'rotateY(90deg)';
-  }
+  const flipTransform = flipPhase === 'hiding' ? 'rotateY(90deg)' : 'none';
 
   // Always render in portrait aspect ratio; landscape cards are shown
   // as a smaller inset on a black background (like real MTG battle cards).
@@ -212,7 +199,6 @@ export function MtgCard({ card, className, style }: MtgCardProps) {
       {/* Custom context menu */}
       {menuPos && (
         <div
-          ref={menuRef}
           style={{
             position: 'fixed',
             left: menuPos.x,
