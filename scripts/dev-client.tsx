@@ -40,7 +40,7 @@ const DEFAULT_TEXT = `{
     "types": ["enchantment", "creature"],
     "frameColor": "white",
     "rarity": "rare",
-    "abilities": "At the beginning of your end step, put a +1/+1 counter on each creature you control.\nSacrifice Lightshield Array: Creatures you control gain hexproof and indestructible until end of turn.",
+    "abilities": "At the beginning of your end step, put a +1/+1 counter on each creature you control.\\nSacrifice Lightshield Array: Creatures you control gain hexproof and indestructible until end of turn.",
     "power": "0",
     "toughness": "4"
   }

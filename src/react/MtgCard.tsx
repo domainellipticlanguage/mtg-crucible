@@ -43,6 +43,15 @@ export function MtgCard({ card, className, style }: MtgCardProps) {
     }
   }, [flipPhase]);
 
+  // When the face swaps between landscape/portrait, the img element with
+  // onTransitionEnd gets unmounted, so 'showing' → 'idle' never fires.
+  // Detect this and resolve it with a timeout fallback.
+  useEffect(() => {
+    if (flipPhase !== 'showing') return;
+    const timer = setTimeout(() => setFlipPhase('idle'), 300);
+    return () => clearTimeout(timer);
+  }, [flipPhase]);
+
   // Close context menu on click outside or escape
   useEffect(() => {
     if (!menuPos) return;
@@ -89,13 +98,9 @@ export function MtgCard({ card, className, style }: MtgCardProps) {
     { label: 'Copy Card Data JSON', action: () => copyText(card.scryfallJson) },
   ];
 
-  // Flip axis: diagonal for orientation changes, Y-axis otherwise
-  const orientationChanges = card.frontFaceOrientation !== (card.backFaceOrientation ?? card.frontFaceOrientation);
-  const flipAxis = orientationChanges ? 'rotate3d(1,1,0,' : 'rotateY(';
-
   let flipTransform = 'none';
   if (flipPhase === 'hiding') {
-    flipTransform = flipAxis + '90deg)';
+    flipTransform = 'rotateY(90deg)';
   }
 
   // Always render in portrait aspect ratio; landscape cards are shown
@@ -132,74 +137,76 @@ export function MtgCard({ card, className, style }: MtgCardProps) {
           cursor: hasMultipleFaces ? 'pointer' : 'default',
           height: '100%',
           aspectRatio,
-          position: 'relative',
-          overflow: 'hidden',
-          borderRadius,
-          background: isLandscape ? '#000' : undefined,
         }}
         onClick={handleClick}
         onContextMenu={handleContextMenu}
       >
-        {isLandscape ? (
-          // Landscape card in portrait frame:
-          // 1) Background: the card image rendered portrait-sized but blacked out
-          // 2) Foreground: a smaller landscape version centered on top
-          <>
-            {/* Blacked-out portrait background */}
+        <div
+          onTransitionEnd={handleTransitionEnd}
+          style={{
+            width: '100%',
+            height: '100%',
+            position: 'relative',
+            overflow: 'hidden',
+            borderRadius,
+            background: isLandscape ? '#000' : undefined,
+            transform: flipTransform,
+            transition: flipPhase !== 'idle' ? 'transform 0.25s ease-in-out' : 'none',
+          }}
+        >
+          {isLandscape ? (
+            <>
+              {/* Background: landscape image rotated 90° to fill portrait frame, dimmed */}
+              <img
+                src={currentFace}
+                alt=""
+                draggable={false}
+                style={{
+                  position: 'absolute',
+                  width: '140%',
+                  height: 'auto',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%) rotate(90deg)',
+                  filter: 'brightness(0.5)',
+                }}
+              />
+              {/* Foreground: landscape card in native orientation, scaled to fit */}
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <img
+                  src={currentFace}
+                  alt={card.name}
+                  draggable={false}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    height: 'auto',
+                    borderRadius: '3.2% / 4.5%',
+                  }}
+                />
+              </div>
+            </>
+          ) : (
             <img
               src={currentFace}
-              alt=""
+              alt={card.name}
               draggable={false}
               style={{
                 display: 'block',
                 width: '100%',
                 height: '100%',
-                objectFit: 'cover',
-                filter: 'brightness(0.5)',
               }}
             />
-            {/* Small landscape card centered on top */}
-            <div
-              style={{
-                position: 'absolute',
-                inset: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <img
-                src={currentFace}
-                alt={card.name}
-                draggable={false}
-                onTransitionEnd={handleTransitionEnd}
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  height: 'auto',
-                  aspectRatio: '7 / 5',
-                  borderRadius: '4.5% / 3.2%',
-                  transform: flipPhase === 'hiding' ? flipAxis + '90deg)' : 'none',
-                  transition: flipPhase !== 'idle' ? 'transform 0.25s ease-in-out' : 'none',
-                }}
-              />
-            </div>
-          </>
-        ) : (
-          <img
-            src={currentFace}
-            alt={card.name}
-            draggable={false}
-            onTransitionEnd={handleTransitionEnd}
-            style={{
-              display: 'block',
-              width: '100%',
-              height: '100%',
-              transform: flipTransform,
-              transition: flipPhase !== 'idle' ? 'transform 0.25s ease-in-out' : 'none',
-            }}
-          />
-        )}
+          )}
+        </div>
       </div>
 
       {/* Custom context menu */}
