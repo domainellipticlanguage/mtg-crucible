@@ -380,3 +380,5 @@ Normal form - abilities should be converted to an array?
 # Parser
 Explicit legendCrown field
 Refactor stuff under flavor or style
+
+Maybe CardData should have an Art Alt text. For storing art description?

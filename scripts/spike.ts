@@ -457,6 +457,17 @@ async function main() {
     abilities: 'Equipped creature gets +2/+2 and has protection from white and from black.\nWhenever equipped creature deals combat damage to a player, you gain 3 life and you may return up to one target creature card from your graveyard to your hand.\nEquip {2}',
   });
 
+  // 35. Custom dual-effect card — Snow blue / Nyx red
+  await render('conduit-of-fire-and-ice', {
+    name: 'Conduit of Fire and Ice', manaCost: '{2}{U}{R}',
+    types: ['artifact'],
+    frameColor: ['blue', 'red'],
+    frameEffect: ['snow', 'nyx'],
+    rarity: 'mythic',
+    abilities: 'Whenever you cast an instant or sorcery spell, choose one —\n• Conduit of Fire and Ice deals 2 damage to any target.\n• Draw a card, then discard a card.',
+    flavorText: '"It does not choose between extremes — it holds them both."',
+  });
+
   console.log(`\nDone! ${idx} cards total, rendered to ${OUT}`);
 }
 
