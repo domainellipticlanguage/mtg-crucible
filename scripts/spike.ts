@@ -468,6 +468,40 @@ async function main() {
     flavorText: '"It does not choose between extremes — it holds them both."',
   });
 
+  // 36. Adventure card — Bonecrusher Giant // Stomp
+  await render('bonecrusher-giant', {
+    name: 'Bonecrusher Giant', manaCost: '{2}{R}',
+    types: ['creature'], subtypes: ['Giant'],
+    frameColor: 'red',
+    rarity: 'rare',
+    abilities: 'Whenever Bonecrusher Giant becomes the target of a spell, Bonecrusher Giant deals 2 damage to that spell\'s controller.',
+    power: '4', toughness: '3',
+    linkType: 'adventure',
+    linkedCard: {
+      name: 'Stomp', manaCost: '{1}{R}',
+      types: ['instant'],
+      subtypes: ['Adventure'],
+      abilities: 'Damage can\'t be prevented this turn. Stomp deals 2 damage to any target.',
+    },
+  });
+
+  // 37. Adventure card — Lovestruck Beast // Heart's Desire (multicolor test)
+  await render('lovestruck-beast', {
+    name: 'Lovestruck Beast', manaCost: '{2}{G}',
+    types: ['creature'], subtypes: ['Beast', 'Noble'],
+    frameColor: 'green',
+    rarity: 'rare',
+    abilities: 'Lovestruck Beast can\'t attack unless you control a 1/1 creature.',
+    power: '5', toughness: '5',
+    linkType: 'adventure',
+    linkedCard: {
+      name: 'Heart\'s Desire', manaCost: '{G}',
+      types: ['sorcery'],
+      subtypes: ['Adventure'],
+      abilities: 'Create a 1/1 white Human creature token.',
+    },
+  });
+
   console.log(`\nDone! ${idx} cards total, rendered to ${OUT}`);
 }
 

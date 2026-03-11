@@ -117,7 +117,8 @@ export async function renderCard(input: CardData | string): Promise<RenderedCard
 
   let backFace: Buffer | undefined;
   let backFaceOrientation: 'horizontal' | 'vertical' | undefined;
-  if (normalized.linkedCard) {
+  // Adventure cards render both faces on one image — no separate back face
+  if (normalized.linkedCard && normalized.linkType !== 'adventure') {
     const normalizedBack = normalizeCard(normalized.linkedCard);
     backFace = await renderCardImage(normalizedBack);
     const backTemplate = resolveTemplate(normalizedBack);

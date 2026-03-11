@@ -8,6 +8,7 @@ import {
   SAGA_LAYOUT,
   BTL_W, BTL_H, BTL_LAYOUT,
   CLASS_LAYOUT,
+  ADV_LAYOUT,
   ASSETS_DIR,
 } from '../layout';
 import { getParsedAbilities, resolveTemplate } from '../parser';
@@ -22,6 +23,7 @@ import { planeswalkerHooks } from './planeswalker';
 import { sagaHooks } from './saga';
 import { classHooks } from './class';
 import { battleHooks } from './battle';
+import { adventureHooks } from './adventure';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyLayout = Record<string, any>;
@@ -46,6 +48,7 @@ const TEMPLATES: Record<string, TemplateConfig> = {
   saga:               { layout: SAGA_LAYOUT, w: PW_W, h: PW_H, frame: 'saga', hooks: sagaHooks },
   class:              { layout: CLASS_LAYOUT, w: PW_W, h: PW_H, frame: 'class', hooks: classHooks },
   battle:             { layout: BTL_LAYOUT, w: BTL_W, h: BTL_H, frame: 'battle', hooks: battleHooks },
+  adventure:          { layout: ADV_LAYOUT, w: PW_W, h: PW_H, frame: 'adventure', hooks: adventureHooks },
 };
 
 export async function renderCardImage(card: CardData, templateOverride?: string): Promise<Buffer> {

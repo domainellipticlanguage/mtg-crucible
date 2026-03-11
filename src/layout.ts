@@ -113,6 +113,26 @@ export const CLASS_LAYOUT = {
   crown:     { x: 44/2010, y: 53/2814, w: 1922/2010, h: 493/2814 },
 };
 
+// Adventure layout (packAdventure.js)
+// Uses PW canvas size (1500x2100) — same as the adventure frame images.
+export const ADV_LAYOUT = {
+  art:       { x: 0.0767, y: 0.1129, w: 0.8476, h: 0.4429 },
+  name:      { x: 0.0854, y: 0.0522, w: 0.8292, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
+  mana:      { y: 0.0613, w: 0.9292, size: 71/1638, shadowX: -0.001, shadowY: 0.0029 },
+  type:      { x: 0.0854, y: 0.5664, w: 0.8292, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
+  // Main creature rules (right side of the "book")
+  rules:     { x: 0.5267, y: 0.65, w: 0.3867, h: 0.2358, size: 0.0353, font: 'MPlantin' },
+  pt:        { x: 0.7928, y: 0.902, w: 0.1367, h: 0.0372, size: 0.0372, font: 'Beleren Bold SmCaps' },
+  ptBox:     { x: 0.7573, y: 0.8848, w: 0.188, h: 0.0733 },
+  setSymbol: { x: 0.9213, y: 0.5910, w: 0.12, h: 0.0700 },
+  crown:     { x: 44/2010, y: 53/2814, w: 1922/2010, h: 493/2814 },
+  // Adventure-specific areas
+  advName:   { x: 0.0814, y: 0.6391, w: 0.4, h: 0.0296, size: 0.0296, font: 'Beleren Bold' },
+  advMana:   { x: 0.0814, y: 0.6391, w: 0.4, size: 60/1638, shadowX: -0.001, shadowY: 0.0029 },
+  advType:   { x: 0.0814, y: 0.6839, w: 0.4, h: 0.0296, size: 0.0296, font: 'Beleren Bold' },
+  advRules:  { x: 0.0854, y: 0.7358, w: 0.3947, h: 0.15, size: 0.0353, font: 'MPlantin' },
+};
+
 // Battle layout (packBattle.js)
 export const BTL_LAYOUT = {
   art:     { x: 167/2100, y: 60/1500, w: 1873/2100, h: 1371/1500 },

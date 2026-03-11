@@ -220,19 +220,39 @@ async function compareCard(name: string, set?: string): Promise<string> {
   console.log(`  Text definition:\n${text}\n`);
 
   console.log(`  Rendering our version...`);
-  // If DFC, attach linkedCard
+  // If DFC / adventure, attach linkedCard
   let cardInput: CardData | string = text;
   if (backFace) {
     const { parseCard } = await import('../src');
     const parsed = parseCard(text);
-    parsed.linkType = 'transform';
+    const isAdventure = sf.layout === 'adventure';
+    parsed.linkType = isAdventure ? 'adventure' : 'transform';
+    const backTypes: string[] = [];
+    const backSubtypes: string[] = [];
+    if (backFace.type_line) {
+      const typeLine = backFace.type_line as string;
+      // Parse "Instant — Adventure" etc.
+      const [mainPart, subPart] = typeLine.split('—').map((s: string) => s.trim());
+      for (const t of mainPart.toLowerCase().split(/\s+/)) {
+        if (['creature', 'instant', 'sorcery', 'enchantment', 'artifact', 'planeswalker', 'land', 'battle'].includes(t)) {
+          backTypes.push(t);
+        }
+      }
+      if (subPart) {
+        for (const s of subPart.split(/\s+/)) {
+          backSubtypes.push(s);
+        }
+      }
+    }
     parsed.linkedCard = {
       name: backFace.name,
-      types: backFace.type_line?.toLowerCase().includes('creature') ? ['creature'] as any : undefined,
+      types: backTypes.length > 0 ? backTypes as any : undefined,
+      subtypes: backSubtypes.length > 0 ? backSubtypes : undefined,
       abilities: backFace.oracle_text?.replace(/\u2212/g, '-'),
       power: backFace.power,
       toughness: backFace.toughness,
       artUrl: backFace.image_uris?.art_crop,
+      manaCost: backFace.mana_cost,
     };
     if (backFace.color_indicator?.length > 0) {
       parsed.linkedCard.colorIndicator = backFace.color_indicator.map((c: string) => SF_COLOR_NAMES[c]) as any;

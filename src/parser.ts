@@ -5,6 +5,7 @@ import {
   SAGA_LAYOUT,
   BTL_W, BTL_H, BTL_LAYOUT,
   CLASS_LAYOUT,
+  ADV_LAYOUT,
 } from './layout';
 
 const MANA_COST_REGEX = /^(.+?)\s+((?:\{[^}]+\})+)$/;
@@ -924,6 +925,7 @@ const TEMPLATE_CONFIGS: Record<TemplateName, { layout: Record<string, any>; w: n
   saga:               { layout: SAGA_LAYOUT, w: PW_W, h: PW_H },
   class:              { layout: CLASS_LAYOUT, w: PW_W, h: PW_H },
   battle:             { layout: BTL_LAYOUT, w: BTL_W, h: BTL_H },
+  adventure:          { layout: ADV_LAYOUT, w: PW_W, h: PW_H },
 };
 
 export function getParsedAbilities(card: CardData): ParsedAbilities {
@@ -941,6 +943,7 @@ export function resolveTemplate(card: CardData): TemplateName {
   if (pa.structuredAbilities?.kind === 'saga') return 'saga';
   if (pa.structuredAbilities?.kind === 'class') return 'class';
   if (card.battleDefense) return 'battle';
+  if (card.linkType === 'adventure') return 'adventure';
   return 'standard';
 }
 
