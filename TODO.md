@@ -17,9 +17,9 @@
 - [ ] Leveler (e.g. Level Up creatures — not Class, the old Zendikar ones)
 - [ ] Prototype (e.g. Phyrexian prototype creatures)
 - [ ] Case (e.g. Murders at Karlov Manor case enchantments)
-- [ ] Mutate (visual treatment TBD)
+- [ ] Mutate (visual treatment TBD) - todo won't support?
 - [ ] Room (Duskmourn rooms — split variant)
-- [ ] Token / Emblem
+- [ ] Token / Emblem - todo remove
 
 ## Frame Effects
 
@@ -28,9 +28,9 @@
 - [x] Nyx (enchantment creatures)
 - [x] Snow
 - [x] Devoid
-- [x] Miracle (overlay effect)
+- [x] Miracle (overlay effect) - todo remove
 
-### Not Started
+### Not Started (won't do)
 - [ ] Showcase frames (set-specific, probably out of scope)
 - [ ] Extended art
 - [ ] Borderless
@@ -39,8 +39,8 @@
 ## Rendering Quality
 
 - [ ] Multi-color adventure frames (gradient blending in the book area)
-- [ ] Watermarks (guild symbols, set symbols in rules text background)
-- [ ] Hybrid mana frame treatment (half-and-half frame, not gradient)
+- [ ] Watermarks (guild symbols, set symbols in rules text background) (won't do)
+- [X] Hybrid mana frame treatment
 - [ ] Color indicator positioning refinement
 - [ ] Better text auto-sizing for edge cases (very long names, many abilities)
 - [ ] Flavor text divider bar (the small line between rules and flavor)

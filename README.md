@@ -405,3 +405,47 @@ Extract pinlines, etc.
 - Remove colorless frame
 - How to deprecate levelers, etc.?
 - Deprecate battles
+
+# Cruscible Text Format
+```
+Huntmaster of the Fells {2}{R}{G}
+Has Legend Crown: false
+Frame Color: Gold
+Accent Color: Red and Green
+Frame Effect: Normal
+Name Line Color: Gold
+Type Line Color: Gold
+Art URL: ...
+Art Description: ...
+Creature — Human Werewolf
+Whenever this creature enters or transforms into Huntmaster of the Fells, create a 2/2 green Wolf creature token and you gain 2 life.
+At the beginning of each upkeep, if no spells were cast last turn, transform this creature.
+2/2
+Flavor Text: He's a pretty cool guy
+wraps around to next line
+Set Code: INR
+Artist: Chris Rain
+Collector Number: 205
+Designer: Mark Rosewater?
+--transform--
+Ravager of the Fells
+Has Legend Crown: false
+Frame Color: Gold
+Accent Color: Red and Green
+Frame Effect: Normal
+Name Line Color: Gold
+Type Line Color: Gold
+Art URL: ...
+Art Description: ...
+Color Indicator: Red and Green
+Creature — Werewolf
+Trample
+Whenever this creature transforms into Ravager of the Fells, it deals 2 damage to target opponent or planeswalker and 2 damage to up to one target creature that player or that planeswalker's controller controls.
+At the beginning of each upkeep, if a player cast two or more spells last turn, transform this creature.
+4/4
+Flavor Text: Another flavor text
+Set Code: INR
+Artist: Chris Rain
+Collector Number: 205
+Designer: Mark Rosewater?
+```
