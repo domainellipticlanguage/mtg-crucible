@@ -429,12 +429,6 @@ Collector Number: 205
 Designer: Mark Rosewater?
 --transform--
 Ravager of the Fells
-Has Legend Crown: false
-Frame Color: Gold
-Accent Color: Red and Green
-Frame Effect: Normal
-Name Line Color: Gold
-Type Line Color: Gold
 Art URL: ...
 Art Description: ...
 Color Indicator: Red and Green
@@ -444,8 +438,4 @@ Whenever this creature transforms into Ravager of the Fells, it deals 2 damage t
 At the beginning of each upkeep, if a player cast two or more spells last turn, transform this creature.
 4/4
 Flavor Text: Another flavor text
-Set Code: INR
-Artist: Chris Rain
-Collector Number: 205
-Designer: Mark Rosewater?
 ```
