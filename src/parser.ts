@@ -340,8 +340,10 @@ export function parseAbilities(text: string, kind?: StructuredAbilities['kind'])
       const reminderLines: string[] = [];
       const abilityLines: string[] = [];
       for (const line of level0Lines) {
-        if (reminderLines.length === 0 && abilityLines.length === 0 && /^\*\(.*\)\*$/.test(line.trim())) {
-          reminderLines.push(line.trim().slice(1, -1));
+        const trimmed = line.trim();
+        // Match reminder text: either *(...)*  or bare (...)
+        if (reminderLines.length === 0 && abilityLines.length === 0 && (/^\*\(.*\)\*$/.test(trimmed) || /^\(.*\)$/.test(trimmed))) {
+          reminderLines.push(trimmed.replace(/^\*|\*$/g, ''));
         } else {
           abilityLines.push(line);
         }
