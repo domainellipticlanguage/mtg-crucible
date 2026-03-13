@@ -50,7 +50,7 @@ async function body(ctx: SKRSContext2D, card: CardData, L: Record<string, any>, 
   const barSpacing = textSize * 0.5;
   const reminderText = pa.unstructuredAbilities?.join('\n');
   if (reminderText) {
-    const rh = measureTextHeight(ctx, reminderText, levelW, reminderSize, 'MPlantin Italic');
+    const rh = measureTextHeight(ctx, reminderText, levelW, reminderSize, 'MPlantin');
     reminderH = (rh + barHeight + barSpacing * 2) / ch;
   }
 
@@ -75,15 +75,14 @@ async function body(ctx: SKRSContext2D, card: CardData, L: Record<string, any>, 
   for (let i = 0; i < levelCount; i++) {
     const level = classLevels[i];
 
-    // Level 1: render reminder text + bar before the ability text
+    // Level 1: render unstructured abilities (reminder text in italic, rest in regular) + bar
     if (i === 0 && reminderText) {
       const reminderResult = drawWrappedText(
         ctx, reminderText,
         levelX, lastY * ch, levelW, reminderH * ch,
-        'MPlantin Italic', reminderSize,
-        { fontFamily: 'MPlantin Italic' },
+        'MPlantin', reminderSize,
       );
-      const reminderUsedH = reminderResult.usedHeight || measureTextHeight(ctx, reminderText, levelW, reminderSize, 'MPlantin Italic');
+      const reminderUsedH = reminderResult.usedHeight || measureTextHeight(ctx, reminderText, levelW, reminderSize, 'MPlantin');
 
       // Horizontal bar separator
       const barY = lastY * ch + reminderUsedH + barSpacing;

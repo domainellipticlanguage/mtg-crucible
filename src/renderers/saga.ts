@@ -28,7 +28,7 @@ async function body(ctx: SKRSContext2D, card: CardData, L: Record<string, any>, 
   if (reminderText) {
     const reminderX = L.ability.x * cw;
     const reminderW = L.ability.w * cw;
-    ctx.font = `${reminderSize}px "MPlantin Italic"`;
+    ctx.font = `${reminderSize}px "MPlantin"`;
     const reminderParas = reminderText.split('\n').filter(p => p.trim());
     const reminderLines = wrapParagraphs(ctx, reminderParas, reminderW, reminderSize);
     const reminderH = computeHeight(reminderLines, reminderSize, reminderSize * 0.35);
@@ -37,7 +37,7 @@ async function body(ctx: SKRSContext2D, card: CardData, L: Record<string, any>, 
 
     drawWrappedText(ctx, reminderText,
       reminderX, L.ability.y * ch, reminderW, reminderH + reminderPadding,
-      'MPlantin Italic', reminderSize, { fontFamily: 'MPlantin Italic' });
+      'MPlantin', reminderSize);
   }
 
   const chapterStartYN = L.ability.y + reminderOffsetN;

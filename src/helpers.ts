@@ -83,7 +83,9 @@ async function drawGradientFrames(
   cw: number, ch: number,
 ): Promise<void> {
   if (colorCodes.length === 0) return;
-  const dirs = Array.isArray(template) ? template : colorCodes.map(() => template);
+  const rawDirs = Array.isArray(template) ? template : colorCodes.map(() => template);
+  // Ensure dirs covers all colorCodes by cycling
+  const dirs = colorCodes.map((_, i) => rawDirs[i % rawDirs.length]);
 
   // Draw base frame
   const basePath = path.join(ASSETS_DIR, 'frames', dirs[0], `${colorCodes[0]}.png`);
