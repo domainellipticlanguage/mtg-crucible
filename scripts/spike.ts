@@ -292,11 +292,13 @@ async function main() {
     rarity: 'rare',
     artist: 'Wylie Beckert', collectorNumber: '301',
     abilities: {
-      unstructuredAbilities: ['(Gain the next level as a sorcery to add its ability.)'],
+      unstructuredAbilities: ['(Gain the next level as a sorcery to add its ability.)',
+        'When this Class enters, scry 2, then draw a card.'
+      ],
       structuredAbilities: {
         kind: 'class',
         classLevels: [
-          { level: 1, cost: '', text: 'When this Class enters, scry 2, then draw a card.' },
+          // { level: 1, cost: '', text: 'When this Class enters, scry 2, then draw a card.' },
           { level: 2, cost: '{1}{W}{U}', text: 'Instant and sorcery spells you cast cost {1} less to cast.' },
           { level: 3, cost: '{3}{W}{U}', text: 'Whenever you cast a noncreature spell, create a 1/1 white Bird creature token with flying.' },
         ],
@@ -499,6 +501,24 @@ async function main() {
       types: ['sorcery'],
       subtypes: ['Adventure'],
       abilities: 'Create a 1/1 white Human creature token.',
+    },
+  });
+
+  // 38. Adventure card — multicolor stress test (Fae of Wishes // Granted style)
+  await render('fae-of-wishes', {
+    name: 'Fae of Wishes', manaCost: '{1}{U}{B}',
+    types: ['creature'], subtypes: ['Faerie', 'Wizard'],
+    supertypes: ['legendary'],
+    frameColor: ['blue', 'black'],
+    rarity: 'mythic',
+    abilities: 'Flying\nWhenever Fae of Wishes deals combat damage to a player, you may cast a spell from exile without paying its mana cost if it was put there with Granted.',
+    power: '1', toughness: '4',
+    linkType: 'adventure',
+    linkedCard: {
+      name: 'Granted', manaCost: '{3}{U}{B}',
+      types: ['sorcery'],
+      subtypes: ['Adventure'],
+      abilities: 'Search your library for a noncreature card, exile it face down, then shuffle. You may look at it for as long as it remains exiled.',
     },
   });
 

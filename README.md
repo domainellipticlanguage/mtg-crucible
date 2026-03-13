@@ -369,16 +369,39 @@ Could we support hybrid borders via draw tools? linear gradient to shift between
 
 devoid cards are full art
 
-Remove support for asterisk-bounded flavor text
-
-Normal form - I guess we should use caps for everything? titel case? Avoid conversions...
 
 
 Normal form - abilities should be converted to an array?
     - should have a Null StructuredAbilities new type of Parsed
     
 # Parser
-Explicit legendCrown field
+Explicit legendCrown field (Has Legend Crown: true/false?)
 Refactor stuff under flavor or style
 
 Maybe CardData should have an Art Alt text. For storing art description?
+- Or Art Description
+- Should Art be Art URL?
+Embed linktype in separator
+Define normalized form
+
+Remove support for asterisk-bounded flavor text
+
+Normal form - I guess we should use caps for everything? titel case? Avoid conversions...
+
+
+# Renderer
+gradient for adventure book thing - that's the accent colors
+Support split cards - no mask, just clip
+Support MDFC
+Fix battles?
+
+
+# Optimization
+Convert from O(M*N) to O(M+N)
+Extract wubrgla textures
+Extract pinlines, etc.
+
+# Scope Down
+- Remove colorless frame
+- How to deprecate levelers, etc.?
+- Deprecate battles
