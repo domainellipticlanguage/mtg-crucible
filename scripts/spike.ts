@@ -522,6 +522,49 @@ async function main() {
     },
   });
 
+  // 39. Transform card — Delver of Secrets // Insectile Aberration
+  const delver = await render('delver-of-secrets', {
+    name: 'Delver of Secrets', manaCost: '{U}',
+    types: ['creature'], subtypes: ['Human', 'Wizard'],
+    frameColor: 'blue',
+    rarity: 'common',
+    abilities: 'At the beginning of your upkeep, look at the top card of your library. You may reveal that card. If an instant or sorcery card is revealed this way, transform Delver of Secrets.',
+    power: '1', toughness: '1',
+    linkType: 'transform',
+    linkedCard: {
+      name: 'Insectile Aberration',
+      types: ['creature'], subtypes: ['Human', 'Insect'],
+      frameColor: 'blue',
+      colorIndicator: ['blue'],
+      abilities: 'Flying',
+      power: '3', toughness: '2',
+    },
+  });
+  // Write back face too
+  if (delver?.backFace) {
+    fs.writeFileSync(path.join(OUT, `${String(idx).padStart(2, '0')}-delver-back.png`), delver.backFace);
+  }
+
+  // 40. Modal DFC — Emeria's Call // Emeria, Shattered Skyclave
+  const emeria = await render('emerias-call', {
+    name: "Emeria's Call", manaCost: '{4}{W}{W}{W}',
+    supertypes: ['legendary'],
+    types: ['sorcery'],
+    frameColor: 'white',
+    rarity: 'mythic',
+    abilities: 'Create two 4/4 white Angel Warrior creature tokens with flying. Non-Angel creatures you control gain indestructible until your next turn.',
+    linkType: 'modal_dfc',
+    linkedCard: {
+      name: 'Emeria, Shattered Skyclave',
+      types: ['land'],
+      frameColor: 'land',
+      abilities: 'As Emeria, Shattered Skyclave enters, you may pay 3 life. If you don\'t, it enters tapped.\n{T}: Add {W}.',
+    },
+  });
+  if (emeria?.backFace) {
+    fs.writeFileSync(path.join(OUT, `${String(idx).padStart(2, '0')}-emeria-back.png`), emeria.backFace);
+  }
+
   console.log(`\nDone! ${idx} cards total, rendered to ${OUT}`);
 }
 

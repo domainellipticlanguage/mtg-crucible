@@ -6,6 +6,8 @@ import {
   BTL_W, BTL_H, BTL_LAYOUT,
   CLASS_LAYOUT,
   ADV_LAYOUT,
+  TF_FRONT_LAYOUT, TF_BACK_LAYOUT,
+  MDFC_FRONT_LAYOUT, MDFC_BACK_LAYOUT,
 } from './layout';
 
 const MANA_COST_REGEX = /^(.+?)\s+((?:\{[^}]+\})+)$/;
@@ -928,6 +930,10 @@ const TEMPLATE_CONFIGS: Record<TemplateName, { layout: Record<string, any>; w: n
   class:              { layout: CLASS_LAYOUT, w: PW_W, h: PW_H },
   battle:             { layout: BTL_LAYOUT, w: BTL_W, h: BTL_H },
   adventure:          { layout: ADV_LAYOUT, w: PW_W, h: PW_H },
+  transform_front:    { layout: TF_FRONT_LAYOUT, w: PW_W, h: PW_H },
+  transform_back:     { layout: TF_BACK_LAYOUT, w: PW_W, h: PW_H },
+  mdfc_front:         { layout: MDFC_FRONT_LAYOUT, w: PW_W, h: PW_H },
+  mdfc_back:          { layout: MDFC_BACK_LAYOUT, w: PW_W, h: PW_H },
 };
 
 export function getParsedAbilities(card: CardData): ParsedAbilities {

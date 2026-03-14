@@ -9,6 +9,8 @@ import {
   BTL_W, BTL_H, BTL_LAYOUT,
   CLASS_LAYOUT,
   ADV_LAYOUT,
+  TF_FRONT_LAYOUT, TF_BACK_LAYOUT,
+  MDFC_FRONT_LAYOUT, MDFC_BACK_LAYOUT,
   ASSETS_DIR,
 } from '../layout';
 import { getParsedAbilities, resolveTemplate } from '../parser';
@@ -24,6 +26,7 @@ import { sagaHooks } from './saga';
 import { classHooks } from './class';
 import { battleHooks } from './battle';
 import { adventureHooks } from './adventure';
+import { transformFrontHooks, transformBackHooks, mdfcHooks } from './dfc';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyLayout = Record<string, any>;
@@ -39,6 +42,10 @@ interface TemplateConfig {
   h: number;
   frame: string;
   hooks?: TemplateHooks;
+  /** Override crown asset directory (e.g. 'transformFront', 'transformBack', 'modal') */
+  crownDir?: string;
+  /** Override P/T box asset directory (e.g. 'transform') */
+  ptDir?: string;
 }
 
 const TEMPLATES: Record<string, TemplateConfig> = {
@@ -49,17 +56,24 @@ const TEMPLATES: Record<string, TemplateConfig> = {
   class:              { layout: CLASS_LAYOUT, w: PW_W, h: PW_H, frame: 'class', hooks: classHooks },
   battle:             { layout: BTL_LAYOUT, w: BTL_W, h: BTL_H, frame: 'battle', hooks: battleHooks },
   adventure:          { layout: ADV_LAYOUT, w: PW_W, h: PW_H, frame: 'adventure', hooks: adventureHooks },
+  transform_front:    { layout: TF_FRONT_LAYOUT, w: PW_W, h: PW_H, frame: 'transformFront', hooks: transformFrontHooks, crownDir: 'transformFront' },
+  transform_back:     { layout: TF_BACK_LAYOUT, w: PW_W, h: PW_H, frame: 'transformBack', hooks: transformBackHooks, crownDir: 'transformBack', ptDir: 'transform' },
+  mdfc_front:         { layout: MDFC_FRONT_LAYOUT, w: PW_W, h: PW_H, frame: 'modalFront', hooks: mdfcHooks, crownDir: 'modal' },
+  mdfc_back:          { layout: MDFC_BACK_LAYOUT, w: PW_W, h: PW_H, frame: 'modalBack', hooks: mdfcHooks, crownDir: 'modal' },
 };
 
 export async function renderCardImage(card: CardData, templateOverride?: string): Promise<Buffer> {
   const templateKey = templateOverride ?? resolveTemplate(card);
   const config = TEMPLATES[templateKey] ?? TEMPLATES.standard;
-  const { layout: L, w: cw, h: ch, frame, hooks } = config;
+  const { layout: L, w: cw, h: ch, frame, hooks, crownDir, ptDir } = config;
 
   const fc = primaryFrameColorCode(card.frameColor);
   const frameCodes = normalizeFrameColors(card.frameColor);
   const accentCodes = normalizeAccentColors(card.accentColor);
   const crownCodes = accentCodes ?? frameCodes;
+
+  // Text color override (transform back uses white)
+  const textColor = L.textColor || 'black';
 
   const canvas = createCanvas(cw, ch);
   const ctx = canvas.getContext('2d');
@@ -89,6 +103,7 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
   });
   const nameLineCodes = normalizeFrameColors(card.nameLineColor);
   const typeLineCodes = normalizeFrameColors(card.typeLineColor);
+
   await drawFrame(ctx, frameDirs, card.frameColor, card.accentColor, cw, ch, nameLineCodes, typeLineCodes);
 
   // Overlay effects: draw effect frames on top of the standard frame
@@ -107,20 +122,22 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
 
   // Legend crown (planeswalkers use their own frame treatment)
   if (L.crown && card.supertypes?.includes('legendary') && !templateKey.startsWith('planeswalker')) {
-    const crownPath = path.join(ASSETS_DIR, 'crowns', `${crownCodes[0]}.png`);
+    const crownBase = crownDir ? path.join(ASSETS_DIR, 'crowns', crownDir) : path.join(ASSETS_DIR, 'crowns');
+    const crownPath = path.join(crownBase, `${crownCodes[0]}.png`);
     if (fs.existsSync(crownPath)) {
       ctx.fillStyle = 'black';
       ctx.fillRect(0, 0, cw, (137 / 2814) * ch);
       const maskPath = path.join(ASSETS_DIR, 'crowns', 'maskCrownPinline.png');
       const maskImg = fs.existsSync(maskPath) ? await loadImage(maskPath) : null;
-      await drawGradientCrowns(ctx, crownCodes, L.crown.x * cw, L.crown.y * ch, L.crown.w * cw, L.crown.h * ch, maskImg, cw, ch);
+      await drawGradientCrowns(ctx, crownCodes, L.crown.x * cw, L.crown.y * ch, L.crown.w * cw, L.crown.h * ch, maskImg, cw, ch, crownBase);
     }
   }
 
   // P/T box image: match type line bar color
   if (L.ptBox && card.power && card.toughness) {
     const ptColor = typeLineCodes[0];
-    const ptPath = path.join(ASSETS_DIR, 'pt', `${ptColor}.png`);
+    const ptBase = ptDir ? path.join(ASSETS_DIR, 'pt', ptDir) : path.join(ASSETS_DIR, 'pt');
+    const ptPath = path.join(ptBase, `${ptColor}.png`);
     if (fs.existsSync(ptPath)) {
       ctx.drawImage(await loadImage(ptPath), L.ptBox.x * cw, L.ptBox.y * ch, L.ptBox.w * cw, L.ptBox.h * ch);
     }
@@ -141,7 +158,7 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
   // Name (shrink available width to avoid mana cost)
   const manaW = card.manaCost ? measureManaCostWidth(card.manaCost, ch, L.mana.size) : 0;
   const nameW = L.name.w * cw - manaW;
-  drawSingleLineText(ctx, card.name ?? '', L.name.x * cw, L.name.y * ch, nameW, L.name.h * ch, L.name.font, L.name.size * ch);
+  drawSingleLineText(ctx, card.name ?? '', L.name.x * cw, L.name.y * ch, nameW, L.name.h * ch, L.name.font, L.name.size * ch, 'left', textColor);
 
   // Type line + color indicator (shrink available width to avoid set symbol)
   const typeX = L.type.x * cw;
@@ -149,7 +166,7 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
   const typeH = L.type.h * ch;
   const indicatorOffset = drawColorIndicator(ctx, card.colorIndicator, typeX, typeY, typeH);
   const typeW = L.type.w * cw - indicatorOffset - setSymW;
-  drawSingleLineText(ctx, getTypeLine(card), typeX + indicatorOffset, typeY, typeW, typeH, L.type.font, L.type.size * ch);
+  drawSingleLineText(ctx, getTypeLine(card), typeX + indicatorOffset, typeY, typeW, typeH, L.type.font, L.type.size * ch, 'left', textColor);
 
   // Rules + flavor text (for templates with a rules area)
   const pa = getParsedAbilities(card);
@@ -176,8 +193,8 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
   // P/T text
   if (L.pt && card.power && card.toughness) {
     const ptFrameColor = Array.isArray(card.frameColor) ? card.frameColor[0] : card.frameColor;
-    const ptColor = ptFrameColor === 'vehicle' ? 'white' : 'black';
-    drawSingleLineText(ctx, `${card.power}/${card.toughness}`, L.pt.x * cw, L.pt.y * ch, L.pt.w * cw, L.pt.h * ch, L.pt.font, L.pt.size * ch, 'center', ptColor);
+    const ptTextColor = L.textColor || (ptFrameColor === 'vehicle' ? 'white' : 'black');
+    drawSingleLineText(ctx, `${card.power}/${card.toughness}`, L.pt.x * cw, L.pt.y * ch, L.pt.w * cw, L.pt.h * ch, L.pt.font, L.pt.size * ch, 'center', ptTextColor);
   }
 
   // Bottom info (battles: rotated to portrait orientation along right edge)

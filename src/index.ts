@@ -111,8 +111,20 @@ export async function renderCard(input: CardData | string): Promise<RenderedCard
   const normalized = normalizeCard(card);
 
   await ensureInitialized();
-  const frontFace = await renderCardImage(normalized);
-  const frontTemplate = resolveTemplate(normalized);
+
+  // Determine DFC template overrides based on linkType
+  let frontTemplateOverride: string | undefined;
+  let backTemplateOverride: string | undefined;
+  if (normalized.linkType === 'transform') {
+    frontTemplateOverride = 'transform_front';
+    backTemplateOverride = 'transform_back';
+  } else if (normalized.linkType === 'modal_dfc') {
+    frontTemplateOverride = 'mdfc_front';
+    backTemplateOverride = 'mdfc_back';
+  }
+
+  const frontFace = await renderCardImage(normalized, frontTemplateOverride);
+  const frontTemplate = frontTemplateOverride ?? resolveTemplate(normalized);
   const frontFaceOrientation = frontTemplate === 'battle' ? 'horizontal' : 'vertical';
 
   let backFace: Buffer | undefined;
@@ -120,8 +132,12 @@ export async function renderCard(input: CardData | string): Promise<RenderedCard
   // Adventure cards render both faces on one image — no separate back face
   if (normalized.linkedCard && normalized.linkType !== 'adventure') {
     const normalizedBack = normalizeCard(normalized.linkedCard);
-    backFace = await renderCardImage(normalizedBack);
-    const backTemplate = resolveTemplate(normalizedBack);
+    // For MDFC, back face needs a reference to the front for the flipside hint
+    if (normalized.linkType === 'modal_dfc') {
+      normalizedBack.linkedCard = normalized;
+    }
+    backFace = await renderCardImage(normalizedBack, backTemplateOverride);
+    const backTemplate = backTemplateOverride ?? resolveTemplate(normalizedBack);
     backFaceOrientation = backTemplate === 'battle' ? 'horizontal' : 'vertical';
   }
 

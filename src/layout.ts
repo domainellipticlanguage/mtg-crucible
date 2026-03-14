@@ -133,6 +133,57 @@ export const ADV_LAYOUT = {
   advRules:  { x: 0.0854, y: 0.7358, w: 0.3947, h: 0.15, size: 0.0353, font: 'MPlantin' },
 };
 
+// Transform front layout (packM15TransformFront.js)
+// 1500x2100. Title shifted right for transform icon. Reverse PT hint at bottom.
+export const TF_FRONT_LAYOUT = {
+  art:       { x: 0.0767, y: 0.1129, w: 0.8476, h: 0.4429 },
+  name:      { x: 0.16, y: 0.0522, w: 0.7547, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
+  mana:      { y: 0.0613, w: 0.9292, size: 71/1638, shadowX: -0.001, shadowY: 0.0029 },
+  type:      { x: 0.0854, y: 0.5664, w: 0.8292, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
+  rules:     { x: 0.086, y: 0.6303, w: 0.828, h: 0.2875, size: 0.0362, font: 'MPlantin' },
+  pt:        { x: 0.7928, y: 0.902, w: 0.1367, h: 0.0372, size: 0.0372, font: 'Beleren Bold SmCaps' },
+  ptBox:     { x: 0.7573, y: 0.8848, w: 0.188, h: 0.0733 },
+  setSymbol: { x: 0.9213, y: 0.5910, w: 0.12, h: 0.0700 },
+  crown:     { x: 0.0274, y: 0.0191, w: 0.9454, h: 0.1667 },
+  // Hint: back face P/T shown at bottom-right of rules
+  reversePt: { x: 0.086, y: 0.842, w: 0.838, h: 0.0362, size: 0.0291, font: 'Beleren Bold SmCaps' },
+};
+
+// Transform back layout (packM15TransformBack.js)
+// Same as front but with white text. Frame is mirrored horizontally.
+export const TF_BACK_LAYOUT = {
+  art:       { x: 0.0767, y: 0.1129, w: 0.8476, h: 0.4429 },
+  name:      { x: 0.16, y: 0.0522, w: 0.7547, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
+  mana:      { y: 0.0613, w: 0.9292, size: 71/1638, shadowX: -0.001, shadowY: 0.0029 },
+  type:      { x: 0.0854, y: 0.5664, w: 0.8292, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
+  rules:     { x: 0.086, y: 0.6303, w: 0.828, h: 0.2875, size: 0.0362, font: 'MPlantin' },
+  pt:        { x: 0.7928, y: 0.902, w: 0.1367, h: 0.0372, size: 0.0372, font: 'Beleren Bold SmCaps' },
+  ptBox:     { x: 0.7573, y: 0.8848, w: 0.188, h: 0.0733 },
+  setSymbol: { x: 0.9213, y: 0.5910, w: 0.12, h: 0.0700 },
+  crown:     { x: 0.0274, y: 0.0191, w: 0.9454, h: 0.1667 },
+  textColor: 'white',
+};
+
+// Modal DFC front layout (packModalRegular.js)
+// 1500x2100. Title shifted right for MDFC arrow. Flipside hint at bottom.
+export const MDFC_FRONT_LAYOUT = {
+  art:       { x: 0.0767, y: 0.1129, w: 0.8476, h: 0.4429 },
+  name:      { x: 0.1614, y: 0.0522, w: 0.7534, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
+  mana:      { y: 0.0613, w: 0.9292, size: 71/1638, shadowX: -0.001, shadowY: 0.0029 },
+  type:      { x: 0.0854, y: 0.5664, w: 0.8292, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
+  rules:     { x: 0.086, y: 0.6303, w: 0.828, h: 0.2875, size: 0.0362, font: 'MPlantin' },
+  pt:        { x: 0.7928, y: 0.902, w: 0.1367, h: 0.0372, size: 0.0372, font: 'Beleren Bold SmCaps' },
+  ptBox:     { x: 0.7573, y: 0.8848, w: 0.188, h: 0.0733 },
+  setSymbol: { x: 0.9213, y: 0.5910, w: 0.12, h: 0.0700 },
+  crown:     { x: 0.0274, y: 0.0191, w: 0.9454, h: 0.1667 },
+  // Flipside hint at bottom
+  flipsideType: { x: 0.068, y: 0.892, w: 0.86, h: 0.0391, size: 0.0234, font: 'Beleren Bold' },
+  flipsideReminder: { x: 0.068, y: 0.892, w: 0.86, h: 0.0391, size: 0.0258, font: 'MPlantin' },
+};
+
+// Modal DFC back layout — same as front (both faces show flipside hints)
+export const MDFC_BACK_LAYOUT = { ...MDFC_FRONT_LAYOUT };
+
 // Battle layout (packBattle.js)
 export const BTL_LAYOUT = {
   art:     { x: 167/2100, y: 60/1500, w: 1873/2100, h: 1371/1500 },

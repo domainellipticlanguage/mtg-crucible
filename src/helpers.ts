@@ -24,7 +24,10 @@ export function normalizeFrameColors(fc: CardData['frameColor']): string[] {
 /** Normalize accentColor (scalar or array) to an array of color codes, or undefined. */
 export function normalizeAccentColors(ac: CardData['accentColor']): string[] | undefined {
   if (!ac) return undefined;
-  if (Array.isArray(ac)) return ac.map(c => frameColorCode(c));
+  if (Array.isArray(ac)) {
+    const codes = ac.map(c => frameColorCode(c));
+    return codes.length > 0 ? codes : undefined;
+  }
   return [frameColorCode(ac)];
 }
 
@@ -351,11 +354,13 @@ export async function drawGradientCrowns(
   x: number, y: number, w: number, h: number,
   maskImg: any | null,
   cw: number, ch: number,
+  baseDir?: string,
 ): Promise<void> {
   if (colorCodes.length === 0) return;
+  const crownDir = baseDir ?? path.join(ASSETS_DIR, 'crowns');
 
   const drawCrown = async (crownCtx: SKRSContext2D, code: string) => {
-    const crownPath = path.join(ASSETS_DIR, 'crowns', `${code}.png`);
+    const crownPath = path.join(crownDir, `${code}.png`);
     if (fs.existsSync(crownPath)) {
       crownCtx.drawImage(await loadImage(crownPath), x, y, w, h);
     }
@@ -370,7 +375,7 @@ export async function drawGradientCrowns(
 
   // Overlay subsequent crowns through gradient masks
   for (let i = 1; i < colorCodes.length; i++) {
-    const crownPath = path.join(ASSETS_DIR, 'crowns', `${colorCodes[i]}.png`);
+    const crownPath = path.join(crownDir, `${colorCodes[i]}.png`);
     if (!fs.existsSync(crownPath)) continue;
 
     const mask = createGradientMask(cw, ch, i, colorCodes.length);
