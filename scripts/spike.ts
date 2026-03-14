@@ -565,6 +565,47 @@ async function main() {
     fs.writeFileSync(path.join(OUT, `${String(idx).padStart(2, '0')}-emeria-back.png`), emeria.backFace);
   }
 
+  // 41. Multicolor Transform — Archangel Avacyn // Avacyn, the Purifier (gold pinlines)
+  const avacynTf = await render('avacyn-transform', {
+    name: 'Archangel Avacyn', manaCost: '{3}{W}{W}',
+    supertypes: ['legendary'], types: ['creature'], subtypes: ['Angel'],
+    frameColor: ['white', 'red'], accentColor: 'multicolor',
+    rarity: 'mythic',
+    abilities: 'Flash\nFlying, vigilance\nWhen Archangel Avacyn enters the battlefield, creatures you control gain indestructible until end of turn.\nWhen a non-Angel creature you control dies, transform Archangel Avacyn at the beginning of the next upkeep.',
+    power: '4', toughness: '4',
+    linkType: 'transform',
+    linkedCard: {
+      name: 'Avacyn, the Purifier',
+      types: ['creature'], subtypes: ['Angel'],
+      frameColor: 'red',
+      colorIndicator: ['red'],
+      abilities: 'Flying\nWhen this creature transforms into Avacyn, the Purifier, it deals 3 damage to each other creature and each opponent.',
+      power: '6', toughness: '5',
+    },
+  });
+  if (avacynTf?.backFace) {
+    fs.writeFileSync(path.join(OUT, `${String(idx).padStart(2, '0')}-avacyn-transform-back.png`), avacynTf.backFace);
+  }
+
+  // 42. Multicolor MDFC — Shatterskull Smashing // Shatterskull, the Hammer Pass
+  const shatterskull = await render('shatterskull-smashing', {
+    name: 'Shatterskull Smashing', manaCost: '{X}{R}{R}',
+    types: ['sorcery'],
+    frameColor: ['red', 'land'], accentColor: 'multicolor',
+    rarity: 'mythic',
+    abilities: "Shatterskull Smashing deals X damage divided as you choose among any number of target creatures and/or planeswalkers. If X is 6 or more, Shatterskull Smashing deals twice X damage divided as you choose among them instead.",
+    linkType: 'modal_dfc',
+    linkedCard: {
+      name: 'Shatterskull, the Hammer Pass',
+      types: ['land'],
+      frameColor: 'land',
+      abilities: "As Shatterskull, the Hammer Pass enters, you may pay 3 life. If you don't, it enters tapped.\n{T}: Add {R}.",
+    },
+  });
+  if (shatterskull?.backFace) {
+    fs.writeFileSync(path.join(OUT, `${String(idx).padStart(2, '0')}-shatterskull-back.png`), shatterskull.backFace);
+  }
+
   console.log(`\nDone! ${idx} cards total, rendered to ${OUT}`);
 }
 
