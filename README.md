@@ -439,3 +439,11 @@ At the beginning of each upkeep, if a player cast two or more spells last turn, 
 4/4
 Flavor Text: Another flavor text
 ```
+
+# Bugs
+accents for lands - also look for basic land names like Forest, etc. So fetch lands will work
+Let's support keyword abilities vs. ability words. Ability words are like "Landfall" and are italicized. Keyword abilities are like "Exhaust" and are not italicized. They both appear before hyphens (or M dashes). We will infer which is which by the presence of reminder text. if no reminder text, then it must be an ability word, otherwise it must be a keyword ability. Examples:
+"Landfall - Whenever you cast a land spell, this creature gets +1/+1 until end of turn."
+- since no reminder text, this is an ability word and the "Landfall" should be italicized
+"Exhaust - {3}{R}: Put two +1/+1 counters on this creature. (Activate each exhaust ability only once.)"
+- since there is reminder text, this is a keyword ability and the "Exhaust" should not be italicized

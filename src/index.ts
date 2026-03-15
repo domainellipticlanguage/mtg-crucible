@@ -121,6 +121,8 @@ export async function renderCard(input: CardData | string): Promise<RenderedCard
   } else if (normalized.linkType === 'modal_dfc') {
     frontTemplateOverride = 'mdfc_front';
     backTemplateOverride = 'mdfc_back';
+  } else if (normalized.linkType === 'split' || normalized.linkType === 'flip') {
+    frontTemplateOverride = normalized.cardTemplate ?? normalized.linkType;
   }
 
   const frontFace = await renderCardImage(normalized, frontTemplateOverride);
@@ -129,8 +131,9 @@ export async function renderCard(input: CardData | string): Promise<RenderedCard
 
   let backFace: Buffer | undefined;
   let backFaceOrientation: 'horizontal' | 'vertical' | undefined;
-  // Adventure cards render both faces on one image — no separate back face
-  if (normalized.linkedCard && normalized.linkType !== 'adventure') {
+  // Adventure, split, fuse, and flip cards render both faces on one image — no separate back face
+  const singleImageTypes = new Set(['adventure', 'split', 'flip']);
+  if (normalized.linkedCard && !singleImageTypes.has(normalized.linkType ?? '')) {
     const normalizedBack = normalizeCard(normalized.linkedCard);
     // For MDFC, back face needs a reference to the front for the flipside hint
     if (normalized.linkType === 'modal_dfc') {

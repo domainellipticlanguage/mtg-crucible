@@ -11,6 +11,11 @@ import {
   ADV_LAYOUT,
   TF_FRONT_LAYOUT, TF_BACK_LAYOUT,
   MDFC_FRONT_LAYOUT, MDFC_BACK_LAYOUT,
+  SPLIT_RIGHT_LAYOUT,
+  FLIP_LAYOUT,
+  MUTATE_LAYOUT,
+  PROTO_LAYOUT,
+  LEVELER_LAYOUT,
   ASSETS_DIR,
 } from '../layout';
 import { getParsedAbilities, resolveTemplate } from '../parser';
@@ -27,6 +32,11 @@ import { classHooks } from './class';
 import { battleHooks } from './battle';
 import { adventureHooks } from './adventure';
 import { transformFrontHooks, transformBackHooks, mdfcHooks } from './dfc';
+import { splitHooks } from './split';
+import { flipHooks } from './flip';
+import { mutateHooks } from './mutate';
+import { prototypeHooks } from './prototype';
+import { levelerHooks } from './leveler';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyLayout = Record<string, any>;
@@ -34,6 +44,8 @@ export type AnyLayout = Record<string, any>;
 export interface TemplateHooks {
   preFrame?: (ctx: SKRSContext2D, card: CardData, layout: AnyLayout, cw: number, ch: number) => Promise<void>;
   body?: (ctx: SKRSContext2D, card: CardData, layout: AnyLayout, cw: number, ch: number) => Promise<void>;
+  /** If true, the hook handles ALL text rendering (name, type, mana, rules, P/T). */
+  skipStandardText?: boolean;
 }
 
 interface TemplateConfig {
@@ -60,6 +72,12 @@ const TEMPLATES: Record<string, TemplateConfig> = {
   transform_back:     { layout: TF_BACK_LAYOUT, w: PW_W, h: PW_H, frame: 'transformBack', hooks: transformBackHooks, crownDir: 'transformBack', ptDir: 'transform' },
   mdfc_front:         { layout: MDFC_FRONT_LAYOUT, w: PW_W, h: PW_H, frame: 'modalFront', hooks: mdfcHooks, crownDir: 'modal' },
   mdfc_back:          { layout: MDFC_BACK_LAYOUT, w: PW_W, h: PW_H, frame: 'modalBack', hooks: mdfcHooks, crownDir: 'modal' },
+  split:              { layout: SPLIT_RIGHT_LAYOUT, w: PW_W, h: PW_H, frame: 'split', hooks: splitHooks },
+  fuse:               { layout: SPLIT_RIGHT_LAYOUT, w: PW_W, h: PW_H, frame: 'fuse', hooks: splitHooks },
+  flip:               { layout: FLIP_LAYOUT, w: PW_W, h: PW_H, frame: 'flip', hooks: flipHooks },
+  mutate:             { layout: MUTATE_LAYOUT, w: PW_W, h: PW_H, frame: 'mutate', hooks: mutateHooks },
+  prototype:          { layout: PROTO_LAYOUT, w: PW_W, h: PW_H, frame: 'standard', hooks: prototypeHooks },
+  leveler:            { layout: LEVELER_LAYOUT, w: PW_W, h: PW_H, frame: 'leveler', hooks: levelerHooks },
 };
 
 export async function renderCardImage(card: CardData, templateOverride?: string): Promise<Buffer> {
@@ -144,57 +162,61 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
   }
 
   // Template-specific body (abilities, chapters, levels, etc.)
+  // Expose frame dir to hooks via layout (e.g. split needs it for second-half coloring)
+  L._frame = frame;
   if (hooks?.body) await hooks.body(ctx, card, L, cw, ch);
 
-  // Set symbol
-  let setSymW = 0;
-  if (L.setSymbol) {
-    setSymW = await drawSetSymbol(ctx, card.rarity || 'common', L.setSymbol, ch, cw);
-  }
-
-  // Mana cost
-  if (card.manaCost) await drawManaCost(ctx, card.manaCost, cw, ch, L.mana);
-
-  // Name (shrink available width to avoid mana cost)
-  const manaW = card.manaCost ? measureManaCostWidth(card.manaCost, ch, L.mana.size) : 0;
-  const nameW = L.name.w * cw - manaW;
-  drawSingleLineText(ctx, card.name ?? '', L.name.x * cw, L.name.y * ch, nameW, L.name.h * ch, L.name.font, L.name.size * ch, 'left', textColor);
-
-  // Type line + color indicator (shrink available width to avoid set symbol)
-  const typeX = L.type.x * cw;
-  const typeY = L.type.y * ch;
-  const typeH = L.type.h * ch;
-  const indicatorOffset = drawColorIndicator(ctx, card.colorIndicator, typeX, typeY, typeH);
-  const typeW = L.type.w * cw - indicatorOffset - setSymW;
-  drawSingleLineText(ctx, getTypeLine(card), typeX + indicatorOffset, typeY, typeW, typeH, L.type.font, L.type.size * ch, 'left', textColor);
-
-  // Rules + flavor text (for templates with a rules area)
-  const pa = getParsedAbilities(card);
-  const rulesText = pa.unstructuredAbilities?.join('\n');
-  if (L.rules && (rulesText || card.flavorText)) {
-    const rx = L.rules.x * cw, ry = L.rules.y * ch, rw = L.rules.w * cw, rh = L.rules.h * ch, rs = L.rules.size * ch;
-
-    // Build exclusion rects for badges that overlap the rules area (e.g. battle defense/backPt)
-    // Horizontal padding so text doesn't butt up against badges
-    const exclusionRects: ExclusionRect[] = [];
-    const hPad = rs * 0.3;
-    if (L.defense && card.battleDefense) {
-      exclusionRects.push({ x: L.defense.x * cw - hPad, y: L.defense.y * ch, w: L.defense.w * cw + hPad, h: L.defense.h * ch });
-    }
-    if (L.backPt && card.linkedCard?.power && card.linkedCard?.toughness) {
-      exclusionRects.push({ x: L.backPt.x * cw - hPad, y: L.backPt.y * ch, w: L.backPt.w * cw + hPad, h: L.backPt.h * ch });
+  if (!hooks?.skipStandardText) {
+    // Set symbol
+    let setSymW = 0;
+    if (L.setSymbol) {
+      setSymW = await drawSetSymbol(ctx, card.rarity || 'common', L.setSymbol, ch, cw);
     }
 
-    if (rulesText && card.flavorText) drawRulesAndFlavor(ctx, rulesText, card.flavorText, rx, ry, rw, rh, L.rules.font, rs, exclusionRects);
-    else if (rulesText) drawWrappedText(ctx, rulesText, rx, ry, rw, rh, L.rules.font, rs, { exclusionRects });
-    else if (card.flavorText) drawWrappedText(ctx, card.flavorText, rx, ry, rw, rh, L.rules.font, rs, { fontFamily: 'MPlantin Italic', exclusionRects });
-  }
+    // Mana cost
+    if (card.manaCost) await drawManaCost(ctx, card.manaCost, cw, ch, L.mana);
 
-  // P/T text
-  if (L.pt && card.power && card.toughness) {
-    const ptFrameColor = Array.isArray(card.frameColor) ? card.frameColor[0] : card.frameColor;
-    const ptTextColor = L.textColor || (ptFrameColor === 'vehicle' ? 'white' : 'black');
-    drawSingleLineText(ctx, `${card.power}/${card.toughness}`, L.pt.x * cw, L.pt.y * ch, L.pt.w * cw, L.pt.h * ch, L.pt.font, L.pt.size * ch, 'center', ptTextColor);
+    // Name (shrink available width to avoid mana cost)
+    const manaW = card.manaCost ? measureManaCostWidth(card.manaCost, ch, L.mana.size) : 0;
+    const nameW = L.name.w * cw - manaW;
+    drawSingleLineText(ctx, card.name ?? '', L.name.x * cw, L.name.y * ch, nameW, L.name.h * ch, L.name.font, L.name.size * ch, 'left', textColor);
+
+    // Type line + color indicator (shrink available width to avoid set symbol)
+    const typeX = L.type.x * cw;
+    const typeY = L.type.y * ch;
+    const typeH = L.type.h * ch;
+    const indicatorOffset = drawColorIndicator(ctx, card.colorIndicator, typeX, typeY, typeH);
+    const typeW = L.type.w * cw - indicatorOffset - setSymW;
+    drawSingleLineText(ctx, getTypeLine(card), typeX + indicatorOffset, typeY, typeW, typeH, L.type.font, L.type.size * ch, 'left', textColor);
+
+    // Rules + flavor text (for templates with a rules area)
+    const pa = getParsedAbilities(card);
+    const rulesText = pa.unstructuredAbilities?.join('\n');
+    if (L.rules && (rulesText || card.flavorText)) {
+      const rx = L.rules.x * cw, ry = L.rules.y * ch, rw = L.rules.w * cw, rh = L.rules.h * ch, rs = L.rules.size * ch;
+
+      // Build exclusion rects for badges that overlap the rules area (e.g. battle defense/backPt)
+      // Horizontal padding so text doesn't butt up against badges
+      const exclusionRects: ExclusionRect[] = [];
+      const hPad = rs * 0.3;
+      if (L.defense && card.battleDefense) {
+        exclusionRects.push({ x: L.defense.x * cw - hPad, y: L.defense.y * ch, w: L.defense.w * cw + hPad, h: L.defense.h * ch });
+      }
+      if (L.backPt && card.linkedCard?.power && card.linkedCard?.toughness) {
+        exclusionRects.push({ x: L.backPt.x * cw - hPad, y: L.backPt.y * ch, w: L.backPt.w * cw + hPad, h: L.backPt.h * ch });
+      }
+
+      if (rulesText && card.flavorText) drawRulesAndFlavor(ctx, rulesText, card.flavorText, rx, ry, rw, rh, L.rules.font, rs, exclusionRects);
+      else if (rulesText) drawWrappedText(ctx, rulesText, rx, ry, rw, rh, L.rules.font, rs, { exclusionRects });
+      else if (card.flavorText) drawWrappedText(ctx, card.flavorText, rx, ry, rw, rh, L.rules.font, rs, { fontFamily: 'MPlantin Italic', exclusionRects });
+    }
+
+    // P/T text
+    if (L.pt && card.power && card.toughness) {
+      const ptFrameColor = Array.isArray(card.frameColor) ? card.frameColor[0] : card.frameColor;
+      const ptTextColor = L.textColor || (ptFrameColor === 'vehicle' ? 'white' : 'black');
+      drawSingleLineText(ctx, `${card.power}/${card.toughness}`, L.pt.x * cw, L.pt.y * ch, L.pt.w * cw, L.pt.h * ch, L.pt.font, L.pt.size * ch, 'center', ptTextColor);
+    }
   }
 
   // Bottom info (battles: rotated to portrait orientation along right edge)

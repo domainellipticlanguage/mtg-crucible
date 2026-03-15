@@ -8,6 +8,11 @@ import {
   ADV_LAYOUT,
   TF_FRONT_LAYOUT, TF_BACK_LAYOUT,
   MDFC_FRONT_LAYOUT, MDFC_BACK_LAYOUT,
+  SPLIT_RIGHT_LAYOUT,
+  FLIP_LAYOUT,
+  MUTATE_LAYOUT,
+  PROTO_LAYOUT,
+  LEVELER_LAYOUT,
 } from './layout';
 
 const MANA_COST_REGEX = /^(.+?)\s+((?:\{[^}]+\})+)$/;
@@ -934,6 +939,12 @@ const TEMPLATE_CONFIGS: Record<TemplateName, { layout: Record<string, any>; w: n
   transform_back:     { layout: TF_BACK_LAYOUT, w: PW_W, h: PW_H },
   mdfc_front:         { layout: MDFC_FRONT_LAYOUT, w: PW_W, h: PW_H },
   mdfc_back:          { layout: MDFC_BACK_LAYOUT, w: PW_W, h: PW_H },
+  split:              { layout: SPLIT_RIGHT_LAYOUT, w: PW_W, h: PW_H },
+  fuse:               { layout: SPLIT_RIGHT_LAYOUT, w: PW_W, h: PW_H },
+  flip:               { layout: FLIP_LAYOUT, w: PW_W, h: PW_H },
+  mutate:             { layout: MUTATE_LAYOUT, w: PW_W, h: PW_H },
+  prototype:          { layout: PROTO_LAYOUT, w: PW_W, h: PW_H },
+  leveler:            { layout: LEVELER_LAYOUT, w: PW_W, h: PW_H },
 };
 
 export function getParsedAbilities(card: CardData): ParsedAbilities {
@@ -942,6 +953,7 @@ export function getParsedAbilities(card: CardData): ParsedAbilities {
 }
 
 export function resolveTemplate(card: CardData): TemplateName {
+  if (card.cardTemplate) return card.cardTemplate;
   const pa = getParsedAbilities(card);
   if (pa.structuredAbilities?.kind === 'planeswalker') {
     const pw = pa.structuredAbilities as PlaneswalkerAbilities;
@@ -952,6 +964,11 @@ export function resolveTemplate(card: CardData): TemplateName {
   if (pa.structuredAbilities?.kind === 'class') return 'class';
   if (card.battleDefense) return 'battle';
   if (card.linkType === 'adventure') return 'adventure';
+  if (card.linkType === 'split') return 'split';
+  if (card.linkType === 'flip') return 'flip';
+  if (pa.structuredAbilities?.kind === 'leveler') return 'leveler';
+  if (pa.structuredAbilities?.kind === 'prototype') return 'prototype';
+  if (pa.structuredAbilities?.kind === 'mutate') return 'mutate';
   return 'standard';
 }
 

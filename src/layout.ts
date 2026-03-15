@@ -184,6 +184,106 @@ export const MDFC_FRONT_LAYOUT = {
 // Modal DFC back layout — same as front (both faces show flipside hints)
 export const MDFC_BACK_LAYOUT = { ...MDFC_FRONT_LAYOUT };
 
+// Split/Fuse layout (packSplit.js / packFuse.js)
+// 1500x2100 canvas. Two mini-cards side by side, each rotated -90°.
+// "right" = top half of card (first spell), "left" = bottom half (second spell).
+// All text is drawn rotated -90° by the renderer hook.
+// Right half (first spell) — card y ~ 0.44
+export const SPLIT_RIGHT_LAYOUT = {
+  art:       { x: 0.158, y: 0.0534, w: 0.3734, h: 0.3886 },
+  name:      { x: 0.072, y: 0.4381, w: 0.5367, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
+  mana:      { y: 0.4381, w: 0.5367, size: 71/1500, shadowX: 0, shadowY: 0 },
+  type:      { x: 0.55, y: 0.4381, w: 0.5367, h: 0.0286, size: 0.0286, font: 'Beleren Bold' },
+  rules:     { x: 0.6087, y: 0.4334, w: 0.5174, h: 0.2443, size: 0.0305, font: 'MPlantin' },
+  setSymbol: { x: 2, y: 2, w: 0.12, h: 0.0410 }, // off-screen (not shown on split)
+};
+// Left half (second spell / linkedCard) — card y ~ 0.89
+export const SPLIT_LEFT_LAYOUT = {
+  art:       { x: 0.158, y: 0.0534, w: 0.3734, h: 0.3886 },
+  name:      { x: 0.072, y: 0.8943, w: 0.5367, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
+  mana:      { y: 0.8943, w: 0.5367, size: 71/1500, shadowX: 0, shadowY: 0 },
+  type:      { x: 0.55, y: 0.8943, w: 0.5367, h: 0.0286, size: 0.0286, font: 'Beleren Bold' },
+  rules:     { x: 0.6087, y: 0.8896, w: 0.5174, h: 0.2443, size: 0.0305, font: 'MPlantin' },
+  setSymbol: { x: 2, y: 2, w: 0.12, h: 0.0410 }, // off-screen (not shown on split)
+};
+
+// Flip layout (packFlip.js / Kamigawa)
+// 1500x2100 canvas. Top half is normal, bottom half is rotated 180°.
+// Shared art in the middle.
+export const FLIP_LAYOUT = {
+  art:       { x: 0.0754, y: 0.2962, w: 0.8494, h: 0.3315 },
+  // Top half (front face)
+  name:      { x: 0.0854, y: 0.0386, w: 0.8292, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
+  mana:      { y: 0.0477, w: 0.9292, size: 71/2100, shadowX: -0.001, shadowY: 0.0029 },
+  type:      { x: 0.0854, y: 0.2353, w: 0.8292, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
+  rules:     { x: 0.086, y: 0.102, w: 0.828, h: 0.12, size: 0.0305, font: 'MPlantin' },
+  pt:        { x: 0.8267, y: 0.2448, w: 0.0967, h: 0.0372, size: 0.0324, font: 'Beleren Bold SmCaps' },
+  setSymbol: { x: 0.784, y: 0.26, w: 0.12, h: 0.0700 },
+  // Bottom half (flipped face, rendered 180°)
+  name2:     { x: 0.9147, y: 0.8848, w: 0.8292, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
+  type2:     { x: 0.9147, y: 0.6886, w: 0.8292, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
+  rules2:    { x: 0.914, y: 0.821, w: 0.828, h: 0.12, size: 0.0305, font: 'MPlantin' },
+  pt2:       { x: 0.1734, y: 0.6791, w: 0.0967, h: 0.0372, size: 0.0324, font: 'Beleren Bold SmCaps' },
+  // Flip PT image bounds (single image with both top and bottom PT boxes)
+  flipPtBounds: { x: 0.0374, y: 0.2277, w: 0.9067, h: 0.4762 },
+};
+
+// Mutate layout (packM15Mutate.js)
+// 1500x2100 canvas. Extended art, mutate cost bar between type and rules.
+export const MUTATE_LAYOUT = {
+  art:       { x: 0.0614, y: 0.1129, w: 0.8774, h: 0.6434 },
+  name:      { x: 0.0854, y: 0.0522, w: 0.8292, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
+  mana:      { y: 0.0613, w: 0.9292, size: 71/1638, shadowX: -0.001, shadowY: 0.0029 },
+  type:      { x: 0.0854, y: 0.5664, w: 0.8292, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
+  // Mutate cost bar (between type and rules)
+  mutateCost:{ x: 0.086, y: 0.6303, w: 0.828, h: 0.1215, size: 0.0291, font: 'MPlantin' },
+  rules:     { x: 0.086, y: 0.7567, w: 0.828, h: 0.1615, size: 0.0291, font: 'MPlantin' },
+  pt:        { x: 0.7928, y: 0.902, w: 0.1367, h: 0.0372, size: 0.0372, font: 'Beleren Bold SmCaps' },
+  ptBox:     { x: 0.7573, y: 0.8848, w: 0.188, h: 0.0733 },
+  setSymbol: { x: 0.9213, y: 0.5910, w: 0.12, h: 0.0700 },
+  crown:     { x: 44/2010, y: 53/2814, w: 1922/2010, h: 493/2814 },
+};
+
+// Prototype layout (packPrototype.js)
+// 1500x2100 canvas. Standard art, prototype bar between type and rules.
+export const PROTO_LAYOUT = {
+  art:       { x: 0.0767, y: 0.1129, w: 0.8476, h: 0.4429 },
+  name:      { x: 0.0854, y: 0.0522, w: 0.8292, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
+  mana:      { y: 0.0613, w: 0.9292, size: 71/1638, shadowX: -0.001, shadowY: 0.0029 },
+  type:      { x: 0.0854, y: 0.5664, w: 0.8292, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
+  // Prototype bar (between type and rules)
+  protoRules:{ x: 129/1500, y: 1335/2100, w: 1041/1500, h: 193/2100, size: 0.0295, font: 'MPlantin' },
+  protoMana: { y: 1340/2100, w: 0.9292, size: 72/2100, shadowX: 0, shadowY: 0 },
+  protoPt:   { x: 0.7928, y: 0.6935, w: 0.1367, h: 0.0372, size: 0.0372, font: 'Beleren Bold SmCaps' },
+  rules:     { x: 129/1500, y: 1565/2100, w: 1242/1500, h: 359/2100, size: 0.0295, font: 'MPlantin' },
+  pt:        { x: 0.7928, y: 0.902, w: 0.1367, h: 0.0372, size: 0.0372, font: 'Beleren Bold SmCaps' },
+  ptBox:     { x: 0.7573, y: 0.8848, w: 0.188, h: 0.0733 },
+  setSymbol: { x: 0.9213, y: 0.5910, w: 0.12, h: 0.0700 },
+  crown:     { x: 44/2010, y: 53/2814, w: 1922/2010, h: 493/2814 },
+};
+
+// Leveler layout (packLevelers.js)
+// 1500x2100 canvas. Three stacked level sections with level labels and P/T boxes.
+export const LEVELER_LAYOUT = {
+  art:       { x: 0.0767, y: 0.1129, w: 0.8476, h: 0.4429 },
+  name:      { x: 0.0854, y: 0.0522, w: 0.8292, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
+  mana:      { y: 0.0613, w: 0.9292, size: 71/1638, shadowX: -0.001, shadowY: 0.0029 },
+  type:      { x: 0.0854, y: 0.5664, w: 0.8292, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
+  setSymbol: { x: 0.9213, y: 0.5910, w: 0.12, h: 0.0700 },
+  crown:     { x: 44/2010, y: 53/2814, w: 1922/2010, h: 493/2814 },
+  // Level Up section (top)
+  rules1:    { x: 0.086, y: 0.6303, w: 0.6834, h: 0.0905, size: 0.0296, font: 'MPlantin' },
+  pt1:       { x: 0.7928, y: 0.6591, w: 0.1367, h: 0.0372, size: 0.0372, font: 'Beleren Bold SmCaps' },
+  // Level section 2
+  rules2:    { x: 0.2067, y: 0.7229, w: 0.5627, h: 0.0953, size: 0.0296, font: 'MPlantin' },
+  pt2:       { x: 0.7928, y: 0.7524, w: 0.1367, h: 0.0372, size: 0.0372, font: 'Beleren Bold SmCaps' },
+  levelLabel2: { x: 0.0727, y: 0.7420, w: 0.08, h: 0.0572, size: 0.0139, font: 'Beleren Bold SmCaps' },
+  // Level section 3
+  rules3:    { x: 0.2067, y: 0.8220, w: 0.5627, h: 0.0953, size: 0.0296, font: 'MPlantin' },
+  pt3:       { x: 0.7928, y: 0.8515, w: 0.1367, h: 0.0372, size: 0.0372, font: 'Beleren Bold SmCaps' },
+  levelLabel3: { x: 0.0727, y: 0.8448, w: 0.08, h: 0.0572, size: 0.0139, font: 'Beleren Bold SmCaps' },
+};
+
 // Battle layout (packBattle.js)
 export const BTL_LAYOUT = {
   art:     { x: 167/2100, y: 60/1500, w: 1873/2100, h: 1371/1500 },
