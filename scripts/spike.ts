@@ -642,7 +642,7 @@ async function main() {
   // 45. Flip card — Bushi Tenderfoot // Kenzo the Hardhearted
   await render('bushi-tenderfoot', {
     name: 'Bushi Tenderfoot', manaCost: '{W}',
-    types: ['creature'], subtypes: ['Human', 'Soldier'],
+    types: ['creature'], subtypes: ['Human', 'Soldier', 'Monk', 'Turtle', 'Zebra'],
     frameColor: 'white',
     rarity: 'uncommon',
     abilities: 'When a creature dealt damage by Bushi Tenderfoot this turn dies, flip Bushi Tenderfoot.',

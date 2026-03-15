@@ -224,7 +224,7 @@ export const FLIP_LAYOUT = {
   type2:     { x: 0.9147, y: 0.6886, w: 0.8292, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
   rules2:    { x: 0.914, y: 0.821, w: 0.828, h: 0.12, size: 0.0305, font: 'MPlantin' },
   pt2:       { x: 0.1734, y: 0.6791, w: 0.0967, h: 0.0372, size: 0.0324, font: 'Beleren Bold SmCaps' },
-  // Flip PT image bounds (single image with both top and bottom PT boxes)
+  // Flip PT image bounds (single image containing both top and bottom PT boxes)
   flipPtBounds: { x: 0.0374, y: 0.2277, w: 0.9067, h: 0.4762 },
 };
 

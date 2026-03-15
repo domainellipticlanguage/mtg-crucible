@@ -1,6 +1,6 @@
-import { createCanvas, loadImage, type SKRSContext2D } from '@napi-rs/canvas';
 import * as fs from 'fs';
 import * as path from 'path';
+import { loadImage, type SKRSContext2D } from '@napi-rs/canvas';
 import type { CardData } from '../types';
 import { drawSingleLineText, drawWrappedText } from '../text';
 import { getTypeLine, normalizeFrameColors } from '../helpers';
@@ -10,28 +10,25 @@ import type { TemplateHooks, AnyLayout } from './render';
 
 /**
  * Flip card renderer (Kamigawa-style).
- * Top half is drawn normally by the main render pipeline.
- * This hook draws the bottom half rotated 180° (upside-down).
- *
- * CC coordinates for the bottom half use rotation=180, where (x, y) is the
- * text anchor in card space. After translate(cw, ch) + rotate(PI),
- * drawing at local (1-x, 1-y) places text at card position (x, y) rotated.
+ * Top half is drawn normally by the main render pipeline (including ptBox).
+ * This hook draws the bottom-half PT box and all bottom-half text rotated 180°.
  */
 
 const flipBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
   const other = card.linkedCard;
   if (!other) return;
 
+  // Draw flip PT image (single asset containing both top and bottom PT boxes)
+  const frameCodes = normalizeFrameColors(card.frameColor);
+  const ptImg = path.join(ASSETS_DIR, 'frames', 'flip', `${frameCodes[0]}pt.png`);
+  if (fs.existsSync(ptImg) && L.flipPtBounds) {
+    const b = L.flipPtBounds;
+    ctx.drawImage(await loadImage(ptImg), b.x * cw, b.y * ch, b.w * cw, b.h * ch);
+  }
+
   ctx.save();
   ctx.translate(cw, ch);
   ctx.rotate(Math.PI);
-
-  // In the 180° rotated local space, the CC coordinates map directly:
-  // CC says name2 anchor is at (0.9147, 0.8848) — this is where text begins
-  // in the upside-down reading direction. In the rotated local space,
-  // this corresponds to (1-0.9147, 1-0.8848) = (0.0853, 0.1152).
-  // But CC's x for rotated elements is the LEFT edge of the text box in the
-  // rotated view, and the text width extends rightward in the rotated view.
 
   const n2 = L.name2;
   if (n2) {
@@ -66,15 +63,6 @@ const flipBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
   }
 
   ctx.restore();
-
-  // Draw flip PT box overlay (single image containing both top and bottom PT boxes)
-  const frameCodes = normalizeFrameColors(card.frameColor);
-  const ptColor = frameCodes[0];
-  const ptPath = path.join(ASSETS_DIR, 'frames', 'flip', `${ptColor}pt.png`);
-  if (fs.existsSync(ptPath) && L.flipPtBounds) {
-    const b = L.flipPtBounds;
-    ctx.drawImage(await loadImage(ptPath), b.x * cw, b.y * ch, b.w * cw, b.h * ch);
-  }
 };
 
 export const flipHooks: TemplateHooks = { body: flipBody };

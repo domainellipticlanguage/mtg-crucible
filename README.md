@@ -447,3 +447,4 @@ Let's support keyword abilities vs. ability words. Ability words are like "Landf
 - since no reminder text, this is an ability word and the "Landfall" should be italicized
 "Exhaust - {3}{R}: Put two +1/+1 counters on this creature. (Activate each exhaust ability only once.)"
 - since there is reminder text, this is a keyword ability and the "Exhaust" should not be italicized
+- fuse cards need to blend in the bottom reminder text
