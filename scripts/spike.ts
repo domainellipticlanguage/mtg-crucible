@@ -30,8 +30,8 @@ async function render(name: string, card: CardData | string): Promise<RenderedCa
 }
 
 async function main() {
-  if (fs.existsSync(OUT)) fs.rmSync(OUT, { recursive: true });
-  fs.mkdirSync(OUT, { recursive: true });
+  // if (fs.existsSync(OUT)) fs.rmSync(OUT, { recursive: true });
+  // fs.mkdirSync(OUT, { recursive: true });
 
   // // 1
   // await render('lightning-bolt', {

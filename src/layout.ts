@@ -215,13 +215,13 @@ export const FLIP_LAYOUT = {
   // Top half (front face)
   name:      { x: 0.0854, y: 0.0386, w: 0.8292, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
   mana:      { y: 0.0477, w: 0.9292, size: 71/2100, shadowX: -0.001, shadowY: 0.0029 },
-  type:      { x: 0.0854, y: 0.2353, w: 0.8292, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
+  type:      { x: 0.0854, y: 0.2353, w: (0.8292 - 120/1500), h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
   rules:     { x: 0.086, y: 0.102, w: 0.828, h: 0.12, size: 0.0305, font: 'MPlantin' },
   pt:        { x: 0.8267, y: 0.2448, w: 0.0967, h: 0.0372, size: 0.0324, font: 'Beleren Bold SmCaps' },
-  setSymbol: { x: 0.784, y: 0.26, w: 0.12, h: 0.0700 },
+  setSymbol: { x: 0.815, y: 0.26, w: 0.12, h: 0.0700 },
   // Bottom half (flipped face, rendered 180°)
   name2:     { x: 0.9147, y: 0.8848, w: 0.8292, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
-  type2:     { x: 0.9147, y: 0.6886, w: 0.8292, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
+  type2:     { x: 0.9147, y: 0.6886, w: (0.8292 - 170/1500), h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
   rules2:    { x: 0.914, y: 0.821, w: 0.828, h: 0.12, size: 0.0305, font: 'MPlantin' },
   pt2:       { x: 0.1734, y: 0.6791, w: 0.0967, h: 0.0372, size: 0.0324, font: 'Beleren Bold SmCaps' },
   // Flip PT image bounds (single image containing both top and bottom PT boxes)
