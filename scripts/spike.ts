@@ -658,6 +658,25 @@ async function main() {
     },
   });
 
+  // 45b. Flip card — Erayo (flip side is enchantment, no P/T)
+  await render('erayo', {
+    name: 'Erayo, Soratami Ascendant', manaCost: '{1}{U}',
+    supertypes: ['legendary'],
+    types: ['creature'], subtypes: ['Moonfolk', 'Monk'],
+    frameColor: 'blue',
+    rarity: 'rare',
+    abilities: 'Flying\nWhenever the fourth spell of a turn is cast, flip Erayo, Soratami Ascendant.',
+    power: '1', toughness: '1',
+    linkType: 'flip',
+    linkedCard: {
+      name: "Erayo's Essence",
+      supertypes: ['legendary'],
+      types: ['enchantment'],
+      frameColor: 'blue',
+      abilities: 'Whenever an opponent casts a spell for the first time each turn, counter that spell.',
+    },
+  });
+
   // 46. Mutate card — Gemrazer
   await render('gemrazer', {
     name: 'Gemrazer', manaCost: '{3}{G}',

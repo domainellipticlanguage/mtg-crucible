@@ -215,13 +215,15 @@ export const FLIP_LAYOUT = {
   // Top half (front face)
   name:      { x: 0.0854, y: 0.0386, w: 0.8292, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
   mana:      { y: 0.0477, w: 0.9292, size: 71/2100, shadowX: -0.001, shadowY: 0.0029 },
-  type:      { x: 0.0854, y: 0.2353, w: (0.8292 - 120/1500), h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
+  type:      { x: 0.0854, y: 0.2353, w: 0.8292, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
+  typePtInset: 120/1500,  // shrink type width by this when PT box is present
   rules:     { x: 0.086, y: 0.102, w: 0.828, h: 0.12, size: 0.0305, font: 'MPlantin' },
   pt:        { x: 0.8267, y: 0.2448, w: 0.0967, h: 0.0372, size: 0.0324, font: 'Beleren Bold SmCaps' },
   setSymbol: { x: 0.815, y: 0.26, w: 0.12, h: 0.0700 },
   // Bottom half (flipped face, rendered 180°)
   name2:     { x: 0.9147, y: 0.8848, w: 0.8292, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
-  type2:     { x: 0.9147, y: 0.6886, w: (0.8292 - 170/1500), h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
+  type2:     { x: 0.9147, y: 0.6886, w: 0.8292, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
+  type2PtInset: 170/1500,
   rules2:    { x: 0.914, y: 0.821, w: 0.828, h: 0.12, size: 0.0305, font: 'MPlantin' },
   pt2:       { x: 0.1734, y: 0.6791, w: 0.0967, h: 0.0372, size: 0.0324, font: 'Beleren Bold SmCaps' },
   // Flip PT image bounds (single image containing both top and bottom PT boxes)
@@ -253,7 +255,7 @@ export const PROTO_LAYOUT = {
   type:      { x: 0.0854, y: 0.5664, w: 0.8292, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
   // Prototype bar (between type and rules)
   protoRules:{ x: 129/1500, y: 1335/2100, w: 1041/1500, h: 193/2100, size: 0.0295, font: 'MPlantin' },
-  protoMana: { y: 1340/2100, w: 0.9292, size: 72/2100, shadowX: 0, shadowY: 0 },
+  protoMana: { y: 1347/2100, w: 0.915, size: 72/2100, shadowX: 0, shadowY: 0 },
   protoPt:   { x: 0.7928, y: 0.6935, w: 0.1367, h: 0.0372, size: 0.0372, font: 'Beleren Bold SmCaps' },
   rules:     { x: 129/1500, y: 1565/2100, w: 1242/1500, h: 359/2100, size: 0.0295, font: 'MPlantin' },
   pt:        { x: 0.7928, y: 0.902, w: 0.1367, h: 0.0372, size: 0.0372, font: 'Beleren Bold SmCaps' },

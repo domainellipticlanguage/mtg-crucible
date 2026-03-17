@@ -10,20 +10,25 @@ import type { TemplateHooks, AnyLayout } from './render';
 
 /**
  * Flip card renderer (Kamigawa-style).
- * Top half is drawn normally by the main render pipeline (including ptBox).
- * This hook draws the bottom-half PT box and all bottom-half text rotated 180°.
+ * Top half is drawn normally by the main render pipeline.
+ * This hook draws the flip PT image and all bottom-half text rotated 180°.
  */
 
 const flipBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
   const other = card.linkedCard;
   if (!other) return;
 
-  // Draw flip PT image (single asset containing both top and bottom PT boxes)
-  const frameCodes = normalizeFrameColors(card.frameColor);
-  const ptImg = path.join(ASSETS_DIR, 'frames', 'flip', `${frameCodes[0]}pt.png`);
-  if (fs.existsSync(ptImg) && L.flipPtBounds) {
-    const b = L.flipPtBounds;
-    ctx.drawImage(await loadImage(ptImg), b.x * cw, b.y * ch, b.w * cw, b.h * ch);
+  const hasPt1 = !!(card.power && card.toughness);
+  const hasPt2 = !!(other.power && other.toughness);
+
+  // Draw flip PT image only if at least one side is a creature
+  if ((hasPt1 || hasPt2) && L.flipPtBounds) {
+    const frameCodes = normalizeFrameColors(card.frameColor);
+    const ptImg = path.join(ASSETS_DIR, 'frames', 'flip', `${frameCodes[0]}pt.png`);
+    if (fs.existsSync(ptImg)) {
+      const b = L.flipPtBounds;
+      ctx.drawImage(await loadImage(ptImg), b.x * cw, b.y * ch, b.w * cw, b.h * ch);
+    }
   }
 
   ctx.save();
@@ -41,7 +46,9 @@ const flipBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
   if (t2) {
     const x = (1 - t2.x) * cw;
     const y = (1 - t2.y) * ch;
-    drawSingleLineText(ctx, getTypeLine(other), x, y, t2.w * cw, t2.h * ch, t2.font, t2.size * ch, 'left', 'black');
+    const ptInset = hasPt2 ? (L.type2PtInset ?? 0) : 0;
+    const typeW = (t2.w - ptInset) * cw;
+    drawSingleLineText(ctx, getTypeLine(other), x, y, typeW, t2.h * ch, t2.font, t2.size * ch, 'left', 'black');
   }
 
   const r2 = L.rules2;
@@ -55,14 +62,25 @@ const flipBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
     }
   }
 
-  const pt2 = L.pt2;
-  if (pt2 && other.power && other.toughness) {
-    const x = (1 - pt2.x) * cw;
-    const y = (1 - pt2.y) * ch;
-    drawSingleLineText(ctx, `${other.power}/${other.toughness}`, x, y, pt2.w * cw, pt2.h * ch, pt2.font, pt2.size * ch, 'center', 'black');
+  if (hasPt2) {
+    const pt2 = L.pt2;
+    if (pt2) {
+      const x = (1 - pt2.x) * cw;
+      const y = (1 - pt2.y) * ch;
+      drawSingleLineText(ctx, `${other.power}/${other.toughness}`, x, y, pt2.w * cw, pt2.h * ch, pt2.font, pt2.size * ch, 'center', 'black');
+    }
   }
 
   ctx.restore();
 };
 
-export const flipHooks: TemplateHooks = { body: flipBody };
+// The top-half type line width is adjusted by the standard pipeline.
+// We use a preFrame hook to dynamically shrink L.type.w when the top side has P/T.
+const flipPreFrame: TemplateHooks['preFrame'] = async (_ctx, card, L, _cw, _ch) => {
+  const hasPt1 = !!(card.power && card.toughness);
+  if (hasPt1 && L.typePtInset) {
+    L.type = { ...L.type, w: L.type.w - L.typePtInset };
+  }
+};
+
+export const flipHooks: TemplateHooks = { preFrame: flipPreFrame, body: flipBody };

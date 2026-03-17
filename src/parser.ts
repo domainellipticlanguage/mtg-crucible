@@ -388,6 +388,23 @@ export function parseAbilities(text: string, kind?: StructuredAbilities['kind'])
     return result;
   }
 
+  // Detect prototype from body text: "Prototype {cost} — P/T (...)"
+  const PROTO_REGEX = /^Prototype\s+((?:\{[^}]+\})+)\s*[—–-]\s*(\d+)\/(\d+)/i;
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(PROTO_REGEX);
+    if (m) {
+      const unstructured = lines.filter((_, idx) => idx !== i);
+      const result: ParsedAbilities = {
+        structuredAbilities: {
+          kind: 'prototype',
+          prototype: { manaCost: m[1], power: m[2], toughness: m[3] },
+        },
+      };
+      if (unstructured.length > 0) result.unstructuredAbilities = unstructured;
+      return result;
+    }
+  }
+
   // Default (standard): all lines are unstructured abilities
   return { unstructuredAbilities: lines };
 }

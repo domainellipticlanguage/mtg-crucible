@@ -26,7 +26,7 @@ function protoColorFromCost(manaCost: string): string {
 /** Pick "short" or "long" mana cost overlay based on symbol count */
 function manaCostVariant(manaCost: string): string {
   const symbols = manaCost.match(/\{[^}]+\}/g) ?? [];
-  return symbols.length > 3 ? 'manaCostLong' : 'manaCost';
+  return symbols.length > 2 ? 'manaCostLong' : 'manaCost';
 }
 
 const protoBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
