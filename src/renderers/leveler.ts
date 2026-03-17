@@ -20,15 +20,23 @@ import type { TemplateHooks, AnyLayout } from './render';
  * so this hook only draws text.
  */
 
-/** Draw text at an exact font size, centered in a box. No auto-shrinking. */
-function drawFixedText(ctx: SKRSContext2D, text: string, x: number, y: number, w: number, h: number, font: string, size: number, color = 'black') {
+/** Draw text at an exact font size, centered in a box. No auto-shrinking. Optional vertical squash. */
+function drawFixedText(ctx: SKRSContext2D, text: string, x: number, y: number, w: number, h: number, font: string, size: number, color = 'black', scaleY = 1) {
   ctx.font = `${size}px "${font}"`;
   ctx.fillStyle = color;
   ctx.textBaseline = 'alphabetic';
   const tw = ctx.measureText(text).width;
   const drawX = x + (w - tw) / 2;
-  const drawY = y + (h + size * 0.7) / 2;
-  ctx.fillText(text, drawX, drawY);
+  const drawY = y + (h + size * 0.7 * scaleY) / 2;
+  if (scaleY !== 1) {
+    ctx.save();
+    ctx.translate(drawX, drawY);
+    ctx.scale(1, scaleY);
+    ctx.fillText(text, 0, 0);
+    ctx.restore();
+  } else {
+    ctx.fillText(text, drawX, drawY);
+  }
 }
 
 const levelerBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
@@ -78,7 +86,7 @@ const levelerBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
 
     const wordY = ll2.y * ch;
     const numY = wordY + levelWordSize + levelGap;
-    drawFixedText(ctx, 'LEVEL', ll2.x * cw, wordY, ll2.w * cw, levelWordSize, ll2.font, levelWordSize);
+    drawFixedText(ctx, 'LEVEL', ll2.x * cw, wordY, ll2.w * cw, levelWordSize, ll2.font, levelWordSize, 'black', 0.9);
     drawFixedText(ctx, `${lv.level[0]}-${lv.level[1]}`, ll2.x * cw, numY, ll2.w * cw, levelNumSize, ll2.font, levelNumSize);
   }
 
@@ -96,7 +104,7 @@ const levelerBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
     const ll3 = L.levelLabel3;
     const wordY3 = ll3.y * ch;
     const numY3 = wordY3 + levelWordSize + levelGap;
-    drawFixedText(ctx, 'LEVEL', ll3.x * cw, wordY3, ll3.w * cw, levelWordSize, ll3.font, levelWordSize);
+    drawFixedText(ctx, 'LEVEL', ll3.x * cw, wordY3, ll3.w * cw, levelWordSize, ll3.font, levelWordSize, 'black', 0.9);
     drawFixedText(ctx, `${lv.level[0]}+`, ll3.x * cw, numY3, ll3.w * cw, levelNumSize, ll3.font, levelNumSize);
   }
 };
