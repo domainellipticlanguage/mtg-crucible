@@ -405,6 +405,59 @@ export function parseAbilities(text: string, kind?: StructuredAbilities['kind'])
     }
   }
 
+  // Detect mutate from body text: "Mutate {cost} (...)"
+  const MUTATE_REGEX = /^Mutate\s+((?:\{[^}]+\})+)/i;
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(MUTATE_REGEX);
+    if (m) {
+      const unstructured = lines.filter((_, idx) => idx !== i);
+      const result: ParsedAbilities = {
+        structuredAbilities: { kind: 'mutate', mutateCost: m[1] },
+      };
+      if (unstructured.length > 0) result.unstructuredAbilities = unstructured;
+      return result;
+    }
+  }
+
+  // Detect leveler from body text: "LEVEL N-N" or "LEVEL N+"
+  const LEVEL_HEADER_REGEX = /^LEVEL\s+(\d+)([+-])(\d*)$/i;
+  const levelLines: { level: number[]; rulesText: string; power: string; toughness: string }[] = [];
+  const unstructuredLeveler: string[] = [];
+  let foundLevelHeader = false;
+  for (let i = 0; i < lines.length; i++) {
+    const lm = lines[i].match(LEVEL_HEADER_REGEX);
+    if (lm) {
+      foundLevelHeader = true;
+      const lo = parseInt(lm[1], 10);
+      const hi = lm[2] === '+' ? 99 : parseInt(lm[3], 10);
+      // Next lines: P/T then rules text (or rules then P/T)
+      let power = '0', toughness = '0', rulesText = '';
+      const remaining: string[] = [];
+      for (let j = i + 1; j < lines.length; j++) {
+        if (lines[j].match(LEVEL_HEADER_REGEX)) break;
+        remaining.push(lines[j]);
+      }
+      const ptIdx = remaining.findIndex(l => PT_REGEX.test(l));
+      if (ptIdx >= 0) {
+        const ptm = remaining[ptIdx].match(PT_REGEX)!;
+        power = ptm[1]; toughness = ptm[2];
+        rulesText = remaining.filter((_, idx) => idx !== ptIdx).join('\n').trim();
+      }
+      levelLines.push({ level: [lo, hi], rulesText, power, toughness });
+      // Skip the lines we consumed
+      i += remaining.length;
+    } else if (!foundLevelHeader) {
+      unstructuredLeveler.push(lines[i]);
+    }
+  }
+  if (levelLines.length > 0) {
+    const result: ParsedAbilities = {
+      structuredAbilities: { kind: 'leveler', creatureLevels: levelLines },
+    };
+    if (unstructuredLeveler.length > 0) result.unstructuredAbilities = unstructuredLeveler;
+    return result;
+  }
+
   // Default (standard): all lines are unstructured abilities
   return { unstructuredAbilities: lines };
 }

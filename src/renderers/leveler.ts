@@ -20,6 +20,17 @@ import type { TemplateHooks, AnyLayout } from './render';
  * so this hook only draws text.
  */
 
+/** Draw text at an exact font size, centered in a box. No auto-shrinking. */
+function drawFixedText(ctx: SKRSContext2D, text: string, x: number, y: number, w: number, h: number, font: string, size: number, color = 'black') {
+  ctx.font = `${size}px "${font}"`;
+  ctx.fillStyle = color;
+  ctx.textBaseline = 'alphabetic';
+  const tw = ctx.measureText(text).width;
+  const drawX = x + (w - tw) / 2;
+  const drawY = y + (h + size * 0.7) / 2;
+  ctx.fillText(text, drawX, drawY);
+}
+
 const levelerBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
   const pa = getParsedAbilities(card);
   if (pa.structuredAbilities?.kind !== 'leveler') return;
@@ -47,6 +58,11 @@ const levelerBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
     drawSingleLineText(ctx, `${card.power}/${card.toughness}`, p1.x * cw, p1.y * ch, p1.w * cw, p1.h * ch, p1.font, p1.size * ch, 'center', 'black');
   }
 
+  // Fixed sizes for level labels (shared across sections)
+  const levelWordSize = 0.0153 * ch;
+  const levelNumSize = 0.033 * ch;
+  const levelGap = 0.003 * ch;
+
   // Section 2: First level range
   if (levels.length >= 1) {
     const lv = levels[0];
@@ -57,10 +73,13 @@ const levelerBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
     const p2 = L.pt2;
     drawSingleLineText(ctx, `${lv.power}/${lv.toughness}`, p2.x * cw, p2.y * ch, p2.w * cw, p2.h * ch, p2.font, p2.size * ch, 'center', 'black');
 
-    // Level label
+    // Level label — "LEVEL" then number, tight vertical gap
     const ll2 = L.levelLabel2;
-    const label2 = `LEVEL\n${lv.level[0]}-${lv.level[1]}`;
-    drawWrappedText(ctx, label2, ll2.x * cw, ll2.y * ch, ll2.w * cw, ll2.h * ch, ll2.font, ll2.size * ch);
+
+    const wordY = ll2.y * ch;
+    const numY = wordY + levelWordSize + levelGap;
+    drawFixedText(ctx, 'LEVEL', ll2.x * cw, wordY, ll2.w * cw, levelWordSize, ll2.font, levelWordSize);
+    drawFixedText(ctx, `${lv.level[0]}-${lv.level[1]}`, ll2.x * cw, numY, ll2.w * cw, levelNumSize, ll2.font, levelNumSize);
   }
 
   // Section 3: Second level range
@@ -73,10 +92,12 @@ const levelerBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
     const p3 = L.pt3;
     drawSingleLineText(ctx, `${lv.power}/${lv.toughness}`, p3.x * cw, p3.y * ch, p3.w * cw, p3.h * ch, p3.font, p3.size * ch, 'center', 'black');
 
-    // Level label
+    // Level label — "LEVEL" then number, tight vertical gap
     const ll3 = L.levelLabel3;
-    const label3 = `LEVEL\n${lv.level[0]}+`;
-    drawWrappedText(ctx, label3, ll3.x * cw, ll3.y * ch, ll3.w * cw, ll3.h * ch, ll3.font, ll3.size * ch);
+    const wordY3 = ll3.y * ch;
+    const numY3 = wordY3 + levelWordSize + levelGap;
+    drawFixedText(ctx, 'LEVEL', ll3.x * cw, wordY3, ll3.w * cw, levelWordSize, ll3.font, levelWordSize);
+    drawFixedText(ctx, `${lv.level[0]}+`, ll3.x * cw, numY3, ll3.w * cw, levelNumSize, ll3.font, levelNumSize);
   }
 };
 
