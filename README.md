@@ -409,22 +409,22 @@ Extract pinlines, etc.
 # Cruscible Text Format
 ```
 Huntmaster of the Fells {2}{R}{G}
-Has Legend Crown: false
-Frame Color: Gold
-Accent Color: Red and Green
-Frame Effect: Normal
-Name Line Color: Gold
-Type Line Color: Gold
-Art URL: ...
-Art Description: ...
 Creature — Human Werewolf
 Whenever this creature enters or transforms into Huntmaster of the Fells, create a 2/2 green Wolf creature token and you gain 2 life.
 At the beginning of each upkeep, if no spells were cast last turn, transform this creature.
 2/2
 Flavor Text: He's a pretty cool guy
 wraps around to next line
-Set Code: INR
+Art URL: ...
+Art Description: ...
 Artist: Chris Rain
+Has Legend Crown: false
+Frame Effect: Normal
+Frame Color: Gold
+Accent Color: Red and Green
+Name Line Color: Gold
+Type Line Color: Gold
+Set Code: INR
 Collector Number: 205
 Designer: Mark Rosewater?
 --transform--
