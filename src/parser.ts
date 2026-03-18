@@ -526,9 +526,25 @@ export function parseCard(text: string): CardData {
     const back = parseSingleFace(faces[1].join('\n'));
     front.linkedCard = back;
     if (!front.linkType) {
-      // Infer flip if the front face's rules text mentions "flip"
-      const oracleText = getOracleText(front);
-      front.linkType = /\bflip\b/i.test(oracleText) ? 'flip' : 'transform';
+      const frontText = getOracleText(front);
+      const backText = getOracleText(back);
+      const bothHaveManaCost = !!front.manaCost && !!back.manaCost;
+      const isSpell = (types?: Type[]) => !!types?.length && types.every(t => t === 'instant' || t === 'sorcery');
+
+      if (/\bflip\b/i.test(frontText)) {
+        front.linkType = 'flip';
+      } else if (bothHaveManaCost) {
+        const fullText = frontText + '\n' + backText;
+        if (/\bFuse\b/.test(fullText)) {
+          front.linkType = 'split';
+        } else if (isSpell(front.types) && isSpell(back.types)) {
+          front.linkType = 'split';
+        } else {
+          front.linkType = 'modal_dfc';
+        }
+      } else {
+        front.linkType = 'transform';
+      }
     }
     return front;
   }
@@ -1038,7 +1054,10 @@ export function resolveTemplate(card: CardData): TemplateName {
   if (pa.structuredAbilities?.kind === 'class') return 'class';
   if (card.battleDefense) return 'battle';
   if (card.linkType === 'adventure') return 'adventure';
-  if (card.linkType === 'split') return 'split';
+  if (card.linkType === 'split') {
+    const text = getOracleText(card) + (card.linkedCard ? '\n' + getOracleText(card.linkedCard) : '');
+    return /\bFuse\b/.test(text) ? 'fuse' : 'split';
+  }
   if (card.linkType === 'flip') return 'flip';
   if (pa.structuredAbilities?.kind === 'leveler') return 'leveler';
   if (pa.structuredAbilities?.kind === 'prototype') return 'prototype';
