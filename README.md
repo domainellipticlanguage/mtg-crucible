@@ -448,3 +448,5 @@ Let's support keyword abilities vs. ability words. Ability words are like "Landf
 "Exhaust - {3}{R}: Put two +1/+1 counters on this creature. (Activate each exhaust ability only once.)"
 - since there is reminder text, this is a keyword ability and the "Exhaust" should not be italicized
 - fuse cards need to blend in the bottom reminder text
+
+- spacing for type line of non-creature flip card is sub-optimal

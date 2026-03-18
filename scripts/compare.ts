@@ -24,35 +24,33 @@ const OUT = path.resolve(__dirname, '..', '.output', 'compare');
 // HTTP helpers
 // ---------------------------------------------------------------------------
 
-function fetchJSON(url: string): Promise<any> {
+function fetch(url: string): Promise<{ status: number; buffer: Buffer; headers: Record<string, string> }> {
   return new Promise((resolve, reject) => {
-    https.get(url, { headers: { 'User-Agent': 'mtg-crucible/1.0', 'Accept': 'application/json;q=0.9,*/*;q=0.8' } }, (res) => {
+    https.get(new URL(url), { headers: { 'User-Agent': 'mtg-crucible/1.0', 'Accept': '*/*' } }, (res) => {
       if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        return fetchJSON(res.headers.location).then(resolve, reject);
+        return fetch(res.headers.location).then(resolve, reject);
       }
       const chunks: Buffer[] = [];
       res.on('data', (chunk: Buffer) => chunks.push(chunk));
-      res.on('end', () => {
-        try { resolve(JSON.parse(Buffer.concat(chunks).toString())); }
-        catch (e) { reject(e); }
-      });
+      res.on('end', () => resolve({ status: res.statusCode ?? 0, buffer: Buffer.concat(chunks), headers: res.headers as any }));
       res.on('error', reject);
     }).on('error', reject);
   });
 }
 
-function fetchBuffer(url: string): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    https.get(url, { headers: { 'User-Agent': 'mtg-crucible/1.0', 'Accept': 'application/json;q=0.9,*/*;q=0.8' } }, (res) => {
-      if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        return fetchBuffer(res.headers.location).then(resolve, reject);
-      }
-      const chunks: Buffer[] = [];
-      res.on('data', (chunk: Buffer) => chunks.push(chunk));
-      res.on('end', () => resolve(Buffer.concat(chunks)));
-      res.on('error', reject);
-    }).on('error', reject);
-  });
+async function fetchJSON(url: string): Promise<any> {
+  const res = await fetch(url);
+  return JSON.parse(res.buffer.toString());
+}
+
+async function fetchText(url: string): Promise<string> {
+  const res = await fetch(url);
+  return res.buffer.toString();
+}
+
+async function fetchBuffer(url: string): Promise<Buffer> {
+  const res = await fetch(url);
+  return res.buffer;
 }
 
 function sleep(ms: number): Promise<void> {
@@ -63,6 +61,7 @@ function sleep(ms: number): Promise<void> {
 // Scryfall API
 // ---------------------------------------------------------------------------
 
+/** Fetch card JSON (needed for image URIs). */
 async function fetchScryfallCard(name: string, set?: string): Promise<any> {
   let url = `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}`;
   if (set) url += `&set=${encodeURIComponent(set)}`;
@@ -71,67 +70,11 @@ async function fetchScryfallCard(name: string, set?: string): Promise<any> {
   return data;
 }
 
-// ---------------------------------------------------------------------------
-// Scryfall JSON → text definition (for parseCard)
-// ---------------------------------------------------------------------------
-
-const SF_COLOR_NAMES: Record<string, string> = {
-  W: 'white', U: 'blue', B: 'black', R: 'red', G: 'green',
-};
-
-function scryfallToText(sf: any): string {
-  const lines: string[] = [];
-
-  // Line 1: Name + mana cost
-  if (sf.mana_cost) {
-    lines.push(`${sf.name} ${sf.mana_cost}`);
-  } else {
-    lines.push(sf.name);
-  }
-
-  // Metadata lines
-  if (sf.image_uris?.art_crop) lines.push(`Art: ${sf.image_uris.art_crop}`);
-  if (sf.rarity) lines.push(`Rarity: ${sf.rarity}`);
-  if (sf.artist) lines.push(`Artist: ${sf.artist}`);
-  if (sf.set) lines.push(`Set: ${sf.set.toUpperCase()}`);
-  if (sf.collector_number) lines.push(`Collector Number: ${sf.collector_number}`);
-
-  // Color indicator
-  if (sf.color_indicator && sf.color_indicator.length > 0) {
-    const names = sf.color_indicator.map((c: string) => SF_COLOR_NAMES[c]).filter(Boolean);
-    if (names.length > 0) lines.push(`Color Indicator: ${names.join(', ')}`);
-  }
-
-  // Type line
-  lines.push(sf.type_line);
-
-  // Oracle text — normalize Unicode minus (U+2212) to ASCII for PW ability parsing
-  if (sf.oracle_text) {
-    const normalized = sf.oracle_text.replace(/\u2212/g, '-');
-    for (const line of normalized.split('\n')) {
-      lines.push(line);
-    }
-  }
-
-  // Flavor text
-  if (sf.flavor_text) {
-    for (const line of sf.flavor_text.split('\n')) {
-      lines.push(`Flavor Text: ${line}`);
-    }
-  }
-
-  // P/T
-  if (sf.power !== undefined && sf.toughness !== undefined) {
-    lines.push(`${sf.power}/${sf.toughness}`);
-  }
-
-  // Loyalty
-  if (sf.loyalty) lines.push(`Loyalty: ${sf.loyalty}`);
-
-  // Defense (battles)
-  if (sf.defense) lines.push(`Defense: ${sf.defense}`);
-
-  return lines.join('\n');
+/** Fetch card as text via Scryfall's format=text — already in parseCard format. */
+async function fetchScryfallText(name: string, set?: string): Promise<string> {
+  let url = `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}&format=text`;
+  if (set) url += `&set=${encodeURIComponent(set)}`;
+  return fetchText(url);
 }
 
 // ---------------------------------------------------------------------------
@@ -200,52 +143,32 @@ async function buildComparison(scryfallPng: Buffer, ourPng: Buffer, label: strin
 
 async function compareCard(name: string, set?: string): Promise<string> {
   console.log(`Fetching "${name}" from Scryfall...`);
-  const sf = await fetchScryfallCard(name, set);
+
+  // Fetch text (for parseCard) and JSON (for image URIs) in parallel
+  const [scryfallText, sf] = await Promise.all([
+    fetchScryfallText(name, set),
+    fetchScryfallCard(name, set),
+  ]);
 
   console.log(`  Found: ${sf.name} (${sf.set.toUpperCase()} #${sf.collector_number})`);
+  console.log(`  Text definition:\n${scryfallText}\n`);
 
+  // Inject metadata that Scryfall text doesn't include (art, rarity, etc.)
   const frontFace = sf.card_faces?.[0] ?? sf;
-  const backFace = sf.card_faces?.[1] ?? null;
   const imageUris = frontFace.image_uris ?? sf.image_uris;
+  const metadata: string[] = [];
+  if (imageUris?.art_crop) metadata.push(`Art: ${imageUris.art_crop}`);
+  if (sf.rarity) metadata.push(`Rarity: ${sf.rarity}`);
+  if (sf.artist ?? frontFace.artist) metadata.push(`Artist: ${sf.artist ?? frontFace.artist}`);
+  if (sf.set) metadata.push(`Set: ${sf.set.toUpperCase()}`);
+  if (sf.collector_number) metadata.push(`Collector Number: ${sf.collector_number}`);
 
-  // Build text definition for front face with card-level metadata
-  const frontText = scryfallToText({
-    ...frontFace,
-    rarity: sf.rarity,
-    set: sf.set,
-    collector_number: sf.collector_number,
-    image_uris: imageUris,
-  });
-
-  // For multi-face cards, join both faces with ---- and let parseCard handle it
-  let fullText = frontText;
-  if (backFace) {
-    const backText = scryfallToText({
-      ...backFace,
-      image_uris: backFace.image_uris,
-    });
-    fullText = frontText + '\n----\n' + backText;
-  }
-  console.log(`  Text definition:\n${fullText}\n`);
+  // Insert metadata after the first line (name + mana cost)
+  const lines = scryfallText.split('\n');
+  const fullText = [lines[0], ...metadata, ...lines.slice(1)].join('\n');
 
   console.log(`  Rendering our version...`);
-  const { parseCard } = await import('../src');
-  const parsed = parseCard(fullText);
-
-  // Override linkType from Scryfall's layout field (parseCard infers flip, defaults to transform)
-  if (backFace) {
-    const layoutToLinkType: Record<string, string> = {
-      adventure: 'adventure',
-      flip: 'flip',
-      transform: 'transform',
-      modal_dfc: 'modal_dfc',
-      split: 'split',
-      aftermath: 'aftermath',
-    };
-    parsed.linkType = (layoutToLinkType[sf.layout] ?? parsed.linkType ?? 'transform') as any;
-  }
-
-  const rendered = await renderCard(parsed);
+  const rendered = await renderCard(fullText);
 
   // Fetch Scryfall's rendered PNG
   await sleep(100); // respect rate limit
