@@ -21,13 +21,27 @@ const flipBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
   const hasPt1 = !!(card.power && card.toughness);
   const hasPt2 = !!(other.power && other.toughness);
 
-  // Draw flip PT image only if at least one side is a creature
+  // Draw flip PT image, clipping to only show boxes for sides that have P/T
   if ((hasPt1 || hasPt2) && L.flipPtBounds) {
     const frameCodes = normalizeFrameColors(card.frameColor);
     const ptImg = path.join(ASSETS_DIR, 'frames', 'flip', `${frameCodes[0]}pt.png`);
     if (fs.existsSync(ptImg)) {
       const b = L.flipPtBounds;
+      const midY = (b.y + b.h / 2) * ch;
+      ctx.save();
+      ctx.beginPath();
+      if (hasPt1 && hasPt2) {
+        ctx.rect(b.x * cw, b.y * ch, b.w * cw, b.h * ch);
+      } else if (hasPt1) {
+        // Top half only
+        ctx.rect(b.x * cw, b.y * ch, b.w * cw, midY - b.y * ch);
+      } else {
+        // Bottom half only
+        ctx.rect(b.x * cw, midY, b.w * cw, (b.y + b.h) * ch - midY);
+      }
+      ctx.clip();
       ctx.drawImage(await loadImage(ptImg), b.x * cw, b.y * ch, b.w * cw, b.h * ch);
+      ctx.restore();
     }
   }
 

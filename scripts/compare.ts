@@ -204,62 +204,48 @@ async function compareCard(name: string, set?: string): Promise<string> {
 
   console.log(`  Found: ${sf.name} (${sf.set.toUpperCase()} #${sf.collector_number})`);
 
-  // Handle DFC: use front face for text + image, pass back face as linkedCard
   const frontFace = sf.card_faces?.[0] ?? sf;
   const backFace = sf.card_faces?.[1] ?? null;
   const imageUris = frontFace.image_uris ?? sf.image_uris;
 
-  // Build text definition and render through the public API
-  const text = scryfallToText({
+  // Build text definition for front face with card-level metadata
+  const frontText = scryfallToText({
     ...frontFace,
     rarity: sf.rarity,
     set: sf.set,
     collector_number: sf.collector_number,
     image_uris: imageUris,
   });
-  console.log(`  Text definition:\n${text}\n`);
+
+  // For multi-face cards, join both faces with ---- and let parseCard handle it
+  let fullText = frontText;
+  if (backFace) {
+    const backText = scryfallToText({
+      ...backFace,
+      image_uris: backFace.image_uris,
+    });
+    fullText = frontText + '\n----\n' + backText;
+  }
+  console.log(`  Text definition:\n${fullText}\n`);
 
   console.log(`  Rendering our version...`);
-  // If DFC / adventure, attach linkedCard
-  let cardInput: CardData | string = text;
+  const { parseCard } = await import('../src');
+  const parsed = parseCard(fullText);
+
+  // Override linkType from Scryfall's layout field (parseCard infers flip, defaults to transform)
   if (backFace) {
-    const { parseCard } = await import('../src');
-    const parsed = parseCard(text);
-    const isAdventure = sf.layout === 'adventure';
-    parsed.linkType = isAdventure ? 'adventure' : 'transform';
-    const backTypes: string[] = [];
-    const backSubtypes: string[] = [];
-    if (backFace.type_line) {
-      const typeLine = backFace.type_line as string;
-      // Parse "Instant — Adventure" etc.
-      const [mainPart, subPart] = typeLine.split('—').map((s: string) => s.trim());
-      for (const t of mainPart.toLowerCase().split(/\s+/)) {
-        if (['creature', 'instant', 'sorcery', 'enchantment', 'artifact', 'planeswalker', 'land', 'battle'].includes(t)) {
-          backTypes.push(t);
-        }
-      }
-      if (subPart) {
-        for (const s of subPart.split(/\s+/)) {
-          backSubtypes.push(s);
-        }
-      }
-    }
-    parsed.linkedCard = {
-      name: backFace.name,
-      types: backTypes.length > 0 ? backTypes as any : undefined,
-      subtypes: backSubtypes.length > 0 ? backSubtypes : undefined,
-      abilities: backFace.oracle_text?.replace(/\u2212/g, '-'),
-      power: backFace.power,
-      toughness: backFace.toughness,
-      artUrl: backFace.image_uris?.art_crop,
-      manaCost: backFace.mana_cost,
+    const layoutToLinkType: Record<string, string> = {
+      adventure: 'adventure',
+      flip: 'flip',
+      transform: 'transform',
+      modal_dfc: 'modal_dfc',
+      split: 'split',
+      aftermath: 'aftermath',
     };
-    if (backFace.color_indicator?.length > 0) {
-      parsed.linkedCard.colorIndicator = backFace.color_indicator.map((c: string) => SF_COLOR_NAMES[c]) as any;
-    }
-    cardInput = parsed;
+    parsed.linkType = (layoutToLinkType[sf.layout] ?? parsed.linkType ?? 'transform') as any;
   }
-  const rendered = await renderCard(cardInput);
+
+  const rendered = await renderCard(parsed);
 
   // Fetch Scryfall's rendered PNG
   await sleep(100); // respect rate limit

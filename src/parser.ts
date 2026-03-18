@@ -525,7 +525,11 @@ export function parseCard(text: string): CardData {
     const front = parseSingleFace(faces[0].join('\n'));
     const back = parseSingleFace(faces[1].join('\n'));
     front.linkedCard = back;
-    front.linkType = front.linkType ?? 'transform';
+    if (!front.linkType) {
+      // Infer flip if the front face's rules text mentions "flip"
+      const oracleText = getOracleText(front);
+      front.linkType = /\bflip\b/i.test(oracleText) ? 'flip' : 'transform';
+    }
     return front;
   }
 
