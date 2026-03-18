@@ -55,11 +55,11 @@ async function renderSplitText(
   // Mana cost — right-aligned in the name bar
   if (card.manaCost) {
     await drawManaCost(ctx, card.manaCost, ch, cw, {
-      y: L.name.x,
-      w: L.name.w,
+      y: L.mana.y,
+      w: L.mana.w,
       size: L.mana.size,
-      shadowX: 0,
-      shadowY: 0,
+      shadowX: L.mana.shadowX,
+      shadowY: L.mana.shadowY,
     });
   }
 
