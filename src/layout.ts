@@ -192,7 +192,8 @@ export const MDFC_BACK_LAYOUT = { ...MDFC_FRONT_LAYOUT };
 export const SPLIT_RIGHT_LAYOUT = {
   art:       { x: 0.158, y: 0.0534, w: 0.3734, h: 0.3886 },
   name:      { x: 0.072, y: 0.4381, w: 0.5367, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
-  mana:      { y: 0.4381, w: 0.5367, size: 71/1500, shadowX: 0, shadowY: 0 },
+  mana:      { y: 0.0855, w: 0.39, size: 85/1500, shadowX: -0.001, shadowY: 0.0029 },
+  // mana:      { y: 0.4381, w: 0.5367, size: 71/1500, shadowX: -0.001, shadowY: 0.0029 },
   type:      { x: 0.55, y: 0.4381, w: 0.5367, h: 0.0286, size: 0.0286, font: 'Beleren Bold' },
   rules:     { x: 0.6087, y: 0.4334, w: 0.5174, h: 0.2443, size: 0.0305, font: 'MPlantin' },
   setSymbol: { x: 2, y: 2, w: 0.12, h: 0.0410 }, // off-screen (not shown on split)
@@ -201,7 +202,7 @@ export const SPLIT_RIGHT_LAYOUT = {
 export const SPLIT_LEFT_LAYOUT = {
   art:       { x: 0.158, y: 0.0534, w: 0.3734, h: 0.3886 },
   name:      { x: 0.072, y: 0.8943, w: 0.5367, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
-  mana:      { y: 0.09, w: 0.39, size: 71/1500, shadowX: 0, shadowY: 0 },
+  mana:      { y: 0.0855, w: 0.39, size: 85/1500, shadowX: -0.001, shadowY: 0.0029 },
   type:      { x: 0.55, y: 0.8943, w: 0.5367, h: 0.0286, size: 0.0286, font: 'Beleren Bold' },
   rules:     { x: 0.6087, y: 0.8896, w: 0.5174, h: 0.2443, size: 0.0305, font: 'MPlantin' },
   setSymbol: { x: 2, y: 2, w: 0.12, h: 0.0410 }, // off-screen (not shown on split)
