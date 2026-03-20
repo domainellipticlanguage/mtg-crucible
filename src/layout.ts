@@ -20,7 +20,7 @@ export const BTL_H = 2010;
 
 // Standard layout (packM15RegularNew.js)
 export const STD_LAYOUT = {
-  art:       { x: 0.0767, y: 0.1129, w: 0.8476, h: 0.4429 },
+  art:       { x: 154/2010, y: 318/2814, w: 1704/2010, h: 1246/2814 },
   name:      { x: 168/2010, y: 145/2814, w: 0.8292, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
   mana:      { y: 176/2814, w: 1864/2010, size: 70.5/1638, shadowX: -0.001, shadowY: 0.0029 },
   type:      { x: 168/2010, y: 1588/2814, w: 0.8292, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
@@ -33,8 +33,7 @@ export const STD_LAYOUT = {
 
 // Planeswalker layout (packPlaneswalkerRegular.js)
 export const PW_LAYOUT = {
-  // art:       { x: 0.0767, y: 0.1034, w: 0.8476, h: 0.7966 },
-  art:       { x: 0.0767, y: 0.05, w: 0.8476, h: 0.7966 },
+  art:       { x: 100/1500, y: 208/2100, w: 1298/1500, h: 1716/2100 },
   name:      { x: 0.0867, y: 0.0372, w: 0.8267, h: 0.0548, size: 0.0381, font: 'Beleren Bold' },
   mana:      { y: 0.0481, w: 0.9292, size: 71/1638, shadowX: -0.001, shadowY: 0.0029 },
   type:      { x: 0.0867, y: 0.5625, w: 0.8267, h: 0.0548, size: 0.0324, font: 'Beleren Bold' },
@@ -59,7 +58,7 @@ export const PW_LAYOUT = {
 
 // Planeswalker Tall layout (packPlaneswalkerTall.js)
 export const PW_TALL_LAYOUT = {
-  art:       { x: 0.0767, y: 0.05, w: 0.8476, h: 0.7966 },
+  art:       { x: 115/1500, y: 105/2100, w: 1271/1500, h: 1673/2100 },
   name:      { x: 0.0867, y: 0.0372, w: 0.8267, h: 0.0548, size: 0.0381, font: 'Beleren Bold' },
   mana:      { y: 0.0481, w: 0.9292, size: 71/1638, shadowX: -0.001, shadowY: 0.0029 },
   type:      { x: 0.0867, y: 0.4967, w: 0.8267, h: 0.0548, size: 0.0324, font: 'Beleren Bold' },
@@ -84,7 +83,7 @@ export const PW_TALL_LAYOUT = {
 
 // Saga layout (packSagaRegular.js)
 export const SAGA_LAYOUT = {
-  art:       { x: 0.5, y: 0.1124, w: 0.4247, h: 0.7253 },
+  art:       { x: 750/1500, y: 236/2100, w: 637/1500, h: 1523/2100 },
   name:      { x: 0.0854, y: 0.0522, w: 0.8292, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
   mana:      { y: 0.0613, w: 0.9292, size: 71/1638, shadowX: -0.001, shadowY: 0.0029 },
   type:      { x: 0.0854, y: 0.8481, w: 0.8292, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
@@ -100,7 +99,7 @@ export const SAGA_LAYOUT = {
 
 // Class layout (packClass.js)
 export const CLASS_LAYOUT = {
-  art:       { x: 0.0753, y: 0.1124, w: 0.4247, h: 0.7253 },
+  art:       { x: 113/1500, y: 236/2100, w: 637/1500, h: 1523/2100 },
   name:      { x: 0.0854, y: 0.0522, w: 0.8292, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
   mana:      { y: 0.0613, w: 0.9292, size: 71/1638, shadowX: -0.001, shadowY: 0.0029 },
   type:      { x: 0.0854, y: 0.8481, w: 0.8292, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
@@ -116,7 +115,7 @@ export const CLASS_LAYOUT = {
 // Adventure layout (packAdventure.js)
 // Uses PW canvas size (1500x2100) — same as the adventure frame images.
 export const ADV_LAYOUT = {
-  art:       { x: 0.0767, y: 0.1129, w: 0.8476, h: 0.4429 },
+  art:       { x: 115/1500, y: 237/2100, w: 1271/1500, h: 930/2100 },
   name:      { x: 0.0854, y: 0.0522, w: 0.8292, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
   mana:      { y: 0.0613, w: 0.9292, size: 71/1638, shadowX: -0.001, shadowY: 0.0029 },
   type:      { x: 0.0854, y: 0.5664, w: 0.8292, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
@@ -136,7 +135,7 @@ export const ADV_LAYOUT = {
 // Transform front layout (packM15TransformFront.js)
 // 1500x2100. Title shifted right for transform icon. Reverse PT hint at bottom.
 export const TF_FRONT_LAYOUT = {
-  art:       { x: 0.0767, y: 0.1129, w: 0.8476, h: 0.4429 },
+  art:       { x: 115/1500, y: 237/2100, w: 1271/1500, h: 930/2100 },
   name:      { x: 0.16, y: 0.0522, w: 0.7547, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
   mana:      { y: 0.0613, w: 0.9292, size: 71/1638, shadowX: -0.001, shadowY: 0.0029 },
   type:      { x: 0.0854, y: 0.5664, w: 0.8292, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
@@ -152,7 +151,7 @@ export const TF_FRONT_LAYOUT = {
 // Transform back layout (packM15TransformBack.js)
 // Same as front but with white text. Frame is mirrored horizontally.
 export const TF_BACK_LAYOUT = {
-  art:       { x: 0.0767, y: 0.1129, w: 0.8476, h: 0.4429 },
+  art:       { x: 115/1500, y: 237/2100, w: 1271/1500, h: 930/2100 },
   name:      { x: 0.16, y: 0.0522, w: 0.7547, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
   mana:      { y: 0.0613, w: 0.9292, size: 71/1638, shadowX: -0.001, shadowY: 0.0029 },
   type:      { x: 0.0854, y: 0.5664, w: 0.8292, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
@@ -167,7 +166,7 @@ export const TF_BACK_LAYOUT = {
 // Modal DFC front layout (packModalRegular.js)
 // 1500x2100. Title shifted right for MDFC arrow. Flipside hint at bottom.
 export const MDFC_FRONT_LAYOUT = {
-  art:       { x: 0.0767, y: 0.1129, w: 0.8476, h: 0.4429 },
+  art:       { x: 115/1500, y: 237/2100, w: 1271/1500, h: 930/2100 },
   name:      { x: 0.1614, y: 0.0522, w: 0.7534, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
   mana:      { y: 0.0613, w: 0.9292, size: 71/1638, shadowX: -0.001, shadowY: 0.0029 },
   type:      { x: 0.0854, y: 0.5664, w: 0.8292, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
@@ -190,7 +189,7 @@ export const MDFC_BACK_LAYOUT = { ...MDFC_FRONT_LAYOUT };
 // All text is drawn rotated -90° by the renderer hook.
 // Right half (first spell) — card y ~ 0.44
 export const SPLIT_RIGHT_LAYOUT = {
-  art:       { x: 0.158, y: 0.0534, w: 0.3734, h: 0.3886 },
+  art:       { x: 237/1500, y: 112/2100, w: 560/1500, h: 816/2100 },
   name:      { x: 0.072, y: 0.4381, w: 0.39, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
   mana:      { y: 0.0855, w: 0.39, size: 85/1500, shadowX: -0.001, shadowY: 0.0029 },
   type:      { x: 0.55, y: 0.4381, w: 0.39, h: 0.0286, size: 0.0286, font: 'Beleren Bold' },
@@ -199,7 +198,7 @@ export const SPLIT_RIGHT_LAYOUT = {
 };
 // Left half (second spell / linkedCard) — card y ~ 0.89
 export const SPLIT_LEFT_LAYOUT = {
-  art:       { x: 0.158, y: 0.535, w: 0.3734, h: 0.3886 },
+  art:       { x: 237/1500, y: 1070/2100, w: 560/1500, h: 816/2100 },
   name:      { x: 0.072, y: 0.8943, w: 0.39, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
   mana:      { y: 0.0855, w: 0.39, size: 85/1500, shadowX: -0.001, shadowY: 0.0029 },
   type:      { x: 0.55, y: 0.8943, w: 0.39, h: 0.0286, size: 0.0286, font: 'Beleren Bold' },
@@ -211,7 +210,7 @@ export const SPLIT_LEFT_LAYOUT = {
 // 1500x2100 canvas. Top half is normal, bottom half is rotated 180°.
 // Shared art in the middle.
 export const FLIP_LAYOUT = {
-  art:       { x: 0.0754, y: 0.2962, w: 0.8494, h: 0.3315 },
+  art:       { x: 113/1500, y: 622/2100, w: 1274/1500, h: 696/2100 },
   // Top half (front face)
   name:      { x: 0.0854, y: 0.0386, w: 0.8292, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
   mana:      { y: 0.0477, w: 0.9292, size: 71/2100, shadowX: -0.001, shadowY: 0.0029 },
@@ -233,7 +232,7 @@ export const FLIP_LAYOUT = {
 // Mutate layout (packM15Mutate.js)
 // 1500x2100 canvas. Extended art, mutate cost bar between type and rules.
 export const MUTATE_LAYOUT = {
-  art:       { x: 0.0614, y: 0.1129, w: 0.8774, h: 0.6434 },
+  art:       { x: 115/1500, y: 237/2100, w: 1270/1500, h: 1348/2100 },
   name:      { x: 0.0854, y: 0.0522, w: 0.8292, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
   mana:      { y: 0.0613, w: 0.9292, size: 71/1638, shadowX: -0.001, shadowY: 0.0029 },
   type:      { x: 0.0854, y: 0.5664, w: 0.8292, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
@@ -249,7 +248,7 @@ export const MUTATE_LAYOUT = {
 // Prototype layout (packPrototype.js)
 // 1500x2100 canvas. Standard art, prototype bar between type and rules.
 export const PROTO_LAYOUT = {
-  art:       { x: 0.0767, y: 0.1129, w: 0.8476, h: 0.4429 },
+  art:       { x: 115/1500, y: 237/2100, w: 1271/1500, h: 930/2100 },
   name:      { x: 0.0854, y: 0.0522, w: 0.8292, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
   mana:      { y: 0.0613, w: 0.9292, size: 71/1638, shadowX: -0.001, shadowY: 0.0029 },
   type:      { x: 0.0854, y: 0.5664, w: 0.8292, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
@@ -267,7 +266,7 @@ export const PROTO_LAYOUT = {
 // Leveler layout (packLevelers.js)
 // 1500x2100 canvas. Three stacked level sections with level labels and P/T boxes.
 export const LEVELER_LAYOUT = {
-  art:       { x: 0.0767, y: 0.1129, w: 0.8476, h: 0.4429 },
+  art:       { x: 115/1500, y: 237/2100, w: 1271/1500, h: 930/2100 },
   name:      { x: 0.0854, y: 0.0522, w: 0.8292, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
   mana:      { y: 0.0613, w: 0.9292, size: 71/1638, shadowX: -0.001, shadowY: 0.0029 },
   type:      { x: 0.0854, y: 0.5664, w: 0.8292, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
@@ -290,7 +289,7 @@ export const LEVELER_LAYOUT = {
 // 1500x2100 canvas. Top half is normal upright card, bottom half is rotated 90°.
 // Top half (first spell) — normal orientation
 export const AFTERMATH_TOP_LAYOUT = {
-  art:       { x: 0.076, y: 0.1124, w: 0.848, h: 0.2234 },
+  art:       { x: 114/1500, y: 236/2100, w: 1272/1500, h: 469/2100 },
   name:      { x: 0.0854, y: 0.0522, w: 0.8292, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
   mana:      { y: 0.0613, w: 0.9292, size: 71/1638, shadowX: -0.001, shadowY: 0.0029 },
   type:      { x: 0.0854, y: 0.3467, w: 0.8292, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
