@@ -543,6 +543,10 @@ export async function ensureInitialized(): Promise<void> {
 }
 
 export function fetchBuffer(url: string): Promise<Buffer> {
+  // Support local file paths
+  if (url.startsWith('/') || url.startsWith('./')) {
+    return fs.promises.readFile(url);
+  }
   return new Promise((resolve, reject) => {
     https.get(url, (res) => {
       if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
