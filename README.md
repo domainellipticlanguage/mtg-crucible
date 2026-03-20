@@ -453,3 +453,4 @@ Let's support keyword abilities vs. ability words. Ability words are like "Landf
 
 # improvements
 - for split cards with hybrid mana, do the red white and blue thing...
+- Fuse needs to use the mask and write the reminder text
