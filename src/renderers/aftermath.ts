@@ -47,8 +47,8 @@ async function renderBottomText(
   // Mana cost — right-aligned in the name bar
   if (card.manaCost) {
     await drawManaCost(ctx, card.manaCost, ch, cw, {
-      y: 0,
-      w: L.name.w,
+      y: L.mana.y,
+      w: L.mana.w,
       size: L.mana.size,
       shadowX: L.mana.shadowX,
       shadowY: L.mana.shadowY,
