@@ -1,7 +1,7 @@
 import { type SKRSContext2D } from '@napi-rs/canvas';
 import type { CardData } from '../types';
 import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor } from '../text';
-import { drawManaCost, measureManaCostWidth, getTypeLine, drawFrame } from '../helpers';
+import { drawArt, drawManaCost, measureManaCostWidth, getTypeLine, drawFrame } from '../helpers';
 import { getParsedAbilities } from '../parser';
 import { AFTERMATH_BOTTOM_LAYOUT } from '../layout';
 import type { TemplateHooks, AnyLayout } from './render';
@@ -92,8 +92,9 @@ const aftermathBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
     ctx.restore();
   }
 
-  // Bottom half text (rotated 90°)
+  // Bottom half art + text (rotated 90°)
   if (other) {
+    if (other.artUrl) await drawArt(ctx, other.artUrl, AFTERMATH_BOTTOM_LAYOUT.art, cw, ch);
     await renderBottomText(ctx, other, cw, ch);
   }
 };

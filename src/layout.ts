@@ -199,7 +199,7 @@ export const SPLIT_RIGHT_LAYOUT = {
 };
 // Left half (second spell / linkedCard) — card y ~ 0.89
 export const SPLIT_LEFT_LAYOUT = {
-  art:       { x: 0.158, y: 0.0534, w: 0.3734, h: 0.3886 },
+  art:       { x: 0.158, y: 0.535, w: 0.3734, h: 0.3886 },
   name:      { x: 0.072, y: 0.8943, w: 0.39, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
   mana:      { y: 0.0855, w: 0.39, size: 85/1500, shadowX: -0.001, shadowY: 0.0029 },
   type:      { x: 0.55, y: 0.8943, w: 0.39, h: 0.0286, size: 0.0286, font: 'Beleren Bold' },
@@ -300,6 +300,7 @@ export const AFTERMATH_TOP_LAYOUT = {
 };
 // Bottom half (second spell / linkedCard) — rotated 90° clockwise
 export const AFTERMATH_BOTTOM_LAYOUT = {
+  art:       { x: 0.58, y: 0.59, w: 0.288, h: 0.354 },
   name:      { x: 0.91, y: 0.5648, w: 0.42, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
   mana:      { y: 0.005, w: 0.35, size: 92/1638, shadowX: -0.001, shadowY: 0.0029 },
   type:      { x: 0.53, y: 0.5648, w: 0.42, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },

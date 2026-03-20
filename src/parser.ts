@@ -8,8 +8,8 @@ import {
   ADV_LAYOUT,
   TF_FRONT_LAYOUT, TF_BACK_LAYOUT,
   MDFC_FRONT_LAYOUT, MDFC_BACK_LAYOUT,
-  SPLIT_RIGHT_LAYOUT,
-  AFTERMATH_TOP_LAYOUT,
+  SPLIT_RIGHT_LAYOUT, SPLIT_LEFT_LAYOUT,
+  AFTERMATH_TOP_LAYOUT, AFTERMATH_BOTTOM_LAYOUT,
   FLIP_LAYOUT,
   MUTATE_LAYOUT,
   PROTO_LAYOUT,
@@ -1020,7 +1020,7 @@ export function toScryfallText(card: CardData): string {
 
 /** Compute rotation steps for card face presentation */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const TEMPLATE_CONFIGS: Record<TemplateName, { layout: Record<string, any>; w: number; h: number }> = {
+const TEMPLATE_CONFIGS: Record<TemplateName, { layout: Record<string, any>; w: number; h: number; linkedLayout?: Record<string, any> }> = {
   standard:           { layout: STD_LAYOUT, w: STD_W, h: STD_H },
   planeswalker:       { layout: PW_LAYOUT, w: PW_W, h: PW_H },
   planeswalker_tall:  { layout: PW_TALL_LAYOUT, w: PW_W, h: PW_H },
@@ -1032,9 +1032,9 @@ const TEMPLATE_CONFIGS: Record<TemplateName, { layout: Record<string, any>; w: n
   transform_back:     { layout: TF_BACK_LAYOUT, w: PW_W, h: PW_H },
   mdfc_front:         { layout: MDFC_FRONT_LAYOUT, w: PW_W, h: PW_H },
   mdfc_back:          { layout: MDFC_BACK_LAYOUT, w: PW_W, h: PW_H },
-  split:              { layout: SPLIT_RIGHT_LAYOUT, w: PW_W, h: PW_H },
-  fuse:               { layout: SPLIT_RIGHT_LAYOUT, w: PW_W, h: PW_H },
-  aftermath:          { layout: AFTERMATH_TOP_LAYOUT, w: PW_W, h: PW_H },
+  split:              { layout: SPLIT_RIGHT_LAYOUT, w: PW_W, h: PW_H, linkedLayout: SPLIT_LEFT_LAYOUT },
+  fuse:               { layout: SPLIT_RIGHT_LAYOUT, w: PW_W, h: PW_H, linkedLayout: SPLIT_LEFT_LAYOUT },
+  aftermath:          { layout: AFTERMATH_TOP_LAYOUT, w: PW_W, h: PW_H, linkedLayout: AFTERMATH_BOTTOM_LAYOUT },
   flip:               { layout: FLIP_LAYOUT, w: PW_W, h: PW_H },
   mutate:             { layout: MUTATE_LAYOUT, w: PW_W, h: PW_H },
   prototype:          { layout: PROTO_LAYOUT, w: PW_W, h: PW_H },
@@ -1070,10 +1070,11 @@ export function resolveTemplate(card: CardData): TemplateName {
   return 'standard';
 }
 
-export function getArtDimensions(card: CardData, templateOverride?: TemplateName): { width: number; height: number } {
+export function getArtDimensions(card: CardData, templateOverride?: TemplateName, linked?: boolean): { width: number; height: number } {
   const templateKey = templateOverride ?? resolveTemplate(card);
   const config = TEMPLATE_CONFIGS[templateKey] ?? TEMPLATE_CONFIGS.standard;
-  const { layout: L, w: cw, h: ch } = config;
+  const { w: cw, h: ch } = config;
+  const L = (linked && config.linkedLayout) ? config.linkedLayout : config.layout;
   return {
     width: Math.round(L.art.w * cw),
     height: Math.round(L.art.h * ch),

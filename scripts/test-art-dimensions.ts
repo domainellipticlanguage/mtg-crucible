@@ -31,15 +31,22 @@ function generateTestImage(w: number, h: number, label: string): Buffer {
   for (let y = 0; y < h; y += sq) {
     for (let x = 0; x < w; x += sq) {
       if ((x < sq * 3 || x >= w - sq * 3 || y < sq * 3 || y >= h - sq * 3)) {
-        if (((x / sq) + (y / sq)) % 2 === 0) {
-          ctx.fillStyle = '#ff0000';
-          ctx.fillRect(x, y, sq, sq);
-        } else {
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(x, y, sq, sq);
-        }
+        ctx.fillStyle = ((x / sq + y / sq) % 2 === 0) ? '#ff0000' : '#ffffff';
+        ctx.fillRect(x, y, sq, sq);
       }
     }
+  }
+
+  // 1px alternating black/white outline at the very edge
+  for (let x = 0; x < w; x++) {
+    ctx.fillStyle = (x % 2 === 0) ? '#000000' : '#ffffff';
+    ctx.fillRect(x, 0, 1, 1);
+    ctx.fillRect(x, h - 1, 1, 1);
+  }
+  for (let y = 0; y < h; y++) {
+    ctx.fillStyle = (y % 2 === 0) ? '#000000' : '#ffffff';
+    ctx.fillRect(0, y, 1, 1);
+    ctx.fillRect(w - 1, y, 1, 1);
   }
 
   // Centered circle — largest that fits
@@ -123,6 +130,10 @@ const TEST_CARDS: { template: TemplateName; card: CardData }[] = [
     card: { name: 'Test Left', manaCost: '{R}', types: ['instant'], frameColor: 'red', abilities: 'Deal 2 damage.', linkType: 'split', linkedCard: { name: 'Test Right', manaCost: '{G}', types: ['sorcery'], frameColor: 'green', abilities: 'Create a 3/3 token.' } },
   },
   {
+    template: 'fuse',
+    card: { name: 'Test Turn', manaCost: '{2}{U}', types: ['instant'], frameColor: 'blue', abilities: 'Target creature becomes 0/1.\nFuse', linkType: 'split', linkedCard: { name: 'Test Burn', manaCost: '{1}{R}', types: ['instant'], frameColor: 'red', abilities: 'Deal 2 damage to any target.\nFuse' }, cardTemplate: 'fuse' as TemplateName },
+  },
+  {
     template: 'flip',
     card: { name: 'Test Flip', manaCost: '{1}{W}', types: ['creature'], subtypes: ['Human'], frameColor: 'white', power: '1', toughness: '1', abilities: 'When this deals damage, flip it.', linkType: 'flip', linkedCard: { name: 'Test Flipped', types: ['creature'], subtypes: ['Spirit'], power: '3', toughness: '3', abilities: 'Flying' } },
   },
@@ -160,6 +171,17 @@ async function main() {
 
     // Render the card with the test art as a file path
     const cardWithArt = { ...card, artUrl: artPath };
+
+    // Also generate art for linked card if present
+    if (cardWithArt.linkedCard) {
+      const linkedDims = getArtDimensions(card, template, true);
+      const linkedArt = generateTestImage(linkedDims.width, linkedDims.height, `${template}-linked`);
+      const linkedArtPath = path.join(OUT, `${template}-linked-art.png`);
+      fs.writeFileSync(linkedArtPath, linkedArt);
+      cardWithArt.linkedCard = { ...cardWithArt.linkedCard, artUrl: linkedArtPath };
+      console.log(`  linked: ${linkedDims.width}x${linkedDims.height}`);
+    }
+
     const result = await renderCard(cardWithArt);
 
     const outPath = path.join(OUT, `${template}.png`);

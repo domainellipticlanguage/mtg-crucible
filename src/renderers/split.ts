@@ -1,7 +1,7 @@
 import { type SKRSContext2D } from '@napi-rs/canvas';
 import type { CardData } from '../types';
 import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor } from '../text';
-import { drawManaCost, drawSetSymbol, measureManaCostWidth, getTypeLine, drawFrame } from '../helpers';
+import { drawArt, drawManaCost, drawSetSymbol, measureManaCostWidth, getTypeLine, drawFrame } from '../helpers';
 import { getParsedAbilities } from '../parser';
 import { SPLIT_RIGHT_LAYOUT, SPLIT_LEFT_LAYOUT } from '../layout';
 import type { TemplateHooks, AnyLayout } from './render';
@@ -109,6 +109,10 @@ const splitBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
     await drawFrame(ctx, frameDir, other.frameColor, other.accentColor, cw, ch);
     ctx.restore();
   }
+
+  // Draw art for both halves (standard pipeline only draws front art in wrong position)
+  if (card.artUrl) await drawArt(ctx, card.artUrl, SPLIT_LEFT_LAYOUT.art, cw, ch);
+  if (other?.artUrl) await drawArt(ctx, other.artUrl, SPLIT_RIGHT_LAYOUT.art, cw, ch);
 
   // Render text for both halves, clipping each to its half
   await renderSplitText(ctx, card, SPLIT_LEFT_LAYOUT, cw, ch, splitY, ch);
