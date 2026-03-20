@@ -123,6 +123,8 @@ export async function renderCard(input: CardData | string): Promise<RenderedCard
     backTemplateOverride = 'mdfc_back';
   } else if (normalized.linkType === 'split' || normalized.linkType === 'flip') {
     frontTemplateOverride = normalized.cardTemplate ?? normalized.linkType;
+  } else if (normalized.linkType === 'aftermath') {
+    frontTemplateOverride = 'aftermath';
   }
 
   const frontFace = await renderCardImage(normalized, frontTemplateOverride);
@@ -132,7 +134,7 @@ export async function renderCard(input: CardData | string): Promise<RenderedCard
   let backFace: Buffer | undefined;
   let backFaceOrientation: 'horizontal' | 'vertical' | undefined;
   // Adventure, split, fuse, and flip cards render both faces on one image — no separate back face
-  const singleImageTypes = new Set(['adventure', 'split', 'flip']);
+  const singleImageTypes = new Set(['adventure', 'split', 'flip', 'aftermath']);
   if (normalized.linkedCard && !singleImageTypes.has(normalized.linkType ?? '')) {
     const normalizedBack = normalizeCard(normalized.linkedCard);
     // For MDFC, back face needs a reference to the front for the flipside hint

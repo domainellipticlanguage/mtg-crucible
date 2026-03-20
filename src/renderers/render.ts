@@ -16,6 +16,7 @@ import {
   MUTATE_LAYOUT,
   PROTO_LAYOUT,
   LEVELER_LAYOUT,
+  AFTERMATH_TOP_LAYOUT,
   ASSETS_DIR,
 } from '../layout';
 import { getParsedAbilities, resolveTemplate } from '../parser';
@@ -37,6 +38,7 @@ import { flipHooks } from './flip';
 import { mutateHooks } from './mutate';
 import { prototypeHooks } from './prototype';
 import { levelerHooks } from './leveler';
+import { aftermathHooks } from './aftermath';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyLayout = Record<string, any>;
@@ -78,6 +80,7 @@ const TEMPLATES: Record<string, TemplateConfig> = {
   mutate:             { layout: MUTATE_LAYOUT, w: PW_W, h: PW_H, frame: 'mutate', hooks: mutateHooks },
   prototype:          { layout: PROTO_LAYOUT, w: PW_W, h: PW_H, frame: 'standard', hooks: prototypeHooks },
   leveler:            { layout: LEVELER_LAYOUT, w: PW_W, h: PW_H, frame: 'leveler', hooks: levelerHooks },
+  aftermath:          { layout: AFTERMATH_TOP_LAYOUT, w: PW_W, h: PW_H, frame: 'aftermath', hooks: aftermathHooks },
 };
 
 export async function renderCardImage(card: CardData, templateOverride?: string): Promise<Buffer> {

@@ -9,6 +9,7 @@ import {
   TF_FRONT_LAYOUT, TF_BACK_LAYOUT,
   MDFC_FRONT_LAYOUT, MDFC_BACK_LAYOUT,
   SPLIT_RIGHT_LAYOUT,
+  AFTERMATH_TOP_LAYOUT,
   FLIP_LAYOUT,
   MUTATE_LAYOUT,
   PROTO_LAYOUT,
@@ -537,6 +538,8 @@ export function parseCard(text: string): CardData {
         const fullText = frontText + '\n' + backText;
         if (/\bFuse\b/.test(fullText)) {
           front.linkType = 'split';
+        } else if (/\bAftermath\b/.test(fullText)) {
+          front.linkType = 'aftermath';
         } else if (isSpell(front.types) && isSpell(back.types)) {
           front.linkType = 'split';
         } else {
@@ -1031,6 +1034,7 @@ const TEMPLATE_CONFIGS: Record<TemplateName, { layout: Record<string, any>; w: n
   mdfc_back:          { layout: MDFC_BACK_LAYOUT, w: PW_W, h: PW_H },
   split:              { layout: SPLIT_RIGHT_LAYOUT, w: PW_W, h: PW_H },
   fuse:               { layout: SPLIT_RIGHT_LAYOUT, w: PW_W, h: PW_H },
+  aftermath:          { layout: AFTERMATH_TOP_LAYOUT, w: PW_W, h: PW_H },
   flip:               { layout: FLIP_LAYOUT, w: PW_W, h: PW_H },
   mutate:             { layout: MUTATE_LAYOUT, w: PW_W, h: PW_H },
   prototype:          { layout: PROTO_LAYOUT, w: PW_W, h: PW_H },
@@ -1054,6 +1058,7 @@ export function resolveTemplate(card: CardData): TemplateName {
   if (pa.structuredAbilities?.kind === 'class') return 'class';
   if (card.battleDefense) return 'battle';
   if (card.linkType === 'adventure') return 'adventure';
+  if (card.linkType === 'aftermath') return 'aftermath';
   if (card.linkType === 'split') {
     const text = getOracleText(card) + (card.linkedCard ? '\n' + getOracleText(card.linkedCard) : '');
     return /\bFuse\b/.test(text) ? 'fuse' : 'split';

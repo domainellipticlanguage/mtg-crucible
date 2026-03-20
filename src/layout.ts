@@ -286,6 +286,26 @@ export const LEVELER_LAYOUT = {
   levelLabel3: { x: 0.0727, y: 0.8448, w: 0.08, h: 0.0572, size: 0.0139, font: 'Beleren Bold SmCaps' },
 };
 
+// Aftermath layout (packAftermath.js)
+// 1500x2100 canvas. Top half is normal upright card, bottom half is rotated 90°.
+// Top half (first spell) — normal orientation
+export const AFTERMATH_TOP_LAYOUT = {
+  art:       { x: 0.076, y: 0.1124, w: 0.848, h: 0.2234 },
+  name:      { x: 0.0854, y: 0.0522, w: 0.8292, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
+  mana:      { y: 0.0613, w: 0.9292, size: 71/1638, shadowX: -0.001, shadowY: 0.0029 },
+  type:      { x: 0.0854, y: 0.3467, w: 0.8292, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
+  rules:     { x: 0.086, y: 0.4139, w: 0.828, h: 0.12, size: 0.0362, font: 'MPlantin' },
+  setSymbol: { x: 0.9213, y: 0.371, w: 0.12, h: 0.0410 },
+  crown:     { x: 44/2010, y: 53/2814, w: 1922/2010, h: 493/2814 },
+};
+// Bottom half (second spell / linkedCard) — rotated 90° clockwise
+export const AFTERMATH_BOTTOM_LAYOUT = {
+  name:      { x: 0.91, y: 0.5648, w: 0.42, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
+  mana:      { y: 0.550, w: 0.46, size: 71/1638, shadowX: -0.001, shadowY: 0.0029 },
+  type:      { x: 0.53, y: 0.5648, w: 0.42, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
+  rules:     { x: 0.44, y: 0.57, w: 0.35, h: 0.35, size: 0.090, font: 'MPlantin' },
+};
+
 // Battle layout (packBattle.js)
 export const BTL_LAYOUT = {
   art:     { x: 167/2100, y: 60/1500, w: 1873/2100, h: 1371/1500 },

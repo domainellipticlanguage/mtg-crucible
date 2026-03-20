@@ -746,6 +746,38 @@ async function main() {
     },
   });
 
+  // 50. Aftermath card — Appeal // Authority
+  await render('appeal-authority', {
+    name: 'Appeal', manaCost: '{G}',
+    types: ['sorcery'],
+    frameColor: 'green',
+    rarity: 'uncommon',
+    abilities: 'Until end of turn, target creature gains trample and gets +X/+X, where X is the number of creatures you control.',
+    linkType: 'aftermath',
+    linkedCard: {
+      name: 'Authority', manaCost: '{1}{W}',
+      types: ['sorcery'],
+      frameColor: 'white',
+      abilities: 'Aftermath\nTap up to two target creatures your opponents control.',
+    },
+  });
+
+  // 51. Aftermath card — Dusk // Dawn (same as CC gallery reference)
+  await render('dusk-dawn', {
+    name: 'Dusk', manaCost: '{2}{W}{W}',
+    types: ['sorcery'],
+    frameColor: 'white',
+    rarity: 'rare',
+    abilities: 'Destroy all creatures with power 3 or greater.',
+    linkType: 'aftermath',
+    linkedCard: {
+      name: 'Dawn', manaCost: '{3}{W}{W}',
+      types: ['sorcery'],
+      frameColor: 'white',
+      abilities: 'Aftermath (Cast this spell only from your graveyard. Then exile it.)\nReturn all creature cards with power 2 or less from your graveyard to your hand.',
+    },
+  });
+
   console.log(`\nDone! ${idx} cards total, rendered to ${OUT}`);
 }
 
