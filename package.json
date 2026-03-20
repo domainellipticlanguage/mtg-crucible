@@ -1,6 +1,6 @@
 {
-  "name": "mtg-crucible",
-  "version": "1.0.0",
+  "name": "@domainellipticlanguage/mtg-crucible",
+  "version": "0.1.0",
   "description": "",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -14,6 +14,10 @@
       "default": "./dist/react/react/index.js"
     }
   },
+  "files": [
+    "dist",
+    "assets"
+  ],
   "scripts": {
     "test": "vitest",
     "build": "tsc && tsc -p tsconfig.react.json",
