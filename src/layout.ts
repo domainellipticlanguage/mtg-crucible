@@ -300,7 +300,8 @@ export const AFTERMATH_TOP_LAYOUT = {
 };
 // Bottom half (second spell / linkedCard) — rotated 90° clockwise
 export const AFTERMATH_BOTTOM_LAYOUT = {
-  art:       { x: 0.58, y: 0.59, w: 0.288, h: 0.354 },
+  // 432x744
+  art:       { x: 824/1500, y: 1177/2100, w: 432/1500, h: 744/2100 },
   name:      { x: 0.91, y: 0.5648, w: 0.42, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
   mana:      { y: 0.005, w: 0.35, size: 92/1638, shadowX: -0.001, shadowY: 0.0029 },
   type:      { x: 0.53, y: 0.5648, w: 0.42, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
