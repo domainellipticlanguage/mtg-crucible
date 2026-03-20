@@ -1,7 +1,7 @@
 import { type SKRSContext2D } from '@napi-rs/canvas';
 import type { CardData } from '../types';
 import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor } from '../text';
-import { drawManaCost, measureManaCostWidth, getTypeLine, drawFrame } from '../helpers';
+import { drawManaCost, drawSetSymbol, measureManaCostWidth, getTypeLine, drawFrame } from '../helpers';
 import { getParsedAbilities } from '../parser';
 import { SPLIT_RIGHT_LAYOUT, SPLIT_LEFT_LAYOUT } from '../layout';
 import type { TemplateHooks, AnyLayout } from './render';
@@ -22,12 +22,21 @@ async function renderSplitText(
   card: CardData,
   L: typeof SPLIT_RIGHT_LAYOUT,
   cw: number, ch: number,
+  clipYMin: number, clipYMax: number,
 ) {
   const originY = L.name.y * ch;
 
   ctx.save();
   ctx.translate(0, originY);
   ctx.rotate(-Math.PI / 2);
+
+  // Clip in rotated local space: local x = originY - canvas_y
+  // canvas_y range [clipYMin, clipYMax] → local x range [originY - clipYMax, originY - clipYMin]
+  const localXMin = originY - clipYMax;
+  const localXMax = originY - clipYMin;
+  ctx.beginPath();
+  ctx.rect(localXMin, 0, localXMax - localXMin, cw);
+  ctx.clip();
 
   // In rotated space:
   //   local x spans "up" the card = text width direction
@@ -66,6 +75,9 @@ async function renderSplitText(
   // Type line
   drawSingleLineText(ctx, getTypeLine(card), 0, L.type.x * cw, L.type.w * ch, L.type.h * cw, L.type.font, L.type.size * ch, 'left', 'black');
 
+  // Set symbol (in rotated space: swap ch/cw)
+  await drawSetSymbol(ctx, card.rarity || 'common', L.setSymbol, cw, ch);
+
   // Rules text
   const pa = getParsedAbilities(card);
   const rulesText = pa.unstructuredAbilities?.join('\n');
@@ -84,25 +96,24 @@ async function renderSplitText(
 const splitBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
   const other = card.linkedCard;
   const frameDir = L._frame ?? 'split';
+  const splitY = (1000 / 2100) * ch;
 
-  // Overdraw the bottom half frame with the linked card's color.
-  // The standard pipeline already drew card.frameColor for the whole card,
-  // so we just clip to the bottom half and draw the second color on top.
+  // Standard pipeline drew card.frameColor for the whole card.
+  // Front card renders in the bottom half (LEFT layout), so overdraw the
+  // top half with the linked card's frame color.
   if (other?.frameColor) {
     ctx.save();
     ctx.beginPath();
-    // Top card is 1500x1000 of the 1500x2100 canvas
-    const splitY = (1000 / 2100) * ch;
-    ctx.rect(0, splitY, cw, ch - splitY);
+    ctx.rect(0, 0, cw, splitY);
     ctx.clip();
     await drawFrame(ctx, frameDir, other.frameColor, other.accentColor, cw, ch);
     ctx.restore();
   }
 
-  // Render text for both halves
-  await renderSplitText(ctx, card, SPLIT_RIGHT_LAYOUT, cw, ch);
+  // Render text for both halves, clipping each to its half
+  await renderSplitText(ctx, card, SPLIT_LEFT_LAYOUT, cw, ch, splitY, ch);
   if (other) {
-    await renderSplitText(ctx, other, SPLIT_LEFT_LAYOUT, cw, ch);
+    await renderSplitText(ctx, other, SPLIT_RIGHT_LAYOUT, cw, ch, 0, splitY);
   }
 };
 
