@@ -295,7 +295,7 @@ export const AFTERMATH_TOP_LAYOUT = {
   mana:      { y: 0.0613, w: 0.9292, size: 71/1638, shadowX: -0.001, shadowY: 0.0029 },
   type:      { x: 0.0854, y: 0.3467, w: 0.8292, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
   rules:     { x: 0.086, y: 0.4139, w: 0.828, h: 0.12, size: 0.0362, font: 'MPlantin' },
-  setSymbol: { x: 0.9213, y: 0.371, w: 0.12, h: 0.0410 },
+  setSymbol: { x: 0.9213, y: 0.371, w: 0.12, h: 0.0615 },
   crown:     { x: 44/2010, y: 53/2814, w: 1922/2010, h: 493/2814 },
 };
 // Bottom half (second spell / linkedCard) — rotated 90° clockwise
