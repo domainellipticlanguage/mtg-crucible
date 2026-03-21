@@ -141,6 +141,9 @@ export interface CardData {
   // Color of the type line bar. Derived from card's actual color if not set.
   // Array = gradient blend
   typeLineColor?: FrameColor | FrameColor[];
+  // Color of the P/T box. Derived from type line color if not set.
+  // Array = gradient blend
+  ptBoxColor?: FrameColor | FrameColor[];
 
   name?: string; // Will default to Untitled
   manaCost?: string;
@@ -183,6 +186,7 @@ export interface NormalizedCardData {
   accentColor: AccentColor[];
   nameLineColor: FrameColor[];
   typeLineColor: FrameColor[];
+  ptBoxColor: FrameColor[];
 
   name: string;
   manaCost: string;

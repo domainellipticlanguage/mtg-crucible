@@ -74,6 +74,7 @@ export function normalizeCard(card: CardData): NormalizedCardData {
     accentColor,
     nameLineColor,
     typeLineColor,
+    ptBoxColor: toArray<FrameColor>(card.ptBoxColor),
 
     name: card.name ?? '',
     manaCost: card.manaCost ?? '',

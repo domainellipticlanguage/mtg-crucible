@@ -29,6 +29,7 @@ const FRAME_REGEX = /^Frame:\s*(.+)$/i;
 const FRAME_EFFECT_REGEX = /^Frame Effect:\s*(.+)$/i;
 const NAME_LINE_REGEX = /^Name Line:\s*(.+)$/i;
 const TYPE_LINE_COLOR_REGEX = /^Type Line Color:\s*(.+)$/i;
+const PT_BOX_COLOR_REGEX = /^PT Box Color:\s*(.+)$/i;
 const PT_REGEX = /^([*\d+]+)\/([*\d+]+)$/;
 const LOYALTY_REGEX = /^Loyalty:\s*(\S+)$/i;
 const DEFENSE_REGEX = /^Defense:\s*(\S+)$/i;
@@ -586,6 +587,7 @@ function parseSingleFace(text: string): CardData {
   let explicitFrameEffect: FrameEffect | FrameEffect[] | undefined;
   let explicitNameLine: FrameColor | FrameColor[] | undefined;
   let explicitTypeLine: FrameColor | FrameColor[] | undefined;
+  let explicitPtBox: FrameColor | FrameColor[] | undefined;
   let flavorText: string | undefined;
   let nextLine = 1;
   while (nextLine < lines.length) {
@@ -658,6 +660,12 @@ function parseSingleFace(text: string): CardData {
     if (typeLineMatch) {
       const result = parseFrameTokens(typeLineMatch[1]);
       if (result) explicitTypeLine = result;
+      nextLine++; continue;
+    }
+    const ptBoxMatch = current.match(PT_BOX_COLOR_REGEX);
+    if (ptBoxMatch) {
+      const result = parseFrameTokens(ptBoxMatch[1]);
+      if (result) explicitPtBox = result;
       nextLine++; continue;
     }
     const flavorTextMatch = current.match(FLAVOR_TEXT_REGEX);
@@ -780,6 +788,7 @@ function parseSingleFace(text: string): CardData {
   else if (accentColor) card.accentColor = accentColor;
   if (explicitNameLine) card.nameLineColor = explicitNameLine;
   if (explicitTypeLine) card.typeLineColor = explicitTypeLine;
+  if (explicitPtBox) card.ptBoxColor = explicitPtBox;
   return card;
 }
 
@@ -813,6 +822,10 @@ export function formatCard(card: CardData): string {
   if (card.frameEffect) {
     const effects = Array.isArray(card.frameEffect) ? card.frameEffect : [card.frameEffect];
     lines.push(`Frame Effect: ${effects.join(', ')}`);
+  }
+  if (card.ptBoxColor) {
+    const colors = Array.isArray(card.ptBoxColor) ? card.ptBoxColor : [card.ptBoxColor];
+    lines.push(`PT Box Color: ${colors.join(', ')}`);
   }
 
   // Type line

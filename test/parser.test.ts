@@ -1078,3 +1078,209 @@ describe('parseCard ↔ toScryfallText round-trip', () => {
     expect(reparsed.types).toEqual(['battle']);
   });
 });
+
+describe('parseCard — metadata ordering', () => {
+  it('parses metadata between name and type line', () => {
+    const card = parseCard(`
+      Test Card {R}
+      Rarity: mythic
+      Frame: blue
+      Artist: Someone
+      Instant
+      Deal 3 damage.
+    `);
+    expect(card).toMatchObject({
+      name: 'Test Card',
+      rarity: 'mythic',
+      frameColor: 'blue',
+      artist: 'Someone',
+      types: ['instant'],
+    });
+  });
+
+  it('parses metadata after type line', () => {
+    const card = parseCard(`
+      Test Card {R}
+      Instant
+      Rarity: mythic
+      Deal 3 damage.
+    `);
+    expect(card).toMatchObject({
+      name: 'Test Card',
+      rarity: 'mythic',
+      types: ['instant'],
+      abilities: { unstructuredAbilities: ['Deal 3 damage.'] },
+    });
+  });
+
+  it('parses metadata after rules text', () => {
+    const card = parseCard(`
+      Test Card {R}
+      Instant
+      Deal 3 damage.
+      Rarity: uncommon
+      Artist: Artist Name
+    `);
+    expect(card).toMatchObject({
+      name: 'Test Card',
+      rarity: 'uncommon',
+      artist: 'Artist Name',
+      types: ['instant'],
+      abilities: { unstructuredAbilities: ['Deal 3 damage.'] },
+    });
+  });
+
+  it('parses metadata scattered throughout', () => {
+    const card = parseCard(`
+      Test Card {2}{G}
+      Frame: green
+      Creature \u2014 Beast
+      Rarity: rare
+      Trample
+      Artist: John Doe
+      4/4
+    `);
+    expect(card).toMatchObject({
+      name: 'Test Card',
+      frameColor: 'green',
+      rarity: 'rare',
+      artist: 'John Doe',
+      types: ['creature'],
+      subtypes: ['Beast'],
+      power: '4',
+      toughness: '4',
+      abilities: { unstructuredAbilities: ['Trample'] },
+    });
+  });
+
+  it('parses PT Box Color metadata', () => {
+    const card = parseCard(`
+      Test Card {2}{G}
+      PT Box Color: blue
+      Creature \u2014 Beast
+      Trample
+      4/4
+    `);
+    expect(card).toMatchObject({
+      ptBoxColor: 'blue',
+      power: '4',
+      toughness: '4',
+    });
+  });
+
+  it('parses PT Box Color with multiple colors', () => {
+    const card = parseCard(`
+      Test Card {2}{G}
+      PT Box Color: blue, red
+      Creature \u2014 Beast
+      4/4
+    `);
+    expect(card).toMatchObject({
+      ptBoxColor: ['blue', 'red'],
+    });
+  });
+});
+
+describe('parseCard — multi-face inference', () => {
+  it('infers split linkType for two instants/sorceries with mana costs', () => {
+    const card = parseCard(`
+      Assault {R}
+      Sorcery
+      Assault deals 2 damage to any target.
+      ----
+      Battery {3}{G}
+      Sorcery
+      Create a 3/3 green Elephant creature token.
+    `);
+    expect(card.linkType).toBe('split');
+    expect(card.linkedCard?.name).toBe('Battery');
+  });
+
+  it('infers fuse as split linkType with Fuse keyword', () => {
+    const card = parseCard(`
+      Turn {2}{U}
+      Instant
+      Target creature becomes 0/1.
+      Fuse
+      ----
+      Burn {1}{R}
+      Instant
+      Deal 2 damage to any target.
+      Fuse
+    `);
+    expect(card.linkType).toBe('split');
+    expect(card.linkedCard?.name).toBe('Burn');
+  });
+
+  it('infers aftermath linkType with Aftermath keyword', () => {
+    const card = parseCard(`
+      Appeal {G}
+      Sorcery
+      Target creature gets +X/+X.
+      ----
+      Authority {1}{W}
+      Sorcery
+      Aftermath
+      Tap up to two target creatures.
+    `);
+    expect(card.linkType).toBe('aftermath');
+  });
+
+  it('infers transform linkType when only front has mana cost', () => {
+    const card = parseCard(`
+      Delver of Secrets {U}
+      Creature \u2014 Human Wizard
+      At the beginning of your upkeep, look at the top card of your library. You may reveal that card. If an instant or sorcery card is revealed this way, transform Delver of Secrets.
+      1/1
+      ----
+      Insectile Aberration
+      Creature \u2014 Human Insect
+      Flying
+      3/2
+    `);
+    expect(card.linkType).toBe('transform');
+  });
+
+  it('infers modal_dfc when both faces have mana costs and at least one is a permanent', () => {
+    const card = parseCard(`
+      Emeria's Call {4}{W}{W}{W}
+      Sorcery
+      Create two 4/4 white Angel Warrior tokens with flying.
+      ----
+      Emeria, Shattered Skyclave
+      Land
+      Emeria enters tapped.
+      {T}: Add {W}.
+    `);
+    expect(card.linkType).toBe('transform');
+  });
+
+  it('infers modal_dfc for two permanents with mana costs', () => {
+    const card = parseCard(`
+      Barkchannel Pathway {G}
+      Land
+      {T}: Add {G}.
+      ----
+      Tidechannel Pathway {U}
+      Land
+      {T}: Add {U}.
+    `);
+    expect(card.linkType).toBe('modal_dfc');
+  });
+
+  it('infers flip linkType when rules text contains "flip"', () => {
+    const card = parseCard(`
+      Akki Lavarunner {3}{R}
+      Creature \u2014 Goblin Warrior
+      Whenever Akki Lavarunner deals damage to an opponent, flip it.
+      1/1
+      ----
+      Tok-Tok, Volcano Born
+      Legendary Creature \u2014 Goblin Shaman
+      Protection from red
+      If a red source would deal damage, it deals that much damage plus 1 instead.
+      2/2
+    `);
+    expect(card.linkType).toBe('flip');
+  });
+});

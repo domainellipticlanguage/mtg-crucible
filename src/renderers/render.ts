@@ -124,6 +124,9 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
   });
   const nameLineCodes = normalizeFrameColors(card.nameLineColor);
   const typeLineCodes = normalizeFrameColors(card.typeLineColor);
+  const ptBoxCodes = card.ptBoxColor && (Array.isArray(card.ptBoxColor) ? card.ptBoxColor.length > 0 : true)
+    ? normalizeFrameColors(card.ptBoxColor)
+    : typeLineCodes;
 
   await drawFrame(ctx, frameDirs, card.frameColor, card.accentColor, cw, ch, nameLineCodes, typeLineCodes);
 
@@ -154,13 +157,55 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
     }
   }
 
-  // P/T box image: match type line bar color
+  // P/T box image
   if (L.ptBox && card.power && card.toughness) {
-    const ptColor = typeLineCodes[0];
     const ptBase = ptDir ? path.join(ASSETS_DIR, 'pt', ptDir) : path.join(ASSETS_DIR, 'pt');
-    const ptPath = path.join(ptBase, `${ptColor}.png`);
-    if (fs.existsSync(ptPath)) {
-      ctx.drawImage(await loadImage(ptPath), L.ptBox.x * cw, L.ptBox.y * ch, L.ptBox.w * cw, L.ptBox.h * ch);
+    const bx = L.ptBox.x * cw, by = L.ptBox.y * ch, bw = L.ptBox.w * cw, bh = L.ptBox.h * ch;
+    if (ptBoxCodes.length === 1) {
+      const ptPath = path.join(ptBase, `${ptBoxCodes[0]}.png`);
+      if (fs.existsSync(ptPath)) {
+        ctx.drawImage(await loadImage(ptPath), bx, by, bw, bh);
+      }
+    } else {
+      // Gradient blend: draw base, then overlay each subsequent color through a sine-smoothed mask
+      const n = ptBoxCodes.length;
+      const basePtPath = path.join(ptBase, `${ptBoxCodes[0]}.png`);
+      if (fs.existsSync(basePtPath)) {
+        ctx.drawImage(await loadImage(basePtPath), bx, by, bw, bh);
+      }
+      // The leftmost 39px of the 377px-wide PT asset is drop shadow — skip it when dividing zones
+      const shadowFrac = 39 / 377;
+      const contentStart = shadowFrac * bw;
+      const contentW = bw - contentStart;
+      for (let i = 1; i < n; i++) {
+        const ptPath = path.join(ptBase, `${ptBoxCodes[i]}.png`);
+        if (!fs.existsSync(ptPath)) continue;
+        // Boundary within the content area, offset by shadow
+        const boundary = contentStart + (i / n) * contentW;
+        const halfTrans = (contentW / n) * 0.5 * 0.5;
+        const offscreen = createCanvas(Math.round(bw), Math.round(bh));
+        const offCtx = offscreen.getContext('2d');
+        const imgData = offCtx.createImageData(Math.round(bw), Math.round(bh));
+        const data = imgData.data;
+        const mw = Math.round(bw), mh = Math.round(bh);
+        for (let x = 0; x < mw; x++) {
+          let alpha: number;
+          if (x <= boundary - halfTrans) alpha = 0;
+          else if (x >= boundary + halfTrans) alpha = 255;
+          else {
+            const t = (x - (boundary - halfTrans)) / (halfTrans * 2);
+            alpha = Math.round((0.5 - 0.5 * Math.cos(t * Math.PI)) * 255);
+          }
+          for (let y = 0; y < mh; y++) {
+            const idx = (y * mw + x) * 4;
+            data[idx + 3] = alpha;
+          }
+        }
+        offCtx.putImageData(imgData, 0, 0);
+        offCtx.globalCompositeOperation = 'source-in';
+        offCtx.drawImage(await loadImage(ptPath), 0, 0, bw, bh);
+        ctx.drawImage(offscreen, bx, by);
+      }
     }
   }
 
