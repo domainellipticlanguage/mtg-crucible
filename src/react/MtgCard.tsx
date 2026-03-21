@@ -80,7 +80,18 @@ export function MtgCard({ card, className, style }: MtgCardProps) {
     }
   }, [showingFront, card.frontFace, card.backFace]);
 
+  const downloadImage = useCallback(() => {
+    setMenuPos(null);
+    const src = showingFront ? card.frontFace : card.backFace;
+    if (!src) return;
+    const a = document.createElement('a');
+    a.href = src;
+    a.download = `${card.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.png`;
+    a.click();
+  }, [showingFront, card.frontFace, card.backFace, card.name]);
+
   const menuItems: ContextMenuItem[] = [
+    { label: 'Download Image', action: downloadImage },
     { label: 'Copy Card Image', action: copyImage },
     { label: 'Copy Scryfall Text', action: () => copyText(card.scryfallText) },
     { label: 'Copy Crucible Text', action: () => copyText(card.crucibleText) },

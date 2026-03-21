@@ -454,3 +454,8 @@ Let's support keyword abilities vs. ability words. Ability words are like "Landf
 # improvements
 - for split cards with hybrid mana, do the red white and blue thing...
 - Fuse needs to use the mask and write the reminder text
+
+- support nyx crowns
+- make parser more lenient (line order, allow and, oxfoard comma,)
+- typeline color / name line color are not independent?
+- P/T box color should match with frame
