@@ -15,8 +15,7 @@
     }
   },
   "files": [
-    "dist",
-    "assets"
+    "dist"
   ],
   "scripts": {
     "test": "vitest",
