@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import * as http from 'http';
 import * as path from 'path';
 import * as esbuild from 'esbuild';
@@ -112,6 +113,38 @@ const server = http.createServer(async (req, res) => {
     });
     sseClients.add(res);
     req.on('close', () => sseClients.delete(res));
+    return;
+  }
+
+  // Serve image files from .local/ directory
+  if (req.method === 'GET' && req.url?.startsWith('/local/')) {
+    const IMAGE_EXTS: Record<string, string> = {
+      '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+      '.webp': 'image/webp', '.svg': 'image/svg+xml', '.gif': 'image/gif',
+    };
+    const relPath = decodeURIComponent(req.url.slice('/local/'.length));
+    const ext = path.extname(relPath).toLowerCase();
+    if (!IMAGE_EXTS[ext]) {
+      res.writeHead(403, { 'Content-Type': 'text/plain' });
+      res.end('Only image files are served');
+      return;
+    }
+    const filePath = path.resolve(__dirname, '..', '.local', relPath);
+    // Ensure resolved path is within .local/
+    const localDir = path.resolve(__dirname, '..', '.local');
+    if (!filePath.startsWith(localDir + path.sep)) {
+      res.writeHead(403, { 'Content-Type': 'text/plain' });
+      res.end('Access denied');
+      return;
+    }
+    try {
+      const data = await fs.promises.readFile(filePath);
+      res.writeHead(200, { 'Content-Type': IMAGE_EXTS[ext], 'Cache-Control': 'max-age=3600' });
+      res.end(data);
+    } catch {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('Not found');
+    }
     return;
   }
 

@@ -547,8 +547,9 @@ export function fetchBuffer(url: string): Promise<Buffer> {
   if (url.startsWith('/') || url.startsWith('./')) {
     return fs.promises.readFile(url);
   }
+  const httpModule = url.startsWith('http://') ? require('http') : https;
   return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
+    httpModule.get(url, (res: any) => {
       if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         return fetchBuffer(res.headers.location).then(resolve, reject);
       }
