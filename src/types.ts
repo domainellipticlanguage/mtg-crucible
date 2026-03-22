@@ -161,7 +161,8 @@ export interface CardData {
   toughness?: string;
 
   artUrl?: string;
-  
+  artDescription?: string;
+
   flavorText?: string;
 
   startingLoyalty?: string;
@@ -203,6 +204,7 @@ export interface NormalizedCardData {
   toughness: string;
 
   artUrl: string;
+  artDescription: string;
 
   flavorText: string;
 

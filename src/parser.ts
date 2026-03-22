@@ -17,7 +17,8 @@ import {
 } from './layout';
 
 const MANA_COST_REGEX = /^(.+?)\s+((?:\{[^}]+\})+)$/;
-const ART_REGEX = /^Art:\s*(https?:\/\/\S+)$/i;
+const ART_REGEX = /^Art(?:\s+URL)?:\s*(https?:\/\/\S+)$/i;
+const ART_DESCRIPTION_REGEX = /^Art Description:\s*(.+)$/i;
 const RARITY_REGEX = /^Rarity:\s*(common|uncommon|rare|mythic(?:\s+rare)?)$/i;
 const ARTIST_REGEX = /^Artist:\s*(.+)$/i;
 const SET_REGEX = /^Set:\s*([A-Za-z0-9]+)$/i;
@@ -576,6 +577,7 @@ function parseSingleFace(text: string): CardData {
 
   // Optional metadata lines between name and type (Art:, Rarity:)
   let artUrl: string | undefined;
+  let artDescription: string | undefined;
   let rarity: Rarity | undefined;
   let artist: string | undefined;
   let setCode: string | undefined;
@@ -594,6 +596,8 @@ function parseSingleFace(text: string): CardData {
     const current = lines[nextLine];
     const artMatch = current.match(ART_REGEX);
     if (artMatch) { artUrl = artMatch[1]; nextLine++; continue; }
+    const artDescMatch = current.match(ART_DESCRIPTION_REGEX);
+    if (artDescMatch) { artDescription = artDescMatch[1].trim(); nextLine++; continue; }
     const rarityMatch = current.match(RARITY_REGEX);
     if (rarityMatch) {
       const raw = rarityMatch[1].toLowerCase();
@@ -694,44 +698,106 @@ function parseSingleFace(text: string): CardData {
   let power: string | undefined;
   let toughness: string | undefined;
 
-  // Planeswalker: extract Loyalty: N
-  if (kind === 'planeswalker') {
-    const filtered: string[] = [];
-    for (const line of body) {
-      const m = line.match(LOYALTY_REGEX);
-      if (m) { startingLoyalty = m[1]; }
-      else filtered.push(line);
-    }
-    body = filtered;
-    if (!startingLoyalty) startingLoyalty = '0';
-  }
-
-  // Battle: extract Defense: N
-  if (lowerType.includes('battle')) {
-    const filtered: string[] = [];
-    for (const line of body) {
-      const m = line.match(DEFENSE_REGEX);
-      if (m) { battleDefense = m[1]; }
-      else filtered.push(line);
-    }
-    body = filtered;
-    if (!battleDefense) battleDefense = '0';
-  }
-
-  // Extract "Flavor Text:" lines from body (any card type)
+  // Extract metadata fields from body lines (allows them to appear anywhere)
   {
     const filtered: string[] = [];
     const flavorParts: string[] = [];
     for (const line of body) {
-      const m = line.match(FLAVOR_TEXT_REGEX);
-      if (m) flavorParts.push(m[1].trim());
-      else filtered.push(line);
+      const flavorMatch = line.match(FLAVOR_TEXT_REGEX);
+      if (flavorMatch) { flavorParts.push(flavorMatch[1].trim()); continue; }
+      const artMatch = line.match(ART_REGEX);
+      if (artMatch) { artUrl = artMatch[1]; continue; }
+      const artDescMatch = line.match(ART_DESCRIPTION_REGEX);
+      if (artDescMatch) { artDescription = artDescMatch[1].trim(); continue; }
+      const rarityMatch = line.match(RARITY_REGEX);
+      if (rarityMatch) {
+        const raw = rarityMatch[1].toLowerCase();
+        rarity = (raw === 'mythic rare' ? 'mythic' : raw) as Rarity;
+        continue;
+      }
+      const artistMatch = line.match(ARTIST_REGEX);
+      if (artistMatch) { artist = artistMatch[1].trim(); continue; }
+      const setMatch = line.match(SET_REGEX);
+      if (setMatch) { setCode = setMatch[1].toUpperCase(); continue; }
+      const collectorMatch = line.match(COLLECTOR_REGEX);
+      if (collectorMatch) { collectorNumber = collectorMatch[1].trim(); continue; }
+      const designerMatch = line.match(DESIGNER_REGEX);
+      if (designerMatch) { designer = designerMatch[1].trim(); continue; }
+      const colorIndicatorMatch = line.match(COLOR_INDICATOR_REGEX);
+      if (colorIndicatorMatch) {
+        colorIndicator = parseColorIndicator(colorIndicatorMatch[1]) || colorIndicator;
+        continue;
+      }
+      const accentMatch = line.match(ACCENT_REGEX);
+      if (accentMatch) {
+        const tokens = accentMatch[1].split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+        if (tokens.length === 1) {
+          const raw = tokens[0];
+          if (raw === 'multicolor' || raw === 'multi' || raw === 'gold') {
+            explicitAccent = 'multicolor';
+          } else {
+            const c = COLOR_ALIASES[raw];
+            if (c) explicitAccent = c;
+          }
+        } else if (tokens.length > 1) {
+          const parsed: AccentColor[] = [];
+          for (const raw of tokens) {
+            if (raw === 'multicolor' || raw === 'multi' || raw === 'gold') {
+              parsed.push('multicolor');
+            } else {
+              const c = COLOR_ALIASES[raw];
+              if (c) parsed.push(c);
+            }
+          }
+          if (parsed.length > 0) explicitAccent = parsed;
+        }
+        continue;
+      }
+      const frameMatch = line.match(FRAME_REGEX);
+      if (frameMatch) {
+        const result = parseFrameTokens(frameMatch[1]);
+        if (result) explicitFrame = result;
+        continue;
+      }
+      const frameEffectMatch = line.match(FRAME_EFFECT_REGEX);
+      if (frameEffectMatch) {
+        const result = parseFrameEffectTokens(frameEffectMatch[1]);
+        if (result) explicitFrameEffect = result;
+        continue;
+      }
+      const nameLineMatch = line.match(NAME_LINE_REGEX);
+      if (nameLineMatch) {
+        const result = parseFrameTokens(nameLineMatch[1]);
+        if (result) explicitNameLine = result;
+        continue;
+      }
+      const typeLineMatch = line.match(TYPE_LINE_COLOR_REGEX);
+      if (typeLineMatch) {
+        const result = parseFrameTokens(typeLineMatch[1]);
+        if (result) explicitTypeLine = result;
+        continue;
+      }
+      const ptBoxMatch = line.match(PT_BOX_COLOR_REGEX);
+      if (ptBoxMatch) {
+        const result = parseFrameTokens(ptBoxMatch[1]);
+        if (result) explicitPtBox = result;
+        continue;
+      }
+      const loyaltyMatch = line.match(LOYALTY_REGEX);
+      if (loyaltyMatch) { startingLoyalty = loyaltyMatch[1]; continue; }
+      const defenseMatch = line.match(DEFENSE_REGEX);
+      if (defenseMatch) { battleDefense = defenseMatch[1]; continue; }
+      filtered.push(line);
     }
     if (flavorParts.length > 0) {
-      body = filtered;
       flavorText = flavorParts.join('\n');
     }
+    body = filtered;
   }
+
+  // Default loyalty/defense if not found
+  if (kind === 'planeswalker' && !startingLoyalty) startingLoyalty = '0';
+  if (lowerType.includes('battle') && !battleDefense) battleDefense = '0';
 
   // Standard cards: extract trailing flavor text (*...*) and P/T
   if (!kind && !lowerType.includes('battle')) {
@@ -776,6 +842,7 @@ function parseSingleFace(text: string): CardData {
   if (battleDefense) card.battleDefense = battleDefense;
 
   if (artUrl) card.artUrl = artUrl;
+  if (artDescription) card.artDescription = artDescription;
   card.rarity = rarity ?? 'rare';
   if (artist) card.artist = artist;
   if (setCode) card.setCode = setCode;
@@ -802,7 +869,8 @@ export function formatCard(card: CardData): string {
   lines.push(nameLine);
 
   // Metadata lines
-  if (card.artUrl) lines.push(`Art: ${card.artUrl}`);
+  if (card.artUrl) lines.push(`Art URL: ${card.artUrl}`);
+  if (card.artDescription) lines.push(`Art Description: ${card.artDescription}`);
   if (card.rarity) lines.push(`Rarity: ${card.rarity}`);
   if (card.artist) lines.push(`Artist: ${card.artist}`);
   if (card.setCode) lines.push(`Set: ${card.setCode}`);

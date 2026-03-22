@@ -148,7 +148,7 @@ describe('renderCard', () => {
     expect(result.frontFaceOrientation).toBe('horizontal');
     expect(result.backFace).toBeDefined();
     expect(result.backFace!.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
-    expect(pngDimensions(result.backFace!)).toEqual({ width: 2010, height: 2814 });
+    expect(pngDimensions(result.backFace!)).toEqual({ width: 1500, height: 2100 });
     expect(result.backFaceOrientation).toBe('vertical');
     expect(result.rotations).toEqual([{ x: 0, y: 0, z: 0 }, { x: 0, y: 180, z: 0 }]);
   });

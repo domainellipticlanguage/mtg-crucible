@@ -91,6 +91,7 @@ export function normalizeCard(card: CardData): NormalizedCardData {
     toughness: card.toughness ?? '',
 
     artUrl: card.artUrl ?? '',
+    artDescription: card.artDescription ?? '',
 
     flavorText: card.flavorText ?? '',
 
@@ -117,7 +118,8 @@ export async function renderCard(input: CardData | string): Promise<RenderedCard
   let frontTemplateOverride: string | undefined;
   let backTemplateOverride: string | undefined;
   if (normalized.linkType === 'transform') {
-    frontTemplateOverride = 'transform_front';
+    // Battles use their own template even when they transform
+    if (!normalized.battleDefense) frontTemplateOverride = 'transform_front';
     backTemplateOverride = 'transform_back';
   } else if (normalized.linkType === 'modal_dfc') {
     frontTemplateOverride = 'mdfc_front';
