@@ -1,7 +1,7 @@
 import { createCanvas, loadImage, type SKRSContext2D } from '@napi-rs/canvas';
 import * as fs from 'fs';
 import * as path from 'path';
-import type { CardData, ParsedAbilities, PlaneswalkerAbilities, TemplateName } from '../types';
+import type { CardData, FrameColor, ParsedAbilities, PlaneswalkerAbilities, TemplateName } from '../types';
 import {
   STD_W, STD_H, STD_LAYOUT,
   PW_W, PW_H, PW_LAYOUT, PW_TALL_LAYOUT,
@@ -111,10 +111,20 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
 
   // Frame — resolve per-color directories based on frame effects
   // Overlay effects (e.g. miracle) draw the standard frame first, then overlay on top.
+  // When effects and colors aren't 1:1, compute LCM to split into enough segments.
   const OVERLAY_EFFECTS = new Set(['miracle']);
   const effects = Array.isArray(card.frameEffect) ? card.frameEffect : [card.frameEffect ?? 'normal'];
-  const frameDirs = frameCodes.map((_, i) => {
-    const effect = effects[i % effects.length] ?? 'normal';
+
+  const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
+  const lcm = (a: number, b: number) => (a * b) / gcd(a, b);
+  const segmentCount = lcm(frameCodes.length, effects.length);
+
+  // Expand frame colors and effects to segmentCount length
+  const expandedColors = Array.from({ length: segmentCount }, (_, i) => frameCodes[i % frameCodes.length]);
+  const expandedEffects = Array.from({ length: segmentCount }, (_, i) => effects[i % effects.length] ?? 'normal');
+
+  const frameDirs = expandedColors.map((_, i) => {
+    const effect = expandedEffects[i];
     if (effect === 'normal' || OVERLAY_EFFECTS.has(effect)) return frame;
     if (frame !== 'standard') {
       console.warn(`Frame effect '${effect}' is not supported for '${frame}' layout, falling back to normal`);
@@ -122,17 +132,24 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
     }
     return effect;
   });
+
+  // Expand frameColor for drawFrame to match segment count
+  const expandedFrameColor: FrameColor[] = Array.from({ length: segmentCount }, (_, i) => {
+    const fc = Array.isArray(card.frameColor) ? card.frameColor : [card.frameColor ?? 'colorless'];
+    return fc[i % fc.length];
+  });
+
   const nameLineCodes = normalizeFrameColors(card.nameLineColor);
   const typeLineCodes = normalizeFrameColors(card.typeLineColor);
   const ptBoxCodes = card.ptBoxColor && (Array.isArray(card.ptBoxColor) ? card.ptBoxColor.length > 0 : true)
     ? normalizeFrameColors(card.ptBoxColor)
     : typeLineCodes;
 
-  await drawFrame(ctx, frameDirs, card.frameColor, card.accentColor, cw, ch, nameLineCodes, typeLineCodes);
+  await drawFrame(ctx, frameDirs, expandedFrameColor, card.accentColor, cw, ch, nameLineCodes, typeLineCodes);
 
   // Overlay effects: draw effect frames on top of the standard frame
-  const overlayDirs = frameCodes.map((_, i) => {
-    const effect = effects[i % effects.length] ?? 'normal';
+  const overlayDirs = expandedColors.map((_, i) => {
+    const effect = expandedEffects[i];
     if (!OVERLAY_EFFECTS.has(effect)) return null;
     if (frame !== 'standard') {
       console.warn(`Frame effect '${effect}' is not supported for '${frame}' layout, skipping overlay`);
@@ -141,7 +158,7 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
     return effect;
   });
   if (overlayDirs.some(d => d !== null)) {
-    await drawFrameOverlay(ctx, overlayDirs, frameCodes, cw, ch);
+    await drawFrameOverlay(ctx, overlayDirs, expandedColors, cw, ch);
   }
 
   // Legend crown (planeswalkers use their own frame treatment)

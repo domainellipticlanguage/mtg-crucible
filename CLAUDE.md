@@ -3,6 +3,9 @@
 ## Project overview
 TypeScript library that renders MTG card images as PNGs. Takes card data (structured or text), produces card images.
 
+## Image Interaction
+Do not read image files unless explicitly asked. When reading images, prefer one at a time rather than loading multiple images.
+
 ## Key files
 - `src/types.ts` — Core type definitions (CardData, CardTemplate, StructuredAbilities, etc.)
 - `src/index.ts` — Public API entry point

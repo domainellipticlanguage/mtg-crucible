@@ -207,11 +207,11 @@ describe('parseCard', () => {
   it('derives hybrid frame as array for 2-color hybrid mana', () => {
     const card = parseCard(`
       Boros Charm {R}{W}
-      Frame: blue, red
+      Frame Color: blue, red
       Instant
       Choose one —
     `);
-    // Frame: override takes precedence, but let's test derivation without it
+    // Frame Color: override takes precedence, but let's test derivation without it
     const card2 = parseCard(`
       Boros Charm {R/W}{R/W}
       Instant
@@ -468,10 +468,10 @@ describe('parseCard', () => {
     });
   });
 
-  it('parses Art: URL between name and type line', () => {
+  it('parses Art URL: URL between name and type line', () => {
     const card = parseCard(`
       Archangel Avacyn {3}{W}{W}
-      Art: https://cards.scryfall.io/art_crop/front/7/f/7f4893ef.jpg
+      Art URL: https://cards.scryfall.io/art_crop/front/7/f/7f4893ef.jpg
       Legendary Creature \u2014 Angel
       Flash
       Flying, vigilance
@@ -488,7 +488,7 @@ describe('parseCard', () => {
     });
   });
 
-  it('works without Art: line', () => {
+  it('works without Art URL: line', () => {
     const card = parseCard(`
       Lightning Bolt {R}
       Instant
@@ -533,11 +533,11 @@ describe('parseCard', () => {
     expect(card).toMatchObject({ rarity: 'mythic' });
   });
 
-  it('parses Art: and Rarity: together in any order', () => {
+  it('parses Art URL: and Rarity: together in any order', () => {
     const card = parseCard(`
       Archangel Avacyn {3}{W}{W}
       Rarity: Mythic Rare
-      Art: https://cards.scryfall.io/art_crop/front/7/f/7f4893ef.jpg
+      Art URL: https://cards.scryfall.io/art_crop/front/7/f/7f4893ef.jpg
       Legendary Creature \u2014 Angel
       Flash
       4/4
@@ -640,7 +640,7 @@ describe('parseCard', () => {
   it('captures extended metadata like artist, set, collector number, designer, and color indicator', () => {
     const card = parseCard(`
       \u200BThe Immortal Sun {6}
-      Art: https://example.com/art.png
+      Art URL: https://example.com/art.png
       Rarity: mythic
       Artist: Victor Adame Minguez
       Set: rix
@@ -782,10 +782,10 @@ Deal 2 damage to any target.\r
     });
   });
 
-  it('parses Frame: blue, red for explicit multi-color frames', () => {
+  it('parses Frame Color: blue, red for explicit multi-color frames', () => {
     const card = parseCard(`
       Hybrid Test {U/R}
-      Frame: blue, red
+      Frame Color: blue, red
       Instant
       Deal 2 damage to any target.
     `);
@@ -794,10 +794,10 @@ Deal 2 damage to any target.\r
     });
   });
 
-  it('parses single-value Frame: green', () => {
+  it('parses single-value Frame Color: green', () => {
     const card = parseCard(`
       Green Test {G}
-      Frame: green
+      Frame Color: green
       Instant
       Untap target creature.
     `);
@@ -1084,7 +1084,7 @@ describe('parseCard — metadata ordering', () => {
     const card = parseCard(`
       Test Card {R}
       Rarity: mythic
-      Frame: blue
+      Frame Color: blue
       Artist: Someone
       Instant
       Deal 3 damage.
@@ -1133,7 +1133,7 @@ describe('parseCard — metadata ordering', () => {
   it('parses metadata scattered throughout', () => {
     const card = parseCard(`
       Test Card {2}{G}
-      Frame: green
+      Frame Color: green
       Creature \u2014 Beast
       Rarity: rare
       Trample

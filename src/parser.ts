@@ -17,7 +17,7 @@ import {
 } from './layout';
 
 const MANA_COST_REGEX = /^(.+?)\s+((?:\{[^}]+\})+)$/;
-const ART_REGEX = /^Art(?:\s+URL)?:\s*(https?:\/\/\S+)$/i;
+const ART_REGEX = /^Art URL:\s*(https?:\/\/\S+)$/i;
 const ART_DESCRIPTION_REGEX = /^Art Description:\s*(.+)$/i;
 const RARITY_REGEX = /^Rarity:\s*(common|uncommon|rare|mythic(?:\s+rare)?)$/i;
 const ARTIST_REGEX = /^Artist:\s*(.+)$/i;
@@ -26,7 +26,7 @@ const COLLECTOR_REGEX = /^Collector(?:\s+(?:Number|No\.?))?:\s*(.+)$/i;
 const DESIGNER_REGEX = /^Designer:\s*(.+)$/i;
 const COLOR_INDICATOR_REGEX = /^Color Indicator:\s*(.+)$/i;
 const ACCENT_REGEX = /^Accent:\s*(.+)$/i;
-const FRAME_REGEX = /^Frame:\s*(.+)$/i;
+const FRAME_REGEX = /^Frame Color:\s*(.+)$/i;
 const FRAME_EFFECT_REGEX = /^Frame Effect:\s*(.+)$/i;
 const NAME_LINE_REGEX = /^Name Line:\s*(.+)$/i;
 const TYPE_LINE_COLOR_REGEX = /^Type Line Color:\s*(.+)$/i;
@@ -885,7 +885,7 @@ export function formatCard(card: CardData): string {
   }
   if (card.frameColor) {
     const frames = Array.isArray(card.frameColor) ? card.frameColor : [card.frameColor];
-    lines.push(`Frame: ${frames.join(', ')}`);
+    lines.push(`Frame Color: ${frames.join(', ')}`);
   }
   if (card.frameEffect) {
     const effects = Array.isArray(card.frameEffect) ? card.frameEffect : [card.frameEffect];

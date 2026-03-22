@@ -157,7 +157,7 @@ async function compareCard(name: string, set?: string): Promise<string> {
   const frontFace = sf.card_faces?.[0] ?? sf;
   const imageUris = frontFace.image_uris ?? sf.image_uris;
   const metadata: string[] = [];
-  if (imageUris?.art_crop) metadata.push(`Art: ${imageUris.art_crop}`);
+  if (imageUris?.art_crop) metadata.push(`Art URL: ${imageUris.art_crop}`);
   if (sf.rarity) metadata.push(`Rarity: ${sf.rarity}`);
   if (sf.artist ?? frontFace.artist) metadata.push(`Artist: ${sf.artist ?? frontFace.artist}`);
   if (sf.set) metadata.push(`Set: ${sf.set.toUpperCase()}`);
