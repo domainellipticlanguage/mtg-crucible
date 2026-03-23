@@ -23,10 +23,7 @@ export function MtgCard({ card, className, style }: MtgCardProps) {
   const hasMultipleFaces = card.backFace !== undefined && card.rotations.length > 1;
   const showingFront = faceIndex === 0;
   const currentFace = showingFront ? card.frontFace : card.backFace!;
-  const currentOrientation = showingFront
-    ? card.frontFaceOrientation
-    : (card.backFaceOrientation ?? 'vertical');
-  const isLandscape = currentOrientation === 'horizontal';
+  const currentRotation = card.rotations[faceIndex] ?? { x: 0, y: 0, z: 0 };
 
   const handleClick = useCallback(() => {
     if (!hasMultipleFaces || flipPhase !== 'idle') return;
@@ -99,10 +96,12 @@ export function MtgCard({ card, className, style }: MtgCardProps) {
     { label: 'Copy Card Data JSON', action: () => copyText(card.scryfallJson) },
   ];
 
-  const flipTransform = flipPhase === 'hiding' ? 'rotateY(90deg)' : 'none';
+  const zRotate = currentRotation.z ? `rotateZ(${currentRotation.z}deg) ` : '';
+  const flipTransform = flipPhase === 'hiding'
+    ? `${zRotate}rotateY(90deg)`
+    : `${zRotate}`.trim() || 'none';
 
-  // Always render in portrait aspect ratio; landscape cards are shown
-  // as a smaller inset on a black background (like real MTG battle cards).
+  // Always render in portrait aspect ratio.
   const aspectRatio = '5 / 7';
   const borderRadius = '4.5% / 3.2%';
 
@@ -147,63 +146,20 @@ export function MtgCard({ card, className, style }: MtgCardProps) {
             position: 'relative',
             overflow: 'hidden',
             borderRadius,
-            background: isLandscape ? '#000' : undefined,
             transform: flipTransform,
             transition: flipPhase !== 'idle' ? 'transform 0.25s ease-in-out' : 'none',
           }}
         >
-          {isLandscape ? (
-            <>
-              {/* Background: landscape image rotated 90° to fill portrait frame, dimmed */}
-              <img
-                src={currentFace}
-                alt=""
-                draggable={false}
-                style={{
-                  position: 'absolute',
-                  width: '140%',
-                  height: 'auto',
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -50%) rotate(-90deg)',
-                  filter: 'brightness(0.5)',
-                }}
-              />
-              {/* Foreground: landscape card in native orientation, scaled to fit */}
-              <div
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <img
-                  src={currentFace}
-                  alt={card.name}
-                  draggable={false}
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    height: 'auto',
-                    borderRadius: '3.2% / 4.5%',
-                  }}
-                />
-              </div>
-            </>
-          ) : (
-            <img
-              src={currentFace}
-              alt={card.name}
-              draggable={false}
-              style={{
-                display: 'block',
-                width: '100%',
-                height: '100%',
-              }}
-            />
-          )}
+          <img
+            src={currentFace}
+            alt={card.name}
+            draggable={false}
+            style={{
+              display: 'block',
+              width: '100%',
+              height: '100%',
+            }}
+          />
         </div>
       </div>
 
