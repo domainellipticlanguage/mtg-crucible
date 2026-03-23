@@ -302,5 +302,15 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
   // Corners
   drawCorners(ctx, cw, ch);
 
+  // Battles are rendered landscape; rotate to portrait for output
+  if (frame === 'battle') {
+    const rotated = createCanvas(ch, cw);
+    const rctx = rotated.getContext('2d');
+    rctx.translate(0, cw);
+    rctx.rotate(-Math.PI / 2);
+    rctx.drawImage(canvas, 0, 0);
+    return rotated.toBuffer('image/png');
+  }
+
   return canvas.toBuffer('image/png');
 }
