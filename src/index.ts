@@ -1,7 +1,7 @@
 import type { CardData, NormalizedCardData, ParsedAbilities, RenderedCard, RenderedCardDisplay, FrameColor, FrameEffect, AccentColor } from './types';
 import { ensureInitialized } from './helpers';
 import { renderCardImage } from './renderers/render';
-import { parseCard, parseAbilities, formatAbilities, formatCard, toScryfallJson, toScryfallText, computeRotations, deriveFrameColor, resolveTemplate, getArtDimensions } from './parser';
+import { parseCard, parseAbilities, formatAbilities, formatCard, toScryfallJson, toScryfallText, computeRotations, deriveFrameColor, resolveTemplate, getArtDimensions, inferLinkType } from './parser';
 import { deriveTitleColor } from './helpers';
 
 export type {
@@ -99,7 +99,7 @@ export function normalizeCard(card: CardData): NormalizedCardData {
     battleDefense: card.battleDefense ?? '',
 
     linkedCard: card.linkedCard ? normalizeCard(card.linkedCard) : undefined,
-    linkType: card.linkType,
+    linkType: inferLinkType(card),
 
     collectorNumber: card.collectorNumber ?? '000',
     artist: card.artist ?? '',

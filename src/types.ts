@@ -168,6 +168,8 @@ export interface CardData {
   startingLoyalty?: string;
   battleDefense?: string;
 
+  legendCrown?: boolean;
+
   linkedCard?: CardData;
   linkType?: LinkType;
 
@@ -210,6 +212,8 @@ export interface NormalizedCardData {
 
   startingLoyalty: string;
   battleDefense: string;
+
+  legendCrown: boolean;
 
   linkedCard?: NormalizedCardData;
   linkType?: LinkType;

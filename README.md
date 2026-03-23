@@ -466,3 +466,6 @@ Let's support keyword abilities vs. ability words. Ability words are like "Landf
 - Support Nyx crowns
 - bullets for modal spells
 
+
+
+type line and name line color logic is impacting flip cards...

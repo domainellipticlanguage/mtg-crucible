@@ -538,12 +538,26 @@ export function formatAbilities(abilities: ParsedAbilities): string {
   return parts.join('\n');
 }
 
-const FACE_DELIMITER = /^-{3,}$/;
+// Matches "----", "--transform--", "--modal_dfc--", etc.
+const FACE_DELIMITER = /^-{2,}(\w+)?-{2,}$/;
+
+const LINK_TYPE_ALIASES: Record<string, CardData['linkType']> = {
+  transform: 'transform',
+  modal_dfc: 'modal_dfc',
+  mdfc: 'modal_dfc',
+  flip: 'flip',
+  split: 'split',
+  adventure: 'adventure',
+  aftermath: 'aftermath',
+};
 
 export function parseCard(text: string): CardData {
-  // Split on delimiter (3+ hyphens on a line by itself) for multi-face cards
+  // Split on delimiter for multi-face cards, capturing optional link type
+  let parsedLinkType: CardData['linkType'] | undefined;
   const faces = text.split(/\n/).reduce<string[][]>((acc, line) => {
-    if (FACE_DELIMITER.test(line.trim())) {
+    const m = line.trim().match(FACE_DELIMITER);
+    if (m) {
+      if (m[1]) parsedLinkType = LINK_TYPE_ALIASES[m[1].toLowerCase()];
       acc.push([]);
     } else {
       acc[acc.length - 1].push(line);
@@ -555,29 +569,7 @@ export function parseCard(text: string): CardData {
     const front = parseSingleFace(faces[0].join('\n'));
     const back = parseSingleFace(faces[1].join('\n'));
     front.linkedCard = back;
-    if (!front.linkType) {
-      const frontText = getOracleText(front);
-      const backText = getOracleText(back);
-      const bothHaveManaCost = !!front.manaCost && !!back.manaCost;
-      const isSpell = (types?: Type[]) => !!types?.length && types.some(t => t === 'instant' || t === 'sorcery');
-
-      if (bothHaveManaCost) {
-        const fullText = frontText + '\n' + backText;
-        if (/\bFuse\b/.test(fullText)) {
-          front.linkType = 'split';
-        } else if (/\bAftermath\b/.test(fullText)) {
-          front.linkType = 'aftermath';
-        } else if (isSpell(front.types) && isSpell(back.types)) {
-          front.linkType = 'split';
-        } else {
-          front.linkType = 'modal_dfc';
-        }
-      } else if (/\bflip\b/i.test(frontText)) {
-        front.linkType = 'flip';
-      } else {
-        front.linkType = 'transform';
-      }
-    }
+    if (parsedLinkType) front.linkType = parsedLinkType;
     return front;
   }
 
@@ -916,7 +908,7 @@ export function formatCard(card: CardData): string {
   }
 
   if (card.linkedCard) {
-    lines.push('----');
+    lines.push(card.linkType ? `--${card.linkType}--` : '----');
     lines.push(formatCard(card.linkedCard));
   }
 
@@ -982,7 +974,7 @@ function buildTypeLine(card: CardData): string {
   return line;
 }
 
-function getOracleText(card: CardData): string {
+export function getOracleText(card: CardData): string {
   if (!card.abilities) return '';
   if (typeof card.abilities === 'string') return card.abilities;
   return formatAbilities(card.abilities);
@@ -1160,6 +1152,26 @@ export function getArtDimensions(card: CardData, templateOverride?: TemplateName
     width: Math.round(L.art.w * cw),
     height: Math.round(L.art.h * ch),
   };
+}
+
+export function inferLinkType(card: CardData): CardData['linkType'] {
+  if (!card.linkedCard) return undefined;
+  if (card.linkType) return card.linkType;
+
+  const frontText = getOracleText(card);
+  const backText = getOracleText(card.linkedCard);
+  const bothHaveManaCost = !!card.manaCost && !!card.linkedCard.manaCost;
+  const isSpell = (types?: Type[]) => !!types?.length && types.some(t => t === 'instant' || t === 'sorcery');
+
+  if (bothHaveManaCost) {
+    const fullText = frontText + '\n' + backText;
+    if (/\bFuse\b/.test(fullText)) return 'split';
+    if (/\bAftermath\b/.test(fullText)) return 'aftermath';
+    if (isSpell(card.types) && isSpell(card.linkedCard.types)) return 'split';
+    return 'modal_dfc';
+  }
+  if (/\bflip\b/i.test(frontText)) return 'flip';
+  return 'transform';
 }
 
 export function computeRotations(card: CardData): Rotation[] {
