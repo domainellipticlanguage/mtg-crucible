@@ -12,32 +12,19 @@ interface ContextMenuItem {
   action: () => void;
 }
 
-// Flip phases: idle -> hiding (rotate to 90deg) -> showing (swap image, rotate back from 90deg) -> idle
-type FlipPhase = 'idle' | 'hiding' | 'showing';
-
 export function MtgCard({ card, className, style }: MtgCardProps) {
-  const [faceIndex, setFaceIndex] = useState(0);
-  const [flipPhase, setFlipPhase] = useState<FlipPhase>('idle');
+  const [rotationIndex, setRotationIndex] = useState(0);
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
 
   const hasMultipleStates = card.rotations.length > 1;
-  const showingFront = faceIndex === 0;
-  const currentFace = showingFront ? card.frontFace : (card.backFace ?? card.frontFace);
-  const currentRotation = card.rotations[faceIndex] ?? { x: 0, y: 0, z: 0 };
+  const currentRotation = card.rotations[rotationIndex] ?? { x: 0, y: 0, z: 0 };
+  // Back face is visible when Y rotation puts it face-forward
+  const showingFront = !card.backFace || (Math.round(currentRotation.y / 180) % 2 === 0);
 
   const handleClick = useCallback(() => {
-    if (!hasMultipleStates || flipPhase !== 'idle') return;
-    setFlipPhase('hiding');
-  }, [hasMultipleStates, flipPhase]);
-
-  const handleTransitionEnd = useCallback(() => {
-    if (flipPhase === 'hiding') {
-      setFaceIndex(i => i === 0 ? 1 : 0);
-      setFlipPhase('showing');
-    } else if (flipPhase === 'showing') {
-      setFlipPhase('idle');
-    }
-  }, [flipPhase]);
+    if (!hasMultipleStates) return;
+    setRotationIndex(i => (i + 1) % card.rotations.length);
+  }, [hasMultipleStates, card.rotations.length]);
 
   // Close context menu on click outside or escape
   useEffect(() => {
@@ -96,17 +83,22 @@ export function MtgCard({ card, className, style }: MtgCardProps) {
     { label: 'Copy Card Data JSON', action: () => copyText(card.scryfallJson) },
   ];
 
-  const targetRotation = card.rotations[faceIndex === 0 ? 1 : 0] ?? { x: 0, y: 0, z: 0 };
-  const halfY = targetRotation.y ? `rotateY(${targetRotation.y / 2}deg) ` : '';
-  const halfZ = targetRotation.z ? `rotateZ(${targetRotation.z / 2}deg) ` : '';
-  const fullZ = currentRotation.z ? `rotateZ(${currentRotation.z}deg) ` : '';
-  const flipTransform = flipPhase === 'hiding'
-    ? `${halfZ}${halfY}`.trim() || 'none'
-    : `${fullZ}`.trim() || 'none';
+  const transforms: string[] = [];
+  if (currentRotation.x) transforms.push(`rotateX(${currentRotation.x}deg)`);
+  if (currentRotation.y) transforms.push(`rotateY(${currentRotation.y}deg)`);
+  if (currentRotation.z) transforms.push(`rotateZ(${currentRotation.z}deg)`);
+  const cardTransform = transforms.join(' ') || 'none';
 
-  // Always render in portrait aspect ratio.
   const aspectRatio = '5 / 7';
   const borderRadius = '4.5% / 3.2%';
+
+  const faceStyle: React.CSSProperties = {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    backfaceVisibility: card.backFace ? 'hidden' : 'visible',
+    borderRadius,
+  };
 
   return (
     <div
@@ -142,27 +134,29 @@ export function MtgCard({ card, className, style }: MtgCardProps) {
         onContextMenu={handleContextMenu}
       >
         <div
-          onTransitionEnd={handleTransitionEnd}
           style={{
             width: '100%',
             height: '100%',
             position: 'relative',
-            overflow: 'hidden',
-            borderRadius,
-            transform: flipTransform,
-            transition: flipPhase !== 'idle' ? 'transform 0.25s ease-in-out' : 'none',
+            transformStyle: 'preserve-3d',
+            transform: cardTransform,
+            transition: 'transform 0.5s ease-in-out',
           }}
         >
           <img
-            src={currentFace}
+            src={card.frontFace}
             alt={card.name}
             draggable={false}
-            style={{
-              display: 'block',
-              width: '100%',
-              height: '100%',
-            }}
+            style={{ ...faceStyle }}
           />
+          {card.backFace && (
+            <img
+              src={card.backFace}
+              alt={card.name}
+              draggable={false}
+              style={{ ...faceStyle, transform: 'rotateY(180deg)' }}
+            />
+          )}
         </div>
       </div>
 
