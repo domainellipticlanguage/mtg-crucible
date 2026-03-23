@@ -20,15 +20,15 @@ export function MtgCard({ card, className, style }: MtgCardProps) {
   const [flipPhase, setFlipPhase] = useState<FlipPhase>('idle');
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
 
-  const hasMultipleFaces = card.backFace !== undefined && card.rotations.length > 1;
+  const hasMultipleStates = card.rotations.length > 1;
   const showingFront = faceIndex === 0;
-  const currentFace = showingFront ? card.frontFace : card.backFace!;
+  const currentFace = showingFront ? card.frontFace : (card.backFace ?? card.frontFace);
   const currentRotation = card.rotations[faceIndex] ?? { x: 0, y: 0, z: 0 };
 
   const handleClick = useCallback(() => {
-    if (!hasMultipleFaces || flipPhase !== 'idle') return;
+    if (!hasMultipleStates || flipPhase !== 'idle') return;
     setFlipPhase('hiding');
-  }, [hasMultipleFaces, flipPhase]);
+  }, [hasMultipleStates, flipPhase]);
 
   const handleTransitionEnd = useCallback(() => {
     if (flipPhase === 'hiding') {
@@ -96,10 +96,13 @@ export function MtgCard({ card, className, style }: MtgCardProps) {
     { label: 'Copy Card Data JSON', action: () => copyText(card.scryfallJson) },
   ];
 
-  const zRotate = currentRotation.z ? `rotateZ(${currentRotation.z}deg) ` : '';
+  const targetRotation = card.rotations[faceIndex === 0 ? 1 : 0] ?? { x: 0, y: 0, z: 0 };
+  const halfY = targetRotation.y ? `rotateY(${targetRotation.y / 2}deg) ` : '';
+  const halfZ = targetRotation.z ? `rotateZ(${targetRotation.z / 2}deg) ` : '';
+  const fullZ = currentRotation.z ? `rotateZ(${currentRotation.z}deg) ` : '';
   const flipTransform = flipPhase === 'hiding'
-    ? `${zRotate}rotateY(90deg)`
-    : `${zRotate}`.trim() || 'none';
+    ? `${halfZ}${halfY}`.trim() || 'none'
+    : `${fullZ}`.trim() || 'none';
 
   // Always render in portrait aspect ratio.
   const aspectRatio = '5 / 7';
@@ -131,7 +134,7 @@ export function MtgCard({ card, className, style }: MtgCardProps) {
       <div
         style={{
           perspective: '1000px',
-          cursor: hasMultipleFaces ? 'pointer' : 'default',
+          cursor: hasMultipleStates ? 'pointer' : 'default',
           height: '100%',
           aspectRatio,
         }}
