@@ -1174,7 +1174,6 @@ export function computeRotations(card: CardData): Rotation[] {
     case 'modal_dfc':
       // Battle transforms: rotate 90° then flip across y=x
       if (card.cardTemplate === 'battle') {
-        // return [identity, { x: 0, y: 0, z: 90 }];
         return [identity, {x:0, y:0, z:90}, { x: 0, y: 180, z: 0 }];
       }
       return [identity, { x: 0, y: 180, z: 0 }];
