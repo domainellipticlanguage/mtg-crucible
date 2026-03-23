@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as http from 'http';
 import * as path from 'path';
 import * as esbuild from 'esbuild';
-import { renderCard, toDisplayCard } from '../src';
+import { renderCard, toDisplayCard, formatCard } from '../src';
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 
@@ -165,6 +165,7 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify({
         display,
         cardData: rendered.normalizedCardData,
+        crucibleTextNormalized: formatCard(rendered.normalizedCardData),
       }));
     } catch (err: any) {
       res.writeHead(500, { 'Content-Type': 'text/plain' });

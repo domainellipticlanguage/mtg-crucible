@@ -56,13 +56,30 @@ const FRAME_ALIASES: Record<string, FrameColor> = {
   ...COLOR_ALIASES,
   colorless: 'colorless', c: 'colorless',
   artifact: 'artifact', a: 'artifact',
-  multicolor: 'multicolor', multi: 'multicolor', gold: 'multicolor', m: 'multicolor',
+  // TODO make multicolored be the canonical version
+  multicolor: 'multicolor', multi: 'multicolor', gold: 'multicolor', m: 'multicolor', multicolored: 'multicolor',
   vehicle: 'vehicle', v: 'vehicle',
   land: 'land', l: 'land',
 };
 
+/** Split "Green, Artifact, and Green" or "wubrg" into individual tokens. */
+function tokenizeColorList(input: string): string[] {
+  // Split on commas and whitespace, then filter out "and" and empty strings
+  const raw = input.split(/[,\s]+/).map(t => t.trim().toLowerCase()).filter(t => t && t !== 'and');
+  // Expand shorthand like "wubrg" — if a token is 2+ chars and every char is a known single-letter alias
+  const expanded: string[] = [];
+  for (const token of raw) {
+    if (token.length >= 2 && [...token].every(ch => FRAME_ALIASES[ch])) {
+      expanded.push(...[...token]);
+    } else {
+      expanded.push(token);
+    }
+  }
+  return expanded;
+}
+
 function parseFrameTokens(input: string): FrameColor | FrameColor[] | undefined {
-  const tokens = input.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+  const tokens = tokenizeColorList(input);
   if (tokens.length === 1) {
     return FRAME_ALIASES[tokens[0]];
   }
@@ -82,8 +99,21 @@ const FRAME_EFFECT_ALIASES: Record<string, FrameEffect> = {
   miracle: 'miracle',
 };
 
+function parseAccentTokens(input: string): AccentColor | AccentColor[] | undefined {
+  const tokens = tokenizeColorList(input);
+  if (tokens.length === 1) {
+    return FRAME_ALIASES[tokens[0]] as AccentColor | undefined;
+  }
+  const parsed: AccentColor[] = [];
+  for (const raw of tokens) {
+    const ac = FRAME_ALIASES[raw] as AccentColor | undefined;
+    if (ac) parsed.push(ac);
+  }
+  return parsed.length > 0 ? parsed : undefined;
+}
+
 function parseFrameEffectTokens(input: string): FrameEffect | FrameEffect[] | undefined {
-  const tokens = input.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+  const tokens = input.split(/[,\s]+/).map(t => t.trim().toLowerCase()).filter(t => t && t !== 'and');
   if (tokens.length === 1) {
     return FRAME_EFFECT_ALIASES[tokens[0]];
   }
@@ -113,10 +143,7 @@ function normalizeLines(text: string): string[] {
 }
 
 function parseColorIndicator(raw: string): Color[] | undefined {
-  const tokens = raw
-    .split(/[\s,\/]+/)
-    .map(token => token.trim().toLowerCase())
-    .filter(Boolean);
+  const tokens = tokenizeColorList(raw);
   if (tokens.length === 0) return undefined;
   const colors: Color[] = [];
   for (const token of tokens) {
@@ -619,27 +646,8 @@ function parseSingleFace(text: string): CardData {
     }
     const accentMatch = current.match(ACCENT_REGEX);
     if (accentMatch) {
-      const tokens = accentMatch[1].split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
-      if (tokens.length === 1) {
-        const raw = tokens[0];
-        if (raw === 'multicolor' || raw === 'multi' || raw === 'gold') {
-          explicitAccent = 'multicolor';
-        } else {
-          const c = COLOR_ALIASES[raw];
-          if (c) explicitAccent = c;
-        }
-      } else if (tokens.length > 1) {
-        const parsed: AccentColor[] = [];
-        for (const raw of tokens) {
-          if (raw === 'multicolor' || raw === 'multi' || raw === 'gold') {
-            parsed.push('multicolor');
-          } else {
-            const c = COLOR_ALIASES[raw];
-            if (c) parsed.push(c);
-          }
-        }
-        if (parsed.length > 0) explicitAccent = parsed;
-      }
+      const result = parseAccentTokens(accentMatch[1]);
+      if (result) explicitAccent = result;
       nextLine++; continue;
     }
     const frameMatch = current.match(FRAME_REGEX);
@@ -729,27 +737,8 @@ function parseSingleFace(text: string): CardData {
       }
       const accentMatch = line.match(ACCENT_REGEX);
       if (accentMatch) {
-        const tokens = accentMatch[1].split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
-        if (tokens.length === 1) {
-          const raw = tokens[0];
-          if (raw === 'multicolor' || raw === 'multi' || raw === 'gold') {
-            explicitAccent = 'multicolor';
-          } else {
-            const c = COLOR_ALIASES[raw];
-            if (c) explicitAccent = c;
-          }
-        } else if (tokens.length > 1) {
-          const parsed: AccentColor[] = [];
-          for (const raw of tokens) {
-            if (raw === 'multicolor' || raw === 'multi' || raw === 'gold') {
-              parsed.push('multicolor');
-            } else {
-              const c = COLOR_ALIASES[raw];
-              if (c) parsed.push(c);
-            }
-          }
-          if (parsed.length > 0) explicitAccent = parsed;
-        }
+        const result = parseAccentTokens(accentMatch[1]);
+        if (result) explicitAccent = result;
         continue;
       }
       const frameMatch = line.match(FRAME_REGEX);
@@ -857,6 +846,14 @@ function parseSingleFace(text: string): CardData {
   return card;
 }
 
+/** Format a list as "Red", "Red and Blue", or "Red, Blue, and Green". */
+function formatList(items: string[]): string {
+  const capitalized = items.map(s => s.charAt(0).toUpperCase() + s.slice(1));
+  if (capitalized.length <= 1) return capitalized[0] ?? '';
+  if (capitalized.length === 2) return `${capitalized[0]} and ${capitalized[1]}`;
+  return capitalized.slice(0, -1).join(', ') + ', and ' + capitalized[capitalized.length - 1];
+}
+
 /** Format CardData back into Crucible extended text format (reverse of parseCard). */
 export function formatCard(card: CardData): string {
   const lines: string[] = [];
@@ -875,23 +872,23 @@ export function formatCard(card: CardData): string {
   if (card.collectorNumber) lines.push(`Collector Number: ${card.collectorNumber}`);
   if (card.designer) lines.push(`Designer: ${card.designer}`);
   if (card.colorIndicator && card.colorIndicator.length > 0) {
-    lines.push(`Color Indicator: ${card.colorIndicator.join(', ')}`);
+    lines.push(`Color Indicator: ${formatList(card.colorIndicator)}`);
   }
   if (card.accentColor) {
     const accents = Array.isArray(card.accentColor) ? card.accentColor : [card.accentColor];
-    lines.push(`Accent: ${accents.join(', ')}`);
+    lines.push(`Accent: ${formatList(accents)}`);
   }
   if (card.frameColor) {
     const frames = Array.isArray(card.frameColor) ? card.frameColor : [card.frameColor];
-    lines.push(`Frame Color: ${frames.join(', ')}`);
+    lines.push(`Frame Color: ${formatList(frames)}`);
   }
   if (card.frameEffect) {
     const effects = Array.isArray(card.frameEffect) ? card.frameEffect : [card.frameEffect];
-    lines.push(`Frame Effect: ${effects.join(', ')}`);
+    lines.push(`Frame Effect: ${formatList(effects)}`);
   }
   if (card.ptBoxColor) {
     const colors = Array.isArray(card.ptBoxColor) ? card.ptBoxColor : [card.ptBoxColor];
-    lines.push(`PT Box Color: ${colors.join(', ')}`);
+    lines.push(`PT Box Color: ${formatList(colors)}`);
   }
 
   // Type line

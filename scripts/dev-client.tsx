@@ -6,9 +6,10 @@ import type { RenderedCardDisplay } from '../src/types';
 interface RenderResult {
   display: RenderedCardDisplay;
   cardData: any;
+  crucibleTextNormalized: string;
 }
 
-type Tab = 'card' | 'cardData' | 'scryfallJson' | 'scryfallText' | 'crucibleText' | 'rotations';
+type Tab = 'card' | 'cardData' | 'scryfallJson' | 'scryfallText' | 'crucibleText' | 'crucibleTextNormalized' | 'rotations';
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'card', label: 'Card' },
@@ -16,6 +17,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'scryfallJson', label: 'Scryfall JSON' },
   { key: 'scryfallText', label: 'Scryfall Text' },
   { key: 'crucibleText', label: 'Crucible Text' },
+  { key: 'crucibleTextNormalized', label: 'Crucible Text Normalized' },
   { key: 'rotations', label: 'Rotations' },
 ];
 
@@ -76,7 +78,7 @@ function App() {
       }
 
       const json = await res.json();
-      setResult({ display: json.display, cardData: json.cardData });
+      setResult({ display: json.display, cardData: json.cardData, crucibleTextNormalized: json.crucibleTextNormalized });
 
       const totalMs = Math.round(performance.now() - t0);
       setTiming(`Total: ${totalMs}ms${serverMs ? ` (server: ${serverMs}ms)` : ''}`);
@@ -111,6 +113,8 @@ function App() {
         return <pre>{result.display.scryfallText}</pre>;
       case 'crucibleText':
         return <pre>{result.display.crucibleText}</pre>;
+      case 'crucibleTextNormalized':
+        return <pre>{result.crucibleTextNormalized}</pre>;
       case 'rotations':
         return <pre>{JSON.stringify(result.display.rotations, null, 2)}</pre>;
     }

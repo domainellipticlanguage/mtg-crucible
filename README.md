@@ -450,6 +450,7 @@ Let's support keyword abilities vs. ability words. Ability words are like "Landf
 - fuse cards need to blend in the bottom reminder text
 
 - spacing for type line of non-creature flip card is sub-optimal
+- fix colorless frames
 
 # improvements
 - for split cards with hybrid mana, do the red white and blue thing...
@@ -464,3 +465,4 @@ Let's support keyword abilities vs. ability words. Ability words are like "Landf
     - ex: doing a dual frame, the type lines should inherit?
 - Support Nyx crowns
 - bullets for modal spells
+
