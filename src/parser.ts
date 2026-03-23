@@ -532,11 +532,9 @@ export function parseCard(text: string): CardData {
       const frontText = getOracleText(front);
       const backText = getOracleText(back);
       const bothHaveManaCost = !!front.manaCost && !!back.manaCost;
-      const isSpell = (types?: Type[]) => !!types?.length && types.every(t => t === 'instant' || t === 'sorcery');
+      const isSpell = (types?: Type[]) => !!types?.length && types.some(t => t === 'instant' || t === 'sorcery');
 
-      if (/\bflip\b/i.test(frontText)) {
-        front.linkType = 'flip';
-      } else if (bothHaveManaCost) {
+      if (bothHaveManaCost) {
         const fullText = frontText + '\n' + backText;
         if (/\bFuse\b/.test(fullText)) {
           front.linkType = 'split';
@@ -547,6 +545,8 @@ export function parseCard(text: string): CardData {
         } else {
           front.linkType = 'modal_dfc';
         }
+      } else if (/\bflip\b/i.test(frontText)) {
+        front.linkType = 'flip';
       } else {
         front.linkType = 'transform';
       }

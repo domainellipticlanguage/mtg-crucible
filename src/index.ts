@@ -158,7 +158,7 @@ export async function renderCard(input: CardData | string): Promise<RenderedCard
     rotations: computeRotations(normalized),
     scryfallJson: toScryfallJson(normalized),
     scryfallText: toScryfallText(normalized),
-    crucibleText: formatCard(normalized),
+    crucibleText: formatCard(card),
   };
 }
 
