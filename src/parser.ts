@@ -683,7 +683,6 @@ function parseSingleFace(text: string): CardData {
   const { supertypes, types, subtypes } = parseTypeLine(typeLine);
   let body = lines.slice(nextLine + 1);
   const lowerType = typeLine.toLowerCase();
-  const { frameColor, accentColor } = deriveFrameColor({ subtypes, types, manaCost, colorIndicator, abilitiesText: body.join('\n') });
 
   // Determine ability kind from type line
   let kind: StructuredAbilities['kind'] | undefined;
@@ -829,7 +828,7 @@ function parseSingleFace(text: string): CardData {
   const abilities = body.length > 0 ? parseAbilities(body.join('\n'), kind) : undefined;
 
   // Build card
-  const card: CardData = { name, frameColor };
+  const card: CardData = { name };
   if (supertypes.length > 0) card.supertypes = supertypes;
   if (types.length > 0) card.types = types;
   if (subtypes.length > 0) card.subtypes = subtypes;
@@ -843,7 +842,7 @@ function parseSingleFace(text: string): CardData {
 
   if (artUrl) card.artUrl = artUrl;
   if (artDescription) card.artDescription = artDescription;
-  card.rarity = rarity ?? 'rare';
+  if (rarity) card.rarity = rarity;
   if (artist) card.artist = artist;
   if (setCode) card.setCode = setCode;
   if (collectorNumber) card.collectorNumber = collectorNumber;
@@ -852,7 +851,6 @@ function parseSingleFace(text: string): CardData {
   if (explicitFrame) card.frameColor = explicitFrame;
   if (explicitFrameEffect) card.frameEffect = explicitFrameEffect;
   if (explicitAccent) card.accentColor = explicitAccent;
-  else if (accentColor) card.accentColor = accentColor;
   if (explicitNameLine) card.nameLineColor = explicitNameLine;
   if (explicitTypeLine) card.typeLineColor = explicitTypeLine;
   if (explicitPtBox) card.ptBoxColor = explicitPtBox;
@@ -918,6 +916,11 @@ export function formatCard(card: CardData): string {
     for (const fl of card.flavorText.split('\n')) {
       lines.push(`Flavor Text: ${fl}`);
     }
+  }
+
+  if (card.linkedCard) {
+    lines.push('----');
+    lines.push(formatCard(card.linkedCard));
   }
 
   return lines.join('\n');
@@ -1093,7 +1096,7 @@ function formatScryfallFaceText(card: CardData): string {
 export function toScryfallText(card: CardData): string {
   const parts = [formatScryfallFaceText(card)];
   if (card.linkedCard) {
-    parts.push('---');
+    parts.push('----');
     parts.push(formatScryfallFaceText(card.linkedCard));
   }
   return parts.join('\n');
