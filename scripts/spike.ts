@@ -160,15 +160,15 @@ async function main() {
   //   artist: 'Daarken', collectorNumber: '104',
   // });
 
-  // // 14
-  // await render('invasion-gobakhan', {
-  //   name: 'Invasion of Gobakhan', manaCost: '{1}{W}',
-  //   types: ['battle'], subtypes: ['Siege'],
-  //   abilities: 'When Invasion of Gobakhan enters the battlefield, look at target opponent\'s hand and exile a nonland card from it. For as long as that card remains exiled, its owner may play it. A spell cast this way costs {2} more to cast.',
-  //   frameColor: 'white', rarity: 'rare',
-  //   artist: 'Zoltan Boros', collectorNumber: '014',
-  //   battleDefense: '3',
-  // });
+  // 14
+  await render('invasion-gobakhan', {
+    name: 'Invasion of Gobakhan', manaCost: '{1}{W}',
+    types: ['battle'], subtypes: ['Siege'],
+    abilities: 'When Invasion of Gobakhan enters the battlefield, look at target opponent\'s hand and exile a nonland card from it. For as long as that card remains exiled, its owner may play it. A spell cast this way costs {2} more to cast.',
+    frameColor: 'white', rarity: 'rare',
+    artist: 'Zoltan Boros', collectorNumber: '014',
+    battleDefense: '3',
+  });
 
   // // 15
   // await render('crucible-of-legends', `

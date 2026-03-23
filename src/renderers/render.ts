@@ -119,9 +119,13 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
   const lcm = (a: number, b: number) => (a * b) / gcd(a, b);
   const segmentCount = lcm(frameCodes.length, effects.length);
 
-  // Expand frame colors and effects to segmentCount length
-  const expandedColors = Array.from({ length: segmentCount }, (_, i) => frameCodes[i % frameCodes.length]);
-  const expandedEffects = Array.from({ length: segmentCount }, (_, i) => effects[i % effects.length] ?? 'normal');
+  // Stretch each element proportionally across segments (not interleaved)
+  const stretchExpand = <T>(arr: T[], count: number): T[] => {
+    const segsPerItem = count / arr.length;
+    return Array.from({ length: count }, (_, i) => arr[Math.floor(i / segsPerItem)]);
+  };
+  const expandedColors = stretchExpand(frameCodes, segmentCount);
+  const expandedEffects = stretchExpand(effects, segmentCount);
 
   const frameDirs = expandedColors.map((_, i) => {
     const effect = expandedEffects[i];
@@ -134,10 +138,10 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
   });
 
   // Expand frameColor for drawFrame to match segment count
-  const expandedFrameColor: FrameColor[] = Array.from({ length: segmentCount }, (_, i) => {
-    const fc = Array.isArray(card.frameColor) ? card.frameColor : [card.frameColor ?? 'colorless'];
-    return fc[i % fc.length];
-  });
+  const expandedFrameColor: FrameColor[] = stretchExpand(
+    Array.isArray(card.frameColor) ? card.frameColor : [card.frameColor ?? 'colorless'],
+    segmentCount
+  ) as FrameColor[];
 
   const nameLineCodes = normalizeFrameColors(card.nameLineColor);
   const typeLineCodes = normalizeFrameColors(card.typeLineColor);

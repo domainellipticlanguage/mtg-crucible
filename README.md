@@ -459,3 +459,8 @@ Let's support keyword abilities vs. ability words. Ability words are like "Landf
 - make parser more lenient (line order, allow and, oxfoard comma,)
 - typeline color / name line color are not independent?
 - P/T box color should match with frame
+
+- When providing overrides we should infer as much as possible.
+    - ex: doing a dual frame, the type lines should inherit?
+- Support Nyx crowns
+- bullets for modal spells
