@@ -102,7 +102,7 @@ function App() {
       case 'card':
         return (
           <div style={{ height: 500, display: 'flex', justifyContent: 'center' }}>
-            <MtgCard card={result.display} />
+            <MtgCard card={result.display} cardText={result.display.scryfallText} />
           </div>
         );
       case 'cardData':

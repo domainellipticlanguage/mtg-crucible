@@ -469,3 +469,6 @@ Let's support keyword abilities vs. ability words. Ability words are like "Landf
 
 
 type line and name line color logic is impacting flip cards...
+
+Transforming sagas don't work... 
+I guess we need to add more frames..

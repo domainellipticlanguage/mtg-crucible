@@ -3,6 +3,7 @@ import type { RenderedCardDisplay } from '../types';
 
 export interface MtgCardProps {
   card: RenderedCardDisplay;
+  cardText?: string;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -12,7 +13,7 @@ interface ContextMenuItem {
   action: () => void;
 }
 
-export function MtgCard({ card, className, style }: MtgCardProps) {
+export function MtgCard({ card, cardText, className, style }: MtgCardProps) {
   const [rotationIndex, setRotationIndex] = useState(0);
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
 
@@ -66,13 +67,20 @@ export function MtgCard({ card, className, style }: MtgCardProps) {
 
   const downloadImage = useCallback(() => {
     setMenuPos(null);
-    const src = showingFront ? card.frontFace : card.backFace;
-    if (!src) return;
-    const a = document.createElement('a');
-    a.href = src;
-    a.download = `${card.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.png`;
-    a.click();
-  }, [showingFront, card.frontFace, card.backFace, card.name]);
+    const baseName = card.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+    const download = (src: string, suffix: string) => {
+      const a = document.createElement('a');
+      a.href = src;
+      a.download = `${baseName}${suffix}.png`;
+      a.click();
+    };
+    if (card.backFace) {
+      download(card.frontFace, '-front');
+      download(card.backFace, '-back');
+    } else {
+      download(card.frontFace, '');
+    }
+  }, [card.frontFace, card.backFace, card.name]);
 
   const menuItems: ContextMenuItem[] = [
     { label: 'Download Image', action: downloadImage },
@@ -109,19 +117,26 @@ export function MtgCard({ card, className, style }: MtgCardProps) {
         ...style,
       }}
     >
-      {/* Invisible searchable name */}
-      <span
-        style={{
-          position: 'absolute',
-          width: 1,
-          height: 1,
-          overflow: 'hidden',
-          clip: 'rect(0, 0, 0, 0)',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {card.name}
-      </span>
+      {/* Searchable text overlay — transparent but highlightable with Ctrl+F */}
+      {cardText && (
+        <span
+          style={{
+            position: 'absolute',
+            inset: 0,
+            padding: '8%',
+            color: 'transparent',
+            fontSize: 14,
+            lineHeight: 1.3,
+            overflow: 'hidden',
+            wordBreak: 'break-word',
+            whiteSpace: 'pre-wrap',
+            zIndex: 1,
+            pointerEvents: 'none',
+          }}
+        >
+          {cardText}
+        </span>
+      )}
 
       <div
         style={{
