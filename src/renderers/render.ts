@@ -262,7 +262,8 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
     const pa = getParsedAbilities(card);
     const rulesText = pa.unstructuredAbilities?.join('\n');
     if (L.rules && (rulesText || card.flavorText)) {
-      const rx = L.rules.x * cw, ry = L.rules.y * ch, rw = L.rules.w * cw, rh = L.rules.h * ch, rs = L.rules.size * ch;
+      const rx = L.rules.x * cw, ry = L.rules.y * ch, rw = L.rules.w * cw, rs = L.rules.size * ch;
+      let rh = L.rules.h * ch;
 
       // Build exclusion rects for badges that overlap the rules area (e.g. battle defense/backPt)
       // Horizontal padding so text doesn't butt up against badges
@@ -273,6 +274,14 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
       }
       if (L.backPt && card.linkedCard?.power && card.linkedCard?.toughness) {
         exclusionRects.push({ x: L.backPt.x * cw - hPad, y: L.backPt.y * ch, w: L.backPt.w * cw + hPad, h: L.backPt.h * ch });
+      }
+      // MDFC flipside hint box: shrink rules area so text doesn't overlap
+      if (L.flipsideType && card.linkedCard) {
+        const flipsideTop = L.flipsideType.y * ch;
+        const rulesBottom = ry + rh;
+        if (flipsideTop < rulesBottom) {
+          rh = flipsideTop - ry;
+        }
       }
 
       if (rulesText && card.flavorText) drawRulesAndFlavor(ctx, rulesText, card.flavorText, rx, ry, rw, rh, L.rules.font, rs, exclusionRects);

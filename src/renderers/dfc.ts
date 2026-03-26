@@ -1,7 +1,7 @@
 import type { SKRSContext2D } from '@napi-rs/canvas';
 import type { CardData } from '../types';
 import { drawSingleLineText, drawWrappedText } from '../text';
-import { getTypeLine, drawManaCost } from '../helpers';
+import { drawManaCost } from '../helpers';
 import { getParsedAbilities } from '../parser';
 import type { TemplateHooks } from './render';
 
@@ -43,16 +43,21 @@ const mdfcBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
   if (!L.flipsideType || !card.linkedCard) return;
   const other = card.linkedCard;
 
-  const typeLine = getTypeLine(other);
+  const isCreature = other.types?.includes('creature');
+  const shortType = isCreature
+    ? `${other.power}/${other.toughness} Creature`
+    : (other.subtypes?.[0] ?? other.types?.[0] ?? '');
   const hint = getFlipsideHint(other);
+
+  const hintColor = L.flipsideType.color ?? 'white';
 
   if (hint) {
     // Land back face: show "Type  ability" as a single line with mana symbols rendered
-    const hintText = `${typeLine}  ${hint}`;
-    drawWrappedText(ctx, hintText, L.flipsideType.x * cw, L.flipsideType.y * ch, L.flipsideType.w * cw, L.flipsideType.h * ch, L.flipsideType.font, L.flipsideType.size * ch, { color: 'white' });
+    const hintText = `${shortType}  ${hint}`;
+    drawWrappedText(ctx, hintText, L.flipsideType.x * cw, L.flipsideType.y * ch, L.flipsideType.w * cw, L.flipsideType.h * ch, L.flipsideType.font, L.flipsideType.size * ch, { color: hintColor });
   } else {
     // Spell face: show type on left
-    drawSingleLineText(ctx, typeLine, L.flipsideType.x * cw, L.flipsideType.y * ch, L.flipsideType.w * cw, L.flipsideType.h * ch, L.flipsideType.font, L.flipsideType.size * ch, 'left', 'white');
+    drawSingleLineText(ctx, shortType, L.flipsideType.x * cw, L.flipsideType.y * ch, L.flipsideType.w * cw, L.flipsideType.h * ch, L.flipsideType.font, L.flipsideType.size * ch, 'left', hintColor);
   }
 
   // For spell faces (with mana cost), render mana symbols on the right

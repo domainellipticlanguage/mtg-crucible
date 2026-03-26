@@ -181,7 +181,10 @@ export const MDFC_FRONT_LAYOUT = {
 };
 
 // Modal DFC back layout — same as front (both faces show flipside hints)
-export const MDFC_BACK_LAYOUT = { ...MDFC_FRONT_LAYOUT };
+export const MDFC_BACK_LAYOUT = {
+  ...MDFC_FRONT_LAYOUT,
+  flipsideType: { ...MDFC_FRONT_LAYOUT.flipsideType, color: 'black' },
+};
 
 // Split/Fuse layout (packSplit.js / packFuse.js)
 // 1500x2100 canvas. Two mini-cards side by side, each rotated -90°.
