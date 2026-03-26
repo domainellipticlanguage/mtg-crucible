@@ -22,7 +22,7 @@
     "build": "tsc && tsc -p tsconfig.react.json",
     "build:core": "tsc",
     "build:react": "tsc -p tsconfig.react.json",
-    "dev": "npx tsx scripts/dev-server.ts",
+    "dev": "npx tsx watch scripts/dev-server.ts",
     "spike": "npx tsx scripts/spike.ts",
     "generate-assets": "npx tsx logo/generate-assets.ts"
   },

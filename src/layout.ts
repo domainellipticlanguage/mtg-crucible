@@ -176,14 +176,16 @@ export const MDFC_FRONT_LAYOUT = {
   setSymbol: { x: 0.9213, y: 0.5910, w: 0.12, h: 0.0700 },
   crown:     { x: 0.0274, y: 0.0191, w: 0.9454, h: 0.1667 },
   // Flipside hint at bottom
-  flipsideType: { x: 0.068, y: 0.892, w: 0.86, h: 0.0391, size: 0.0234, font: 'Beleren Bold' },
-  flipsideReminder: { x: 0.068, y: 0.892, w: 0.86, h: 0.0391, size: 0.0258, font: 'MPlantin' },
+  flipsideType: { x: -0.4, y: 0.9, w: 0.86, h: 0.0391, size: 0.0234, font: 'MPlantin' },
+  flipsideReminder: { x: 0.095, y: 0.9, w: 0.332, h: 0.0391, size: 0.031, font: 'MPlantin' },
 };
 
 // Modal DFC back layout — same as front (both faces show flipside hints)
 export const MDFC_BACK_LAYOUT = {
   ...MDFC_FRONT_LAYOUT,
   flipsideType: { ...MDFC_FRONT_LAYOUT.flipsideType, color: 'black' },
+  name: { ...MDFC_FRONT_LAYOUT.name, color: 'white' },
+  type: { ...MDFC_FRONT_LAYOUT.type, color: 'white' },
 };
 
 // Split/Fuse layout (packSplit.js / packFuse.js)

@@ -248,7 +248,7 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
     // Name (shrink available width to avoid mana cost)
     const manaW = card.manaCost ? measureManaCostWidth(card.manaCost, ch, L.mana.size) : 0;
     const nameW = L.name.w * cw - manaW;
-    drawSingleLineText(ctx, card.name ?? '', L.name.x * cw, L.name.y * ch, nameW, L.name.h * ch, L.name.font, L.name.size * ch, 'left', textColor);
+    drawSingleLineText(ctx, card.name ?? '', L.name.x * cw, L.name.y * ch, nameW, L.name.h * ch, L.name.font, L.name.size * ch, 'left', L.name.color ?? textColor);
 
     // Type line + color indicator (shrink available width to avoid set symbol)
     const typeX = L.type.x * cw;
@@ -256,7 +256,7 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
     const typeH = L.type.h * ch;
     const indicatorOffset = drawColorIndicator(ctx, card.colorIndicator, typeX, typeY, typeH);
     const typeW = L.type.w * cw - indicatorOffset - setSymW;
-    drawSingleLineText(ctx, getTypeLine(card), typeX + indicatorOffset, typeY, typeW, typeH, L.type.font, L.type.size * ch, 'left', textColor);
+    drawSingleLineText(ctx, getTypeLine(card), typeX + indicatorOffset, typeY, typeW, typeH, L.type.font, L.type.size * ch, 'left', L.type.color ?? textColor);
 
     // Rules + flavor text (for templates with a rules area)
     const pa = getParsedAbilities(card);
