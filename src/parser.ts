@@ -1171,7 +1171,9 @@ export function inferLinkType(card: CardData): CardData['linkType'] {
     return 'modal_dfc';
   }
   if (/\bflip\b/i.test(frontText)) return 'flip';
-  return 'transform';
+  const fullText = frontText + '\n' + backText;
+  if (/\btransform\b/i.test(fullText)) return 'transform';
+  return 'modal_dfc';
 }
 
 export function computeRotations(card: CardData): Rotation[] {
