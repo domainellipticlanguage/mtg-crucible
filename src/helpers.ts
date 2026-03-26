@@ -165,7 +165,10 @@ export async function drawFrame(
   const frameCodes = normalizeFrameColors(frameColor);
   const accentCodes = normalizeAccentColors(accentColor);
   // Mask paths always use the base template name (e.g. 'standard'), not effect dirs
-  const maskTemplate = Array.isArray(template) ? template.find(t => ['standard', 'planeswalker', 'planeswalker_tall', 'saga', 'class', 'battle', 'transformFront', 'transformBack', 'modalFront', 'modalBack'].includes(t)) ?? 'standard' : template;
+  // TODO: modal pinline mask is white instead of transparent like others — works but should be made consistent
+  const MASK_TEMPLATES = new Set(['standard', 'planeswalker', 'planeswalker_tall', 'saga', 'class', 'battle', 'transformFront', 'transformBack', 'modal']);
+  const rawMaskTemplate = Array.isArray(template) ? template.find(t => MASK_TEMPLATES.has(t) || t === 'modalFront' || t === 'modalBack') ?? 'standard' : template;
+  const maskTemplate = rawMaskTemplate === 'modalFront' || rawMaskTemplate === 'modalBack' ? 'modal' : rawMaskTemplate;
 
   if (accentCodes) {
     // Draw base frame fully (gold/artifact/land fills name box, type box, PT, etc.)
