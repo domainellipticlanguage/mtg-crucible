@@ -16,7 +16,7 @@ import * as path from 'path';
 import { createCanvas, loadImage } from '@napi-rs/canvas';
 
 const LOGO_DIR = path.resolve(__dirname);
-const ASSETS_DIR = path.resolve(__dirname, '..', 'assets', 'symbols');
+const ASSETS_DIR = path.resolve(__dirname, '..', 'assets', 'symbols', 'set');
 const SOURCE_SVG = path.join(LOGO_DIR, 'logo-transparent.svg');
 
 // ---------------------------------------------------------------------------
@@ -84,12 +84,14 @@ interface RarityStyle {
    *  as distinct pieces. Flame moves up, bowl moves down. */
   separateY?: number;
   gradient?: { id: string; stops: GradientStop[] };
+  strokeWidth?: number;
 }
 
 const RARITIES: Record<string, RarityStyle> = {
   common: {
     fill: '#1a1a1a',
     separateY: 300,
+    strokeWidth: 200,
   },
   uncommon: {
     fill: 'url(#grad)',
@@ -127,7 +129,6 @@ const RARITIES: Record<string, RarityStyle> = {
 };
 
 // Stroke width in the raw path coordinate space (0–20000).
-// 700 gives the heavy, chunky outlines real MTG set symbols are known for.
 const SET_SYMBOL_STROKE_WIDTH = 700;
 
 // ---------------------------------------------------------------------------
@@ -181,7 +182,7 @@ function buildSetSymbolSvg(
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 2000 2000">
 ${gradientDef}  <g transform="translate(0.000000,2000.000000) scale(0.100000,-0.100000)"
-     fill="${style.fill}" stroke="#000000" stroke-width="${SET_SYMBOL_STROKE_WIDTH}"
+     fill="${style.fill}" stroke="#000000" stroke-width="${style.strokeWidth ?? SET_SYMBOL_STROKE_WIDTH}"
      paint-order="stroke fill" stroke-linejoin="round">
 ${pathElements}
   </g>
