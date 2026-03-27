@@ -92,13 +92,14 @@ function generateTestImage(w: number, h: number, label: string): Buffer {
 }
 
 // Minimal card data for each template
-const TEST_CARDS: { template: TemplateName; card: CardData }[] = [
+const TEST_CARDS: { template: TemplateName; label?: string; card: CardData }[] = [
   {
     template: 'standard',
     card: { name: 'Test Standard', manaCost: '{2}{R}', types: ['creature'], subtypes: ['Goblin'], frameColor: 'red', power: '2', toughness: '2', abilities: 'Haste' },
   },
   {
     template: 'standard' as TemplateName,
+    label: 'colorless',
     card: { name: 'Test Colorless', manaCost: '{4}', types: ['creature'], subtypes: ['Eldrazi'], frameColor: 'colorless', power: '4', toughness: '4', abilities: 'Trample' },
   },
   {
@@ -135,7 +136,7 @@ const TEST_CARDS: { template: TemplateName; card: CardData }[] = [
   },
   {
     template: 'fuse',
-    card: { name: 'Test Turn', manaCost: '{2}{U}', types: ['instant'], frameColor: 'blue', abilities: 'Target creature becomes 0/1.\nFuse', linkType: 'split', linkedCard: { name: 'Test Burn', manaCost: '{1}{R}', types: ['instant'], frameColor: 'red', abilities: 'Deal 2 damage to any target.\nFuse' }, cardTemplate: 'fuse' as TemplateName },
+    card: { name: 'Test Turn', manaCost: '{2}{U}', types: ['instant'], frameColor: 'blue', abilities: 'Target creature becomes 0/1.\nFuse', linkType: 'fuse', linkedCard: { name: 'Test Burn', manaCost: '{1}{R}', types: ['instant'], frameColor: 'red', abilities: 'Deal 2 damage to any target.\nFuse' } },
   },
   {
     template: 'flip',
@@ -164,13 +165,14 @@ async function main() {
 
   const openFlag = process.argv.includes('--open');
 
-  for (const { template, card } of TEST_CARDS) {
+  for (const { template, label, card } of TEST_CARDS) {
+    const fileKey = label ?? template;
     const dims = getArtDimensions(card, template);
-    console.log(`${template}: ${dims.width}x${dims.height}`);
+    console.log(`${fileKey}: ${dims.width}x${dims.height}`);
 
     // Generate and save the test art image
-    const testArt = generateTestImage(dims.width, dims.height, template);
-    const artPath = path.join(OUT, `${template}-art.png`);
+    const testArt = generateTestImage(dims.width, dims.height, fileKey);
+    const artPath = path.join(OUT, `${fileKey}-art.png`);
     fs.writeFileSync(artPath, testArt);
 
     // Render the card with the test art as a file path
@@ -179,8 +181,8 @@ async function main() {
     // Also generate art for linked card if present
     if (cardWithArt.linkedCard) {
       const linkedDims = getArtDimensions(card, template, true);
-      const linkedArt = generateTestImage(linkedDims.width, linkedDims.height, `${template}-linked`);
-      const linkedArtPath = path.join(OUT, `${template}-linked-art.png`);
+      const linkedArt = generateTestImage(linkedDims.width, linkedDims.height, `${fileKey}-linked`);
+      const linkedArtPath = path.join(OUT, `${fileKey}-linked-art.png`);
       fs.writeFileSync(linkedArtPath, linkedArt);
       cardWithArt.linkedCard = { ...cardWithArt.linkedCard, artUrl: linkedArtPath };
       console.log(`  linked: ${linkedDims.width}x${linkedDims.height}`);
@@ -188,7 +190,7 @@ async function main() {
 
     const result = await renderCard(cardWithArt);
 
-    const outPath = path.join(OUT, `${template}.png`);
+    const outPath = path.join(OUT, `${fileKey}.png`);
     fs.writeFileSync(outPath, result.frontFace);
     console.log(`  → ${outPath}`);
   }

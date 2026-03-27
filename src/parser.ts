@@ -1151,10 +1151,21 @@ export function getArtDimensions(card: CardData, templateOverride?: TemplateName
   const config = TEMPLATE_CONFIGS[templateKey] ?? TEMPLATE_CONFIGS.standard;
   const { w: cw, h: ch } = config;
   const L = (linked && config.linkedLayout) ? config.linkedLayout : config.layout;
-  return {
-    width: Math.round(L.art.w * cw),
-    height: Math.round(L.art.h * ch),
-  };
+
+  // Colorless frames are full-bleed — art fills the entire card
+  const fc = Array.isArray(card.frameColor) ? card.frameColor[0] : card.frameColor;
+  if (fc === 'colorless' && templateKey === 'standard') {
+    return { width: 1500, height: 2100 };
+  }
+
+  const artW = Math.round(L.art.w * cw);
+  const artH = Math.round(L.art.h * ch);
+  // Rotated art: user supplies landscape, renderer rotates 90° into portrait box
+  const ROTATED_TEMPLATES = new Set(['split', 'fuse']);
+  if ((linked && templateKey === 'aftermath') || ROTATED_TEMPLATES.has(templateKey)) {
+    return { width: artH, height: artW };
+  }
+  return { width: artW, height: artH };
 }
 
 export function inferLinkType(card: CardData): CardData['linkType'] {

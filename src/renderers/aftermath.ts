@@ -96,7 +96,7 @@ const aftermathBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
 
   // Bottom half art + text (rotated 90°)
   if (other) {
-    if (other.artUrl) await drawArt(ctx, other.artUrl, AFTERMATH_BOTTOM_LAYOUT.art, cw, ch);
+    if (other.artUrl) await drawArt(ctx, other.artUrl, AFTERMATH_BOTTOM_LAYOUT.art, cw, ch, { rotate: 90 });
     await renderBottomText(ctx, other, cw, ch);
   }
 };

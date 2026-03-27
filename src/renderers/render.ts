@@ -105,8 +105,9 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
   ctx.fillStyle = '#1a1a1a';
   ctx.fillRect(0, 0, cw, ch);
 
-  // Art
-  if (card.artUrl) await drawArt(ctx, card.artUrl, L.art, cw, ch);
+  // Art (colorless frames are full-bleed)
+  const artBounds = card.frameColor[0] === 'colorless' ? { x: 0, y: 0, w: 1, h: 1 } : L.art;
+  if (card.artUrl) await drawArt(ctx, card.artUrl, artBounds, cw, ch);
 
   // Pre-frame hook (e.g. planeswalker ability backgrounds)
   if (hooks?.preFrame) await hooks.preFrame(ctx, card, L, cw, ch);

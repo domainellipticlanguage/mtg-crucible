@@ -138,9 +138,9 @@ const splitBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
     { horizontal: true, gradientRange: { start: topH, end: ch } });
   ctx.restore();
 
-  // Draw art for both halves (standard pipeline only draws front art in wrong position)
-  if (card.artUrl) await drawArt(ctx, card.artUrl, SPLIT_LEFT_LAYOUT.art, cw, ch);
-  if (other?.artUrl) await drawArt(ctx, other.artUrl, SPLIT_RIGHT_LAYOUT.art, cw, ch);
+  // Draw art for both halves — user supplies landscape, we rotate -90° into portrait boxes
+  if (card.artUrl) await drawArt(ctx, card.artUrl, SPLIT_LEFT_LAYOUT.art, cw, ch, { rotate: -90 });
+  if (other?.artUrl) await drawArt(ctx, other.artUrl, SPLIT_RIGHT_LAYOUT.art, cw, ch, { rotate: -90 });
 
   // Render text for both halves, clipping each to its half
   await renderSplitText(ctx, card, SPLIT_LEFT_LAYOUT, cw, ch, splitY, ch);

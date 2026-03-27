@@ -579,10 +579,25 @@ export async function drawArt(
   ctx: SKRSContext2D, artUrl: string,
   bounds: { x: number; y: number; w: number; h: number },
   cw: number, ch: number,
+  options?: { rotate?: number },
 ): Promise<void> {
   try {
     const buf = await fetchBuffer(artUrl);
-    const img = await loadImage(buf);
+    let img = await loadImage(buf);
+    // Rotate the image if requested (90 = CW, -90 = CCW)
+    if (options?.rotate) {
+      const rot = createCanvas(img.height, img.width);
+      const rctx = rot.getContext('2d');
+      if (options.rotate > 0) {
+        rctx.translate(img.height, 0);
+        rctx.rotate(Math.PI / 2);
+      } else {
+        rctx.translate(0, img.width);
+        rctx.rotate(-Math.PI / 2);
+      }
+      rctx.drawImage(img, 0, 0);
+      img = rot as any;
+    }
     const ax = bounds.x * cw, ay = bounds.y * ch, aw = bounds.w * cw, ah = bounds.h * ch;
     const artAspect = img.width / img.height;
     const boxAspect = aw / ah;
