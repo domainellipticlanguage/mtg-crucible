@@ -24,10 +24,14 @@ function createGradientMask(
   zoneIndex: number, totalZones: number,
   transitionFraction = 0.5,
   horizontal = false,
+  gradientRange?: { start: number; end: number },
 ): ImageData {
-  const span = horizontal ? ch : cw;
-  const boundary = (zoneIndex / totalZones) * span;
-  const halfTrans = (span / totalZones) * transitionFraction * 0.5;
+  const fullSpan = horizontal ? ch : cw;
+  // If a sub-range is specified, compute gradient zones within that range
+  const rangeStart = gradientRange?.start ?? 0;
+  const rangeSpan = gradientRange ? (gradientRange.end - gradientRange.start) : fullSpan;
+  const boundary = rangeStart + (zoneIndex / totalZones) * rangeSpan;
+  const halfTrans = (rangeSpan / totalZones) * transitionFraction * 0.5;
   const transStart = boundary - halfTrans;
   const transEnd = boundary + halfTrans;
 
@@ -89,6 +93,7 @@ async function drawGradientFrames(
   colorCodes: string[],
   cw: number, ch: number,
   horizontal = false,
+  gradientRange?: { start: number; end: number },
 ): Promise<void> {
   if (colorCodes.length === 0) return;
   const rawDirs = Array.isArray(template) ? template : colorCodes.map(() => template);
@@ -106,7 +111,7 @@ async function drawGradientFrames(
     const framePath = resolveFramePath(dirs[i], colorCodes[i]);
     if (!framePath) continue;
 
-    const mask = createGradientMask(cw, ch, i, colorCodes.length, 0.5, horizontal);
+    const mask = createGradientMask(cw, ch, i, colorCodes.length, 0.5, horizontal, gradientRange);
     const offscreen = createCanvas(cw, ch);
     const offCtx = offscreen.getContext('2d');
     offCtx.putImageData(mask, 0, 0);
@@ -166,9 +171,10 @@ export async function drawFrame(
   cw: number, ch: number,
   nameLineCodes?: string[],
   typeLineCodes?: string[],
-  options?: { horizontal?: boolean },
+  options?: { horizontal?: boolean; gradientRange?: { start: number; end: number } },
 ): Promise<void> {
   const horizontal = options?.horizontal ?? false;
+  const gradientRange = options?.gradientRange;
   // Mask paths always use the base template name (e.g. 'standard'), not effect dirs
   // TODO: modal pinline mask is white instead of transparent like others — works but should be made consistent
   const MASK_TEMPLATES = new Set(['standard', 'planeswalker', 'planeswalker_tall', 'saga', 'class', 'battle', 'transformFront', 'transformBack', 'modal']);
@@ -177,19 +183,19 @@ export async function drawFrame(
 
   if (accentCodes) {
     // Draw base frame fully (gold/artifact/land fills name box, type box, PT, etc.)
-    await drawGradientFrames(ctx, template, frameCodes, cw, ch, horizontal);
+    await drawGradientFrames(ctx, template, frameCodes, cw, ch, horizontal, gradientRange);
 
     // Pre-render accent frame for pinline/rules regions
     const accentCanvas = createCanvas(cw, ch);
     const accentCtx = accentCanvas.getContext('2d');
-    await drawGradientFrames(accentCtx, template, accentCodes, cw, ch, horizontal);
+    await drawGradientFrames(accentCtx, template, accentCodes, cw, ch, horizontal, gradientRange);
 
     // Pre-render name line color canvas
     const nlCodes = nameLineCodes ?? accentCodes;
     let nameCanvas = accentCanvas;
     if (nlCodes.join() !== accentCodes.join()) {
       nameCanvas = createCanvas(cw, ch);
-      await drawGradientFrames(nameCanvas.getContext('2d'), template, nlCodes, cw, ch, horizontal);
+      await drawGradientFrames(nameCanvas.getContext('2d'), template, nlCodes, cw, ch, horizontal, gradientRange);
     }
 
     // Pre-render type line color canvas
@@ -197,7 +203,7 @@ export async function drawFrame(
     let typeCanvas = accentCanvas;
     if (tlCodes.join() !== accentCodes.join()) {
       typeCanvas = createCanvas(cw, ch);
-      await drawGradientFrames(typeCanvas.getContext('2d'), template, tlCodes, cw, ch, horizontal);
+      await drawGradientFrames(typeCanvas.getContext('2d'), template, tlCodes, cw, ch, horizontal, gradientRange);
     } else if (tlCodes.join() === nlCodes.join()) {
       typeCanvas = nameCanvas;
     }
@@ -261,7 +267,7 @@ export async function drawFrame(
     }
   } else {
     // No accent — draw frame(s) with gradient blending
-    await drawGradientFrames(ctx, template, frameCodes, cw, ch, horizontal);
+    await drawGradientFrames(ctx, template, frameCodes, cw, ch, horizontal, gradientRange);
 
     // Overlay name/type line colors if they differ from the frame
     const overlays: { mask: string; codes: string[] }[] = [];
@@ -277,7 +283,7 @@ export async function drawFrame(
       const key = codes.join();
       if (!canvasCache.has(key)) {
         const c = createCanvas(cw, ch);
-        await drawGradientFrames(c.getContext('2d'), template, codes, cw, ch, horizontal);
+        await drawGradientFrames(c.getContext('2d'), template, codes, cw, ch, horizontal, gradientRange);
         canvasCache.set(key, c.getContext('2d'));
       }
     }

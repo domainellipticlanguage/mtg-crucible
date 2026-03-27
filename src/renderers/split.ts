@@ -108,21 +108,35 @@ const splitBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
   const frameDir = L._frame ?? 'split';
   const splitY = (1000 / 2100) * ch;
 
-  // Compute combined frame colors for both halves with horizontal gradient.
-  // Right half (other) is top of canvas, left half (card) is bottom.
-  // If halves share a color, put it in the middle: [otherUnique, shared, cardUnique]
-  const frontColors = card.frameColor;
-  const backColors = other ? other.frameColor : frontColors;
-  const shared = frontColors.filter(c => backColors.includes(c));
-  const frontUnique = frontColors.filter(c => !shared.includes(c));
-  const backUnique = backColors.filter(c => !shared.includes(c));
-  const combinedColors = [...backUnique, ...shared, ...frontUnique];
-  // If both halves are the same single color, just use it
-  const finalColors = combinedColors.length > 0 ? combinedColors : frontColors;
+  // Draw each half's frame clipped to its region.
+  // Each half may itself be multi-color (hybrid) — use horizontal gradient within that half.
+  // Top half = other (right card), bottom half = card (left card).
+  const frontCodes = card.frameColor.map(c => frameColorCode(c));
+  const backCodes = other ? other.frameColor.map(c => frameColorCode(c)) : frontCodes;
+  const frontAccent = card.accentColor.length > 0 ? card.accentColor.map(c => frameColorCode(c)) : undefined;
+  const backAccent = other && other.accentColor.length > 0 ? other.accentColor.map(c => frameColorCode(c)) : frontAccent;
 
-  const finalCodes = finalColors.map(c => frameColorCode(c));
-  const accentCodes = card.accentColor.length > 0 ? card.accentColor.map(c => frameColorCode(c)) : undefined;
-  await drawFrame(ctx, frameDir, finalCodes, accentCodes, cw, ch, undefined, undefined, { horizontal: true });
+  // Draw each half's frame clipped to its region. Use gradientRange so
+  // multi-color gradient zones are computed within the half, not the full card.
+  const topH = Math.round(splitY);
+
+  // Top half (other/right card)
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, cw, topH);
+  ctx.clip();
+  await drawFrame(ctx, frameDir, backCodes, backAccent, cw, ch, undefined, undefined,
+    { horizontal: true, gradientRange: { start: 0, end: topH } });
+  ctx.restore();
+
+  // Bottom half (card/left card)
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, topH, cw, ch - topH);
+  ctx.clip();
+  await drawFrame(ctx, frameDir, frontCodes, frontAccent, cw, ch, undefined, undefined,
+    { horizontal: true, gradientRange: { start: topH, end: ch } });
+  ctx.restore();
 
   // Draw art for both halves (standard pipeline only draws front art in wrong position)
   if (card.artUrl) await drawArt(ctx, card.artUrl, SPLIT_LEFT_LAYOUT.art, cw, ch);
