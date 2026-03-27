@@ -1,7 +1,7 @@
 import { type SKRSContext2D } from '@napi-rs/canvas';
 import type { CardData } from '../types';
-import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor } from '../text';
-import { drawArt, drawManaCost, drawSetSymbol, measureManaCostWidth, getTypeLine, drawFrame } from '../helpers';
+import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor, type ExclusionRect } from '../text';
+import { drawArt, drawManaCost, drawSetSymbol, measureManaCostWidth, getTypeLine, drawFrame, normalizeFrameColors } from '../helpers';
 import { getParsedAbilities } from '../parser';
 import { SPLIT_RIGHT_LAYOUT, SPLIT_LEFT_LAYOUT } from '../layout';
 import type { TemplateHooks, AnyLayout } from './render';
@@ -55,13 +55,8 @@ async function renderSplitText(
   // We need rightX along local-x (scaled by ch), textY along local-y (scaled by cw),
   // and symbol size proportional to the name bar height (scaled by cw).
 
-  // Name
-  const textW = L.name.w * ch;
+  // Mana cost — far right of the name line
   const manaW = card.manaCost ? measureManaCostWidth(card.manaCost, cw, L.mana.size) : 0;
-  const nameW = textW - manaW;
-  drawSingleLineText(ctx, card.name ?? '', 0, L.name.x * cw, nameW, L.name.h * cw, L.name.font, L.name.size * ch, 'left', 'black');
-
-  // Mana cost — right-aligned in the name bar
   if (card.manaCost) {
     await drawManaCost(ctx, card.manaCost, ch, cw, {
       y: L.mana.y,
@@ -71,6 +66,10 @@ async function renderSplitText(
       shadowY: L.mana.shadowY,
     });
   }
+
+  // Name — left-aligned, shrunk to avoid mana cost overlap
+  const nameW = L.mana.w * ch - manaW;
+  drawSingleLineText(ctx, card.name ?? '', 0, L.name.x * cw, nameW, L.name.h * cw, L.name.font, L.name.size * ch, 'left', 'black');
 
   // Type line
   drawSingleLineText(ctx, getTypeLine(card), 0, L.type.x * cw, L.type.w * ch, L.type.h * cw, L.type.font, L.type.size * ch, 'left', 'black');
@@ -82,12 +81,23 @@ async function renderSplitText(
   const pa = getParsedAbilities(card);
   const rulesText = pa.unstructuredAbilities?.join('\n');
   const rulesY = (L.rules.y - L.name.y) * ch;
+  const rulesX = L.rules.x * cw;
+  const rulesW = L.rules.w * ch;
+  const rulesH = L.rules.h * cw;
+
+  // Set symbol exclusion rect in rotated local space
+  const setH = L.setSymbol.h * cw;
+  const setW = setH; // approximately square
+  const setLocalX = (L.setSymbol.x - L.name.y) * ch - setW;
+  const setLocalY = L.setSymbol.y * cw - setH / 2;
+  const exclusionRects: ExclusionRect[] = [{ x: setLocalX, y: setLocalY, w: setW, h: setH }];
+
   if (rulesText && card.flavorText) {
-    drawRulesAndFlavor(ctx, rulesText, card.flavorText, rulesY, L.rules.x * cw, L.rules.w * ch, L.rules.h * cw, L.rules.font, L.rules.size * ch, []);
+    drawRulesAndFlavor(ctx, rulesText, card.flavorText, rulesY, rulesX, rulesW, rulesH, L.rules.font, L.rules.size * ch, exclusionRects);
   } else if (rulesText) {
-    drawWrappedText(ctx, rulesText, rulesY, L.rules.x * cw, L.rules.w * ch, L.rules.h * cw, L.rules.font, L.rules.size * ch);
+    drawWrappedText(ctx, rulesText, rulesY, rulesX, rulesW, rulesH, L.rules.font, L.rules.size * ch, { exclusionRects });
   } else if (card.flavorText) {
-    drawWrappedText(ctx, card.flavorText, rulesY, L.rules.x * cw, L.rules.w * ch, L.rules.h * cw, L.rules.font, L.rules.size * ch, { fontFamily: 'MPlantin Italic' });
+    drawWrappedText(ctx, card.flavorText, rulesY, rulesX, rulesW, rulesH, L.rules.font, L.rules.size * ch, { fontFamily: 'MPlantin Italic', exclusionRects });
   }
 
   ctx.restore();
@@ -98,17 +108,19 @@ const splitBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
   const frameDir = L._frame ?? 'split';
   const splitY = (1000 / 2100) * ch;
 
-  // Standard pipeline drew card.frameColor for the whole card.
-  // Front card renders in the bottom half (LEFT layout), so overdraw the
-  // top half with the linked card's frame color.
-  if (other?.frameColor) {
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(0, 0, cw, splitY);
-    ctx.clip();
-    await drawFrame(ctx, frameDir, other.frameColor, other.accentColor, cw, ch);
-    ctx.restore();
-  }
+  // Compute combined frame colors for both halves with horizontal gradient.
+  // Right half (other) is top of canvas, left half (card) is bottom.
+  // If halves share a color, put it in the middle: [otherUnique, shared, cardUnique]
+  const frontCodes = normalizeFrameColors(card.frameColor);
+  const backCodes = other ? normalizeFrameColors(other.frameColor) : frontCodes;
+  const shared = frontCodes.filter(c => backCodes.includes(c));
+  const frontUnique = frontCodes.filter(c => !shared.includes(c));
+  const backUnique = backCodes.filter(c => !shared.includes(c));
+  const combinedCodes = [...backUnique, ...shared, ...frontUnique];
+  // If both halves are the same single color, just use it
+  const finalColors = combinedCodes.length > 0 ? combinedCodes : frontCodes;
+
+  await drawFrame(ctx, frameDir, finalColors as any, card.accentColor, cw, ch, undefined, undefined, { horizontal: true });
 
   // Draw art for both halves (standard pipeline only draws front art in wrong position)
   if (card.artUrl) await drawArt(ctx, card.artUrl, SPLIT_LEFT_LAYOUT.art, cw, ch);
@@ -121,4 +133,4 @@ const splitBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
   }
 };
 
-export const splitHooks: TemplateHooks = { body: splitBody, skipStandardText: true };
+export const splitHooks: TemplateHooks = { body: splitBody, skipStandardText: true, skipStandardFrame: true };

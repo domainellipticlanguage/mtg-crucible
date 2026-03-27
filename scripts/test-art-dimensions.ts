@@ -98,6 +98,10 @@ const TEST_CARDS: { template: TemplateName; card: CardData }[] = [
     card: { name: 'Test Standard', manaCost: '{2}{R}', types: ['creature'], subtypes: ['Goblin'], frameColor: 'red', power: '2', toughness: '2', abilities: 'Haste' },
   },
   {
+    template: 'standard' as TemplateName,
+    card: { name: 'Test Colorless', manaCost: '{4}', types: ['creature'], subtypes: ['Eldrazi'], frameColor: 'colorless', power: '4', toughness: '4', abilities: 'Trample' },
+  },
+  {
     template: 'planeswalker',
     card: { name: 'Test Planeswalker', manaCost: '{3}{U}', types: ['planeswalker'], subtypes: ['Jace'], frameColor: 'blue', startingLoyalty: '4', abilities: { structuredAbilities: { kind: 'planeswalker', loyaltyAbilities: [{ cost: '+1', text: 'Draw a card.' }, { cost: '-2', text: 'Return target creature.' }, { cost: '-6', text: 'You win.' }] } } },
   },

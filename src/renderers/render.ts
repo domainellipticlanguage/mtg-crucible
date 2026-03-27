@@ -48,6 +48,8 @@ export interface TemplateHooks {
   body?: (ctx: SKRSContext2D, card: CardData, layout: AnyLayout, cw: number, ch: number) => Promise<void>;
   /** If true, the hook handles ALL text rendering (name, type, mana, rules, P/T). */
   skipStandardText?: boolean;
+  /** If true, the hook handles frame rendering. */
+  skipStandardFrame?: boolean;
 }
 
 interface TemplateConfig {
@@ -149,20 +151,22 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
     ? normalizeFrameColors(card.ptBoxColor)
     : typeLineCodes;
 
-  await drawFrame(ctx, frameDirs, expandedFrameColor, card.accentColor, cw, ch, nameLineCodes, typeLineCodes);
+  if (!hooks?.skipStandardFrame) {
+    await drawFrame(ctx, frameDirs, expandedFrameColor, card.accentColor, cw, ch, nameLineCodes, typeLineCodes);
 
-  // Overlay effects: draw effect frames on top of the standard frame
-  const overlayDirs = expandedColors.map((_, i) => {
-    const effect = expandedEffects[i];
-    if (!OVERLAY_EFFECTS.has(effect)) return null;
-    if (frame !== 'standard') {
-      console.warn(`Frame effect '${effect}' is not supported for '${frame}' layout, skipping overlay`);
-      return null;
+    // Overlay effects: draw effect frames on top of the standard frame
+    const overlayDirs = expandedColors.map((_, i) => {
+      const effect = expandedEffects[i];
+      if (!OVERLAY_EFFECTS.has(effect)) return null;
+      if (frame !== 'standard') {
+        console.warn(`Frame effect '${effect}' is not supported for '${frame}' layout, skipping overlay`);
+        return null;
+      }
+      return effect;
+    });
+    if (overlayDirs.some(d => d !== null)) {
+      await drawFrameOverlay(ctx, overlayDirs, expandedColors, cw, ch);
     }
-    return effect;
-  });
-  if (overlayDirs.some(d => d !== null)) {
-    await drawFrameOverlay(ctx, overlayDirs, expandedColors, cw, ch);
   }
 
   // Legend crown (planeswalkers use their own frame treatment)

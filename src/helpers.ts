@@ -46,9 +46,11 @@ function createGradientMask(
   cw: number, ch: number,
   zoneIndex: number, totalZones: number,
   transitionFraction = 0.5,
+  horizontal = false,
 ): ImageData {
-  const boundary = (zoneIndex / totalZones) * cw;
-  const halfTrans = (cw / totalZones) * transitionFraction * 0.5;
+  const span = horizontal ? ch : cw;
+  const boundary = (zoneIndex / totalZones) * span;
+  const halfTrans = (span / totalZones) * transitionFraction * 0.5;
   const transStart = boundary - halfTrans;
   const transEnd = boundary + halfTrans;
 
@@ -58,17 +60,31 @@ function createGradientMask(
   const imgData = tmpCtx.createImageData(cw, ch);
   const data = imgData.data;
 
-  for (let x = 0; x < cw; x++) {
-    let alpha: number;
-    if (x <= transStart) alpha = 0;
-    else if (x >= transEnd) alpha = 255;
-    else {
-      const t = (x - transStart) / (transEnd - transStart);
-      alpha = Math.round((0.5 - 0.5 * Math.cos(t * Math.PI)) * 255);
-    }
+  if (horizontal) {
     for (let y = 0; y < ch; y++) {
-      const i = (y * cw + x) * 4;
-      data[i + 3] = alpha;
+      let alpha: number;
+      if (y <= transStart) alpha = 0;
+      else if (y >= transEnd) alpha = 255;
+      else {
+        const t = (y - transStart) / (transEnd - transStart);
+        alpha = Math.round((0.5 - 0.5 * Math.cos(t * Math.PI)) * 255);
+      }
+      for (let x = 0; x < cw; x++) {
+        data[(y * cw + x) * 4 + 3] = alpha;
+      }
+    }
+  } else {
+    for (let x = 0; x < cw; x++) {
+      let alpha: number;
+      if (x <= transStart) alpha = 0;
+      else if (x >= transEnd) alpha = 255;
+      else {
+        const t = (x - transStart) / (transEnd - transStart);
+        alpha = Math.round((0.5 - 0.5 * Math.cos(t * Math.PI)) * 255);
+      }
+      for (let y = 0; y < ch; y++) {
+        data[(y * cw + x) * 4 + 3] = alpha;
+      }
     }
   }
   return imgData;
@@ -79,11 +95,23 @@ function createGradientMask(
  * colorCodes[0] is drawn as the base; each subsequent code is overlaid
  * through a sine-smoothed gradient mask.
  */
+/** Resolve a frame image path, falling back to artifact for colorless when c.png doesn't exist. */
+function resolveFramePath(dir: string, code: string): string | undefined {
+  const primary = path.join(ASSETS_DIR, 'frames', dir, `${code}.png`);
+  if (fs.existsSync(primary)) return primary;
+  if (code === 'c') {
+    const fallback = path.join(ASSETS_DIR, 'frames', dir, 'a.png');
+    if (fs.existsSync(fallback)) return fallback;
+  }
+  return undefined;
+}
+
 async function drawGradientFrames(
   ctx: SKRSContext2D,
   template: string | string[],
   colorCodes: string[],
   cw: number, ch: number,
+  horizontal = false,
 ): Promise<void> {
   if (colorCodes.length === 0) return;
   const rawDirs = Array.isArray(template) ? template : colorCodes.map(() => template);
@@ -91,17 +119,17 @@ async function drawGradientFrames(
   const dirs = colorCodes.map((_, i) => rawDirs[i % rawDirs.length]);
 
   // Draw base frame
-  const basePath = path.join(ASSETS_DIR, 'frames', dirs[0], `${colorCodes[0]}.png`);
-  if (fs.existsSync(basePath)) {
+  const basePath = resolveFramePath(dirs[0], colorCodes[0]);
+  if (basePath) {
     ctx.drawImage(await loadImage(basePath), 0, 0, cw, ch);
   }
 
   // Overlay each subsequent frame through gradient mask
   for (let i = 1; i < colorCodes.length; i++) {
-    const framePath = path.join(ASSETS_DIR, 'frames', dirs[i], `${colorCodes[i]}.png`);
-    if (!fs.existsSync(framePath)) continue;
+    const framePath = resolveFramePath(dirs[i], colorCodes[i]);
+    if (!framePath) continue;
 
-    const mask = createGradientMask(cw, ch, i, colorCodes.length);
+    const mask = createGradientMask(cw, ch, i, colorCodes.length, 0.5, horizontal);
     const offscreen = createCanvas(cw, ch);
     const offCtx = offscreen.getContext('2d');
     offCtx.putImageData(mask, 0, 0);
@@ -161,7 +189,9 @@ export async function drawFrame(
   cw: number, ch: number,
   nameLineCodes?: string[],
   typeLineCodes?: string[],
+  options?: { horizontal?: boolean },
 ): Promise<void> {
+  const horizontal = options?.horizontal ?? false;
   const frameCodes = normalizeFrameColors(frameColor);
   const accentCodes = normalizeAccentColors(accentColor);
   // Mask paths always use the base template name (e.g. 'standard'), not effect dirs
@@ -172,19 +202,19 @@ export async function drawFrame(
 
   if (accentCodes) {
     // Draw base frame fully (gold/artifact/land fills name box, type box, PT, etc.)
-    await drawGradientFrames(ctx, template, frameCodes, cw, ch);
+    await drawGradientFrames(ctx, template, frameCodes, cw, ch, horizontal);
 
     // Pre-render accent frame for pinline/rules regions
     const accentCanvas = createCanvas(cw, ch);
     const accentCtx = accentCanvas.getContext('2d');
-    await drawGradientFrames(accentCtx, template, accentCodes, cw, ch);
+    await drawGradientFrames(accentCtx, template, accentCodes, cw, ch, horizontal);
 
     // Pre-render name line color canvas
     const nlCodes = nameLineCodes ?? accentCodes;
     let nameCanvas = accentCanvas;
     if (nlCodes.join() !== accentCodes.join()) {
       nameCanvas = createCanvas(cw, ch);
-      await drawGradientFrames(nameCanvas.getContext('2d'), template, nlCodes, cw, ch);
+      await drawGradientFrames(nameCanvas.getContext('2d'), template, nlCodes, cw, ch, horizontal);
     }
 
     // Pre-render type line color canvas
@@ -192,7 +222,7 @@ export async function drawFrame(
     let typeCanvas = accentCanvas;
     if (tlCodes.join() !== accentCodes.join()) {
       typeCanvas = createCanvas(cw, ch);
-      await drawGradientFrames(typeCanvas.getContext('2d'), template, tlCodes, cw, ch);
+      await drawGradientFrames(typeCanvas.getContext('2d'), template, tlCodes, cw, ch, horizontal);
     } else if (tlCodes.join() === nlCodes.join()) {
       typeCanvas = nameCanvas;
     }
@@ -236,8 +266,8 @@ export async function drawFrame(
 
       for (let i = 0; i < n; i++) {
         const dirs = Array.isArray(template) ? template : accentCodes.map(() => template);
-        const framePath = path.join(ASSETS_DIR, 'frames', dirs[i % dirs.length], `${accentCodes[i]}.png`);
-        if (!fs.existsSync(framePath)) continue;
+        const framePath = resolveFramePath(dirs[i % dirs.length], accentCodes[i]);
+        if (!framePath) continue;
 
         const strip = createCanvas(cw, ch);
         const sCtx = strip.getContext('2d');
@@ -256,7 +286,7 @@ export async function drawFrame(
     }
   } else {
     // No accent — draw frame(s) with gradient blending
-    await drawGradientFrames(ctx, template, frameCodes, cw, ch);
+    await drawGradientFrames(ctx, template, frameCodes, cw, ch, horizontal);
 
     // Overlay name/type line colors if they differ from the frame
     const overlays: { mask: string; codes: string[] }[] = [];
@@ -272,7 +302,7 @@ export async function drawFrame(
       const key = codes.join();
       if (!canvasCache.has(key)) {
         const c = createCanvas(cw, ch);
-        await drawGradientFrames(c.getContext('2d'), template, codes, cw, ch);
+        await drawGradientFrames(c.getContext('2d'), template, codes, cw, ch, horizontal);
         canvasCache.set(key, c.getContext('2d'));
       }
     }
