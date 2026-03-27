@@ -139,7 +139,8 @@ export async function renderCard(input: CardData | string): Promise<RenderedCard
   // Adventure, split, fuse, and flip cards render both faces on one image — no separate back face
   const singleImageTypes = new Set(['adventure', 'split', 'flip', 'aftermath']);
   if (normalized.linkedCard && !singleImageTypes.has(normalized.linkType ?? '')) {
-    const normalizedBack = normalizeCard(normalized.linkedCard);
+    // Already normalized via recursive normalizeCard — shallow copy to avoid mutating shared object
+    const normalizedBack = { ...normalized.linkedCard };
     // For MDFC, back face needs a reference to the front for the flipside hint
     if (normalized.linkType === 'modal_dfc') {
       normalizedBack.linkedCard = normalized;
