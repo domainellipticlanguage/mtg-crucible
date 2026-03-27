@@ -1,6 +1,6 @@
 import type { SKRSContext2D } from '@napi-rs/canvas';
 import type { CardData } from '../types';
-import { drawSingleLineText, drawWrappedText } from '../text';
+import { drawSingleLineText, measureRichText, drawRichLine } from '../text';
 import { drawManaCost } from '../helpers';
 import { getParsedAbilities } from '../parser';
 import type { TemplateHooks } from './render';
@@ -40,8 +40,9 @@ function getFlipsideHint(card: CardData): string {
 }
 
 const mdfcBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
-  if (!L.flipsideType || !card.linkedCard) return;
+  if (!L.flipside || !card.linkedCard) return;
   const other = card.linkedCard;
+  const F = L.flipside;
 
   const titleCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
   const isCreature = other.types?.includes('creature');
@@ -50,27 +51,33 @@ const mdfcBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
     : titleCase(other.subtypes?.[0] ?? other.types?.[0] ?? '');
   const hint = getFlipsideHint(other);
 
-  const hintColor = L.flipsideType.color ?? 'white';
-  const R = L.flipsideReminder ?? L.flipsideType;
+  const hintColor = F.color ?? 'white';
+  const rightText = other.manaCost || hint;
+  const boxX = F.x * cw, boxY = F.y * ch, boxW = F.w * cw, boxH = F.h * ch;
+  const gap = boxW * 0.05;
 
-  if (hint) {
-    // Land back face: show "Type  ability" as a single line with mana symbols rendered
-    const hintText = `${shortType}  ${hint}`;
-    drawWrappedText(ctx, hintText, R.x * cw, R.y * ch, R.w * cw, R.h * ch, R.font, R.size * ch, { color: hintColor });
-  } else {
-    // Spell face: show type on left
-    drawSingleLineText(ctx, shortType, R.x * cw, R.y * ch, R.w * cw, R.h * ch, R.font, R.size * ch, 'left', hintColor);
+  // Shrink text size until both sides fit
+  let textSize = F.size * ch;
+  while (textSize > 1) {
+    ctx.font = `${textSize}px "${F.font}"`;
+    const leftW = ctx.measureText(shortType).width;
+    const rightW = rightText ? measureRichText(ctx, rightText, textSize) : 0;
+    if (leftW + rightW + gap <= boxW) break;
+    textSize -= 1;
   }
 
-  // For spell faces (with mana cost), render mana symbols on the right
-  if (other.manaCost && L.flipsideReminder) {
-    await drawManaCost(ctx, other.manaCost, cw, ch, {
-      y: L.flipsideReminder.y,
-      w: (L.flipsideReminder.x + L.flipsideReminder.w),
-      size: L.flipsideReminder.size,
-      shadowX: 0,
-      shadowY: 0,
-    });
+  const baselineY = boxY + (boxH - textSize * 0.85) / 2 + textSize * 0.7;
+
+  // Type on the left
+  ctx.font = `${textSize}px "${F.font}"`;
+  ctx.fillStyle = hintColor;
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText(shortType, boxX, baselineY);
+
+  // Mana cost or land ability on the right (with mana symbols)
+  if (rightText) {
+    const rightW = measureRichText(ctx, rightText, textSize);
+    drawRichLine(ctx, rightText, boxX + boxW - rightW, baselineY, textSize);
   }
 };
 

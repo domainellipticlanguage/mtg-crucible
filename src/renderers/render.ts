@@ -276,8 +276,8 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
         exclusionRects.push({ x: L.backPt.x * cw - hPad, y: L.backPt.y * ch, w: L.backPt.w * cw + hPad, h: L.backPt.h * ch });
       }
       // MDFC flipside hint box: shrink rules area so text doesn't overlap
-      if (L.flipsideType && card.linkedCard) {
-        const flipsideTop = L.flipsideType.y * ch;
+      if (L.flipside && card.linkedCard) {
+        const flipsideTop = L.flipside.y * ch;
         const rulesBottom = ry + rh;
         if (flipsideTop < rulesBottom) {
           rh = flipsideTop - ry;
