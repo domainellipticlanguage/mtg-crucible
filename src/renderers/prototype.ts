@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { loadImage, type SKRSContext2D } from '@napi-rs/canvas';
-import type { CardData, PrototypeAbilities } from '../types';
+import type { NormalizedCardData, PrototypeAbilities } from '../types';
 import { drawSingleLineText, drawWrappedText } from '../text';
 import { drawManaCost } from '../helpers';
 import { ASSETS_DIR } from '../layout';

@@ -1,7 +1,7 @@
 import { createCanvas, loadImage, type SKRSContext2D } from '@napi-rs/canvas';
 import * as fs from 'fs';
 import * as path from 'path';
-import type { CardData, FrameColor, ParsedAbilities, PlaneswalkerAbilities, TemplateName } from '../types';
+import type { NormalizedCardData, TemplateName } from '../types';
 import {
   STD_W, STD_H, STD_LAYOUT,
   PW_W, PW_H, PW_LAYOUT, PW_TALL_LAYOUT,
@@ -19,11 +19,11 @@ import {
   AFTERMATH_TOP_LAYOUT,
   ASSETS_DIR,
 } from '../layout';
-import { getParsedAbilities, resolveTemplate } from '../parser';
+import { getParsedAbilities } from '../parser';
 
 import {
   drawArt, drawCorners, drawSetSymbol, drawBottomInfo, drawManaCost, measureManaCostWidth,
-  getTypeLine, primaryFrameColorCode, normalizeFrameColors, normalizeAccentColors,
+  getTypeLine, frameColorCode,
   drawColorIndicator, drawFrame, drawFrameOverlay, drawGradientCrowns,
 } from '../helpers';
 import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor, type ExclusionRect } from '../text';
@@ -44,8 +44,8 @@ import { aftermathHooks } from './aftermath';
 export type AnyLayout = Record<string, any>;
 
 export interface TemplateHooks {
-  preFrame?: (ctx: SKRSContext2D, card: CardData, layout: AnyLayout, cw: number, ch: number) => Promise<void>;
-  body?: (ctx: SKRSContext2D, card: CardData, layout: AnyLayout, cw: number, ch: number) => Promise<void>;
+  preFrame?: (ctx: SKRSContext2D, card: NormalizedCardData, layout: AnyLayout, cw: number, ch: number) => Promise<void>;
+  body?: (ctx: SKRSContext2D, card: NormalizedCardData, layout: AnyLayout, cw: number, ch: number) => Promise<void>;
   /** If true, the hook handles ALL text rendering (name, type, mana, rules, P/T). */
   skipStandardText?: boolean;
   /** If true, the hook handles frame rendering. */
@@ -85,14 +85,14 @@ const TEMPLATES: Record<string, TemplateConfig> = {
   aftermath:          { layout: AFTERMATH_TOP_LAYOUT, w: PW_W, h: PW_H, frame: 'aftermath', hooks: aftermathHooks },
 };
 
-export async function renderCardImage(card: CardData, templateOverride?: string): Promise<Buffer> {
-  const templateKey = templateOverride ?? resolveTemplate(card);
+export async function renderCardImage(card: NormalizedCardData, templateOverride?: string): Promise<Buffer> {
+  const templateKey = templateOverride ?? card.cardTemplate;
   const config = TEMPLATES[templateKey] ?? TEMPLATES.standard;
   const { layout: L, w: cw, h: ch, frame, hooks, crownDir, ptDir } = config;
 
-  const fc = primaryFrameColorCode(card.frameColor);
-  const frameCodes = normalizeFrameColors(card.frameColor);
-  const accentCodes = normalizeAccentColors(card.accentColor);
+  // Convert FrameColor names to single-letter codes once at the top of the pipeline
+  const frameCodes = card.frameColor.map(c => frameColorCode(c));
+  const accentCodes = card.accentColor.length > 0 ? card.accentColor.map(c => frameColorCode(c)) : undefined;
   const crownCodes = accentCodes ?? frameCodes;
 
   // Text color override (transform back uses white)
@@ -115,7 +115,7 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
   // Overlay effects (e.g. miracle) draw the standard frame first, then overlay on top.
   // When effects and colors aren't 1:1, compute LCM to split into enough segments.
   const OVERLAY_EFFECTS = new Set(['miracle']);
-  const effects = Array.isArray(card.frameEffect) ? card.frameEffect : [card.frameEffect ?? 'normal'];
+  const effects = card.frameEffect;
 
   const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
   const lcm = (a: number, b: number) => (a * b) / gcd(a, b);
@@ -139,20 +139,17 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
     return effect;
   });
 
-  // Expand frameColor for drawFrame to match segment count
-  const expandedFrameColor: FrameColor[] = stretchExpand(
-    Array.isArray(card.frameColor) ? card.frameColor : [card.frameColor ?? 'colorless'],
-    segmentCount
-  ) as FrameColor[];
+  // Expand frameColor codes to match segment count
+  const expandedFrameColor = stretchExpand(frameCodes, segmentCount);
 
-  const nameLineCodes = normalizeFrameColors(card.nameLineColor);
-  const typeLineCodes = normalizeFrameColors(card.typeLineColor);
-  const ptBoxCodes = card.ptBoxColor && (Array.isArray(card.ptBoxColor) ? card.ptBoxColor.length > 0 : true)
-    ? normalizeFrameColors(card.ptBoxColor)
+  const nameLineCodes = card.nameLineColor.map(c => frameColorCode(c));
+  const typeLineCodes = card.typeLineColor.map(c => frameColorCode(c));
+  const ptBoxCodes = card.ptBoxColor.length > 0
+    ? card.ptBoxColor.map(c => frameColorCode(c))
     : typeLineCodes;
 
   if (!hooks?.skipStandardFrame) {
-    await drawFrame(ctx, frameDirs, expandedFrameColor, card.accentColor, cw, ch, nameLineCodes, typeLineCodes);
+    await drawFrame(ctx, frameDirs, expandedFrameColor, accentCodes, cw, ch, nameLineCodes, typeLineCodes);
 
     // Overlay effects: draw effect frames on top of the standard frame
     const overlayDirs = expandedColors.map((_, i) => {
@@ -295,8 +292,7 @@ export async function renderCardImage(card: CardData, templateOverride?: string)
 
     // P/T text
     if (L.pt && card.power && card.toughness) {
-      const ptFrameColor = Array.isArray(card.frameColor) ? card.frameColor[0] : card.frameColor;
-      const ptTextColor = L.textColor || (ptFrameColor === 'vehicle' ? 'white' : 'black');
+      const ptTextColor = L.textColor || (card.frameColor[0] === 'vehicle' ? 'white' : 'black');
       drawSingleLineText(ctx, `${card.power}/${card.toughness}`, L.pt.x * cw, L.pt.y * ch, L.pt.w * cw, L.pt.h * ch, L.pt.font, L.pt.size * ch, 'center', ptTextColor);
     }
   }

@@ -14,11 +14,11 @@ export { renderCardImage } from './renderers/render';
 export { parseCard, parseAbilities, formatAbilities, formatCard, toScryfallJson, toScryfallText, computeRotations, resolveTemplate, getArtDimensions } from './parser';
 
 // Backwards-compatible individual renderer exports
-export const renderStandard = (card: CardData) => renderCardImage(card, 'standard');
-export const renderPlaneswalker = (card: CardData) => renderCardImage(card, 'planeswalker');
-export const renderSaga = (card: CardData) => renderCardImage(card, 'saga');
-export const renderBattle = (card: CardData) => renderCardImage(card, 'battle');
-export const renderClass = (card: CardData) => renderCardImage(card, 'class');
+export const renderStandard = (card: CardData) => renderCardImage(normalizeCard(card), 'standard');
+export const renderPlaneswalker = (card: CardData) => renderCardImage(normalizeCard(card), 'planeswalker');
+export const renderSaga = (card: CardData) => renderCardImage(normalizeCard(card), 'saga');
+export const renderBattle = (card: CardData) => renderCardImage(normalizeCard(card), 'battle');
+export const renderClass = (card: CardData) => renderCardImage(normalizeCard(card), 'class');
 
 /** Infer the ability kind from card types/subtypes. */
 function inferAbilityKind(card: CardData): ParsedAbilities['structuredAbilities'] extends { kind: infer K } ? K : undefined {
@@ -97,6 +97,8 @@ export function normalizeCard(card: CardData): NormalizedCardData {
 
     startingLoyalty: card.startingLoyalty ?? '',
     battleDefense: card.battleDefense ?? '',
+
+    legendCrown: card.legendCrown ?? (card.supertypes?.includes('legendary') ?? false),
 
     linkedCard: card.linkedCard ? normalizeCard(card.linkedCard) : undefined,
     linkType: inferLinkType(card),

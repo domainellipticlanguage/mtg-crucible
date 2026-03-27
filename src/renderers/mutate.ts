@@ -1,5 +1,5 @@
 import { type SKRSContext2D } from '@napi-rs/canvas';
-import type { CardData, MutateAbilities } from '../types';
+import type { NormalizedCardData, MutateAbilities } from '../types';
 import { drawWrappedText } from '../text';
 import { getParsedAbilities } from '../parser';
 import type { TemplateHooks, AnyLayout } from './render';

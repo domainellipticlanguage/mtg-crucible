@@ -1,9 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { loadImage, type SKRSContext2D } from '@napi-rs/canvas';
-import type { CardData, LevelerAbilities } from '../types';
+import type { NormalizedCardData, LevelerAbilities } from '../types';
 import { drawSingleLineText, drawWrappedText } from '../text';
-import { normalizeFrameColors } from '../helpers';
+import { frameColorCode } from '../helpers';
 import { ASSETS_DIR } from '../layout';
 import { getParsedAbilities } from '../parser';
 import type { TemplateHooks, AnyLayout } from './render';
@@ -46,8 +46,8 @@ const levelerBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
   const levels = (pa.structuredAbilities as LevelerAbilities).creatureLevels;
 
   // PT box image (single image containing all 3 PT boxes)
-  const frameCodes = normalizeFrameColors(card.frameColor);
-  const ptPath = path.join(ASSETS_DIR, 'frames', 'leveler', 'pt', `${frameCodes[0]}.png`);
+  const fc = frameColorCode(card.frameColor[0]);
+  const ptPath = path.join(ASSETS_DIR, 'frames', 'leveler', 'pt', `${fc}.png`);
   if (fs.existsSync(ptPath)) {
     const ptBounds = { x: 0.7574, y: 0.6415, w: 0.188, h: 0.2667 };
     ctx.drawImage(await loadImage(ptPath), ptBounds.x * cw, ptBounds.y * ch, ptBounds.w * cw, ptBounds.h * ch);

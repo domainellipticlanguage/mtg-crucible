@@ -1,7 +1,7 @@
 import { loadImage, type SKRSContext2D } from '@napi-rs/canvas';
 import * as fs from 'fs';
 import * as path from 'path';
-import type { CardData, ClassAbilities } from '../types';
+import type { NormalizedCardData, ClassAbilities } from '../types';
 import { ASSETS_DIR, FONT_HEIGHT_RATIO } from '../layout';
 import { drawWrappedText, drawRichLine, wrapParagraphs, computeHeight } from '../text';
 import { getParsedAbilities } from '../parser';
@@ -17,7 +17,7 @@ function measureTextHeight(
   return computeHeight(lines, textSize, textSize * 0.35);
 }
 
-async function body(ctx: SKRSContext2D, card: CardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
+async function body(ctx: SKRSContext2D, card: NormalizedCardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
   const pa = getParsedAbilities(card);
   const cls = pa.structuredAbilities as ClassAbilities;
   const classLevels = cls.classLevels;

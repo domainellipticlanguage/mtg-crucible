@@ -1,12 +1,12 @@
 import { loadImage, type SKRSContext2D } from '@napi-rs/canvas';
 import * as fs from 'fs';
 import * as path from 'path';
-import type { CardData, PlaneswalkerAbilities } from '../types';
+import type { NormalizedCardData, PlaneswalkerAbilities } from '../types';
 import { ASSETS_DIR } from '../layout';
 import { getParsedAbilities } from '../parser';
 
 /** Combine unstructured abilities (as cost-less entries) with loyalty abilities. */
-function getAllAbilities(card: CardData): { cost: string; text: string }[] {
+function getAllAbilities(card: NormalizedCardData): { cost: string; text: string }[] {
   const pa = getParsedAbilities(card);
   const pw = pa.structuredAbilities as PlaneswalkerAbilities;
   const statics = (pa.unstructuredAbilities ?? []).map(text => ({ cost: '', text }));
@@ -56,7 +56,7 @@ function computeAbilityLayout(
   return { fontSize: 8, boxes };
 }
 
-async function preFrame(ctx: SKRSContext2D, card: CardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
+async function preFrame(ctx: SKRSContext2D, card: NormalizedCardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
   const abilities = getAllAbilities(card);
   const { boxes } = computeAbilityLayout(ctx, abilities, L, cw, ch);
 
@@ -82,7 +82,7 @@ async function preFrame(ctx: SKRSContext2D, card: CardData, L: Record<string, an
   }
 }
 
-async function body(ctx: SKRSContext2D, card: CardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
+async function body(ctx: SKRSContext2D, card: NormalizedCardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
   const abilities = getAllAbilities(card);
   const { fontSize, boxes } = computeAbilityLayout(ctx, abilities, L, cw, ch);
   const aw = L.ability.w * cw;

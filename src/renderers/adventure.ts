@@ -1,9 +1,9 @@
 import { type SKRSContext2D } from '@napi-rs/canvas';
-import type { CardData } from '../types';
+import type { NormalizedCardData } from '../types';
 import { drawSingleLineText, drawWrappedText } from '../text';
 import { drawManaCost, measureManaCostWidth, getTypeLine } from '../helpers';
 
-async function body(ctx: SKRSContext2D, card: CardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
+async function body(ctx: SKRSContext2D, card: NormalizedCardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
   const adv = card.linkedCard;
   if (!adv) return;
 

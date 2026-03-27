@@ -1,5 +1,5 @@
 import type { SKRSContext2D } from '@napi-rs/canvas';
-import type { CardData } from '../types';
+import type { NormalizedCardData } from '../types';
 import { drawSingleLineText, measureRichText, drawRichLine } from '../text';
 import { drawManaCost } from '../helpers';
 import { getParsedAbilities } from '../parser';
@@ -25,7 +25,7 @@ export const transformBackHooks: TemplateHooks = {};
 // ── Modal DFC (both faces) ───────────────────────────────────────────
 // Shows the other face's type line and mana cost or ability hint at the bottom.
 
-function getFlipsideHint(card: CardData): string {
+function getFlipsideHint(card: NormalizedCardData): string {
   // For lands (no mana cost), show the tap/mana ability as a compact hint
   if (!card.manaCost) {
     const pa = getParsedAbilities(card);

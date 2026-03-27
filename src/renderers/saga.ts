@@ -1,6 +1,6 @@
 import { loadImage, type SKRSContext2D } from '@napi-rs/canvas';
 import * as path from 'path';
-import type { CardData, SagaAbilities } from '../types';
+import type { NormalizedCardData, SagaAbilities } from '../types';
 import { ASSETS_DIR } from '../layout';
 import { drawWrappedText, fillTextHeavy, wrapParagraphs, computeHeight } from '../text';
 import { getParsedAbilities } from '../parser';
@@ -15,7 +15,7 @@ function romanNumeral(n: number): string {
   ][n] || String(n);
 }
 
-async function body(ctx: SKRSContext2D, card: CardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
+async function body(ctx: SKRSContext2D, card: NormalizedCardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
   const pa = getParsedAbilities(card);
   const saga = pa.structuredAbilities as SagaAbilities;
   const chapters = saga.chapters;

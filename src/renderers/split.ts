@@ -1,7 +1,7 @@
 import { type SKRSContext2D } from '@napi-rs/canvas';
-import type { CardData } from '../types';
+import type { NormalizedCardData } from '../types';
 import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor, type ExclusionRect } from '../text';
-import { drawArt, drawManaCost, drawSetSymbol, measureManaCostWidth, getTypeLine, drawFrame, normalizeFrameColors } from '../helpers';
+import { drawArt, drawManaCost, drawSetSymbol, measureManaCostWidth, getTypeLine, drawFrame, frameColorCode } from '../helpers';
 import { getParsedAbilities } from '../parser';
 import { SPLIT_RIGHT_LAYOUT, SPLIT_LEFT_LAYOUT } from '../layout';
 import type { TemplateHooks, AnyLayout } from './render';
@@ -19,7 +19,7 @@ import type { TemplateHooks, AnyLayout } from './render';
 
 async function renderSplitText(
   ctx: SKRSContext2D,
-  card: CardData,
+  card: NormalizedCardData,
   L: typeof SPLIT_RIGHT_LAYOUT,
   cw: number, ch: number,
   clipYMin: number, clipYMax: number,
@@ -111,16 +111,18 @@ const splitBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
   // Compute combined frame colors for both halves with horizontal gradient.
   // Right half (other) is top of canvas, left half (card) is bottom.
   // If halves share a color, put it in the middle: [otherUnique, shared, cardUnique]
-  const frontCodes = normalizeFrameColors(card.frameColor);
-  const backCodes = other ? normalizeFrameColors(other.frameColor) : frontCodes;
-  const shared = frontCodes.filter(c => backCodes.includes(c));
-  const frontUnique = frontCodes.filter(c => !shared.includes(c));
-  const backUnique = backCodes.filter(c => !shared.includes(c));
-  const combinedCodes = [...backUnique, ...shared, ...frontUnique];
+  const frontColors = card.frameColor;
+  const backColors = other ? other.frameColor : frontColors;
+  const shared = frontColors.filter(c => backColors.includes(c));
+  const frontUnique = frontColors.filter(c => !shared.includes(c));
+  const backUnique = backColors.filter(c => !shared.includes(c));
+  const combinedColors = [...backUnique, ...shared, ...frontUnique];
   // If both halves are the same single color, just use it
-  const finalColors = combinedCodes.length > 0 ? combinedCodes : frontCodes;
+  const finalColors = combinedColors.length > 0 ? combinedColors : frontColors;
 
-  await drawFrame(ctx, frameDir, finalColors as any, card.accentColor, cw, ch, undefined, undefined, { horizontal: true });
+  const finalCodes = finalColors.map(c => frameColorCode(c));
+  const accentCodes = card.accentColor.length > 0 ? card.accentColor.map(c => frameColorCode(c)) : undefined;
+  await drawFrame(ctx, frameDir, finalCodes, accentCodes, cw, ch, undefined, undefined, { horizontal: true });
 
   // Draw art for both halves (standard pipeline only draws front art in wrong position)
   if (card.artUrl) await drawArt(ctx, card.artUrl, SPLIT_LEFT_LAYOUT.art, cw, ch);

@@ -2,7 +2,7 @@ import { createCanvas, loadImage, GlobalFonts, ImageData, type SKRSContext2D } f
 import * as fs from 'fs';
 import * as path from 'path';
 import https from 'https';
-import type { CardData, Color, FrameColor, AccentColor } from './types';
+import type { CardData, NormalizedCardData, Color, FrameColor } from './types';
 import { ASSETS_DIR } from './layout';
 
 const FRAME_COLOR_CODES: Record<FrameColor, string> = {
@@ -14,29 +14,6 @@ export function frameColorCode(fc: FrameColor | undefined): string {
   return fc ? FRAME_COLOR_CODES[fc] ?? 'c' : 'c';
 }
 
-/** Normalize frameColor (scalar or array) to an array of color codes. */
-export function normalizeFrameColors(fc: CardData['frameColor']): string[] {
-  if (!fc) return ['c'];
-  if (Array.isArray(fc)) return fc.map(c => frameColorCode(c));
-  return [frameColorCode(fc)];
-}
-
-/** Normalize accentColor (scalar or array) to an array of color codes, or undefined. */
-export function normalizeAccentColors(ac: CardData['accentColor']): string[] | undefined {
-  if (!ac) return undefined;
-  if (Array.isArray(ac)) {
-    const codes = ac.map(c => frameColorCode(c));
-    return codes.length > 0 ? codes : undefined;
-  }
-  return [frameColorCode(ac)];
-}
-
-/** Return the first frame color code (for single-value contexts like P/T). */
-export function primaryFrameColorCode(fc: CardData['frameColor']): string {
-  if (!fc) return 'c';
-  if (Array.isArray(fc)) return frameColorCode(fc[0]);
-  return frameColorCode(fc);
-}
 
 /**
  * Create a sine-smoothed gradient alpha mask for one zone in a multi-zone gradient.
@@ -184,16 +161,14 @@ export function deriveTitleColor(manaCost: string | undefined, colorIndicator: C
 export async function drawFrame(
   ctx: SKRSContext2D,
   template: string | string[],
-  frameColor: CardData['frameColor'],
-  accentColor: CardData['accentColor'],
+  frameCodes: string[],
+  accentCodes: string[] | undefined,
   cw: number, ch: number,
   nameLineCodes?: string[],
   typeLineCodes?: string[],
   options?: { horizontal?: boolean },
 ): Promise<void> {
   const horizontal = options?.horizontal ?? false;
-  const frameCodes = normalizeFrameColors(frameColor);
-  const accentCodes = normalizeAccentColors(accentColor);
   // Mask paths always use the base template name (e.g. 'standard'), not effect dirs
   // TODO: modal pinline mask is white instead of transparent like others — works but should be made consistent
   const MASK_TEMPLATES = new Set(['standard', 'planeswalker', 'planeswalker_tall', 'saga', 'class', 'battle', 'transformFront', 'transformBack', 'modal']);
@@ -434,7 +409,7 @@ export async function drawGradientCrowns(
   }
 }
 
-export function getTypeLine(card: CardData): string {
+export function getTypeLine(card: Pick<NormalizedCardData, 'supertypes' | 'types' | 'subtypes'>): string {
   const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
   const parts: string[] = [];
   if (card.supertypes) parts.push(...card.supertypes.map(capitalize));
@@ -639,7 +614,7 @@ export async function drawSetSymbol(
   return sw;
 }
 
-export function drawBottomInfo(ctx: SKRSContext2D, card: CardData, cw: number, ch: number): void {
+export function drawBottomInfo(ctx: SKRSContext2D, card: Pick<NormalizedCardData, 'collectorNumber' | 'artist' | 'setCode'>, cw: number, ch: number): void {
   const fontSize = ch * 0.0143;
   const y = ch * 0.955;
   const leftX = cw * 0.0647;

@@ -1,7 +1,7 @@
 import { type SKRSContext2D } from '@napi-rs/canvas';
-import type { CardData } from '../types';
+import type { NormalizedCardData } from '../types';
 import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor } from '../text';
-import { drawArt, drawManaCost, measureManaCostWidth, getTypeLine, drawFrame } from '../helpers';
+import { drawArt, drawManaCost, measureManaCostWidth, getTypeLine, drawFrame, frameColorCode } from '../helpers';
 import { getParsedAbilities } from '../parser';
 import { AFTERMATH_BOTTOM_LAYOUT } from '../layout';
 import type { TemplateHooks, AnyLayout } from './render';
@@ -20,7 +20,7 @@ import type { TemplateHooks, AnyLayout } from './render';
 
 async function renderBottomText(
   ctx: SKRSContext2D,
-  card: CardData,
+  card: NormalizedCardData,
   cw: number, ch: number,
 ) {
   const L = AFTERMATH_BOTTOM_LAYOUT;
@@ -81,14 +81,16 @@ const aftermathBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
   const frameDir = L._frame ?? 'aftermath';
 
   // Overdraw the bottom half frame with the linked card's color.
-  if (other?.frameColor) {
+  if (other && other.frameColor.length > 0) {
     ctx.save();
     ctx.beginPath();
     // Bottom half starts roughly at y = 0.54 of the card
     const splitY = 0.54 * ch;
     ctx.rect(0, splitY, cw, ch - splitY);
     ctx.clip();
-    await drawFrame(ctx, frameDir, other.frameColor, other.accentColor, cw, ch);
+    const otherFrameCodes = other.frameColor.map(c => frameColorCode(c));
+    const otherAccentCodes = other.accentColor.length > 0 ? other.accentColor.map(c => frameColorCode(c)) : undefined;
+    await drawFrame(ctx, frameDir, otherFrameCodes, otherAccentCodes, cw, ch);
     ctx.restore();
   }
 

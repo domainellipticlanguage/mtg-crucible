@@ -1,9 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { loadImage, type SKRSContext2D } from '@napi-rs/canvas';
-import type { CardData } from '../types';
+import type { NormalizedCardData } from '../types';
 import { drawSingleLineText, drawWrappedText } from '../text';
-import { getTypeLine, normalizeFrameColors } from '../helpers';
+import { getTypeLine, frameColorCode } from '../helpers';
 import { ASSETS_DIR } from '../layout';
 import { getParsedAbilities } from '../parser';
 import type { TemplateHooks, AnyLayout } from './render';
@@ -23,8 +23,8 @@ const flipBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
 
   // Draw flip PT image, clipping to only show boxes for sides that have P/T
   if ((hasPt1 || hasPt2) && L.flipPtBounds) {
-    const frameCodes = normalizeFrameColors(card.frameColor);
-    const ptImg = path.join(ASSETS_DIR, 'frames', 'flip', `${frameCodes[0]}pt.png`);
+    const fc = frameColorCode(card.frameColor[0]);
+    const ptImg = path.join(ASSETS_DIR, 'frames', 'flip', `${fc}pt.png`);
     if (fs.existsSync(ptImg)) {
       const b = L.flipPtBounds;
       const midY = (b.y + b.h / 2) * ch;
