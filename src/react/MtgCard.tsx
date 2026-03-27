@@ -6,6 +6,8 @@ export interface MtgCardProps {
   cardText?: string;
   className?: string;
   style?: React.CSSProperties;
+  /** Style override for the rotation arrow widget. Set `display: 'none'` to hide it. */
+  rotateWidgetStyle?: React.CSSProperties;
 }
 
 interface ContextMenuItem {
@@ -13,9 +15,53 @@ interface ContextMenuItem {
   action: () => void;
 }
 
-export function MtgCard({ card, cardText, className, style }: MtgCardProps) {
+function RotateWidget({ spinKey, style }: { spinKey: number; style?: React.CSSProperties }) {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        ...style,
+        transform: hovered ? 'scale(1.15)' : 'scale(1)',
+        opacity: hovered ? 1 : 0.8,
+        transition: 'transform 0.15s ease, opacity 0.15s ease',
+      }}
+    >
+      <svg
+        key={spinKey}
+        viewBox="0 0 24 24"
+        width="100%"
+        height="100%"
+        style={spinKey > 0 ? { animation: 'mtg-crucible-spin 0.4s ease-in-out' } : undefined}
+      >
+        <circle cx="12" cy="12" r="11" fill={hovered ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.85)'} stroke="rgba(0,0,0,0.15)" strokeWidth="0.5" />
+        <path
+          d="M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 8 8h-2a6 6 0 1 1-1.76-4.24L14 10h6V4l-2.35 2.35z"
+          fill={hovered ? '#333' : '#555'}
+        />
+      </svg>
+    </div>
+  );
+}
+
+// Inject keyframes once
+let keyframesInjected = false;
+function ensureKeyframes() {
+  if (keyframesInjected || typeof document === 'undefined') return;
+  const sheet = document.createElement('style');
+  sheet.textContent = '@keyframes mtg-crucible-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }';
+  document.head.appendChild(sheet);
+  keyframesInjected = true;
+}
+
+export function MtgCard({ card, cardText, className, style, rotateWidgetStyle }: MtgCardProps) {
   const [rotationIndex, setRotationIndex] = useState(0);
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const [widgetSpin, setWidgetSpin] = useState(0);
+
+  useEffect(ensureKeyframes, []);
 
   const hasMultipleStates = card.rotations.length > 1;
   const currentRotation = card.rotations[rotationIndex] ?? { x: 0, y: 0, z: 0 };
@@ -25,6 +71,7 @@ export function MtgCard({ card, cardText, className, style }: MtgCardProps) {
   const handleClick = useCallback(() => {
     if (!hasMultipleStates) return;
     setRotationIndex(i => (i + 1) % card.rotations.length);
+    setWidgetSpin(s => s + 1);
   }, [hasMultipleStates, card.rotations.length]);
 
   // Close context menu on click outside or escape
@@ -174,6 +221,27 @@ export function MtgCard({ card, cardText, className, style }: MtgCardProps) {
           )}
         </div>
       </div>
+
+      {/* Rotation arrow widget */}
+      {hasMultipleStates && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '45%',
+            right: '4%',
+            width: '12%',
+            height: '12%',
+            cursor: 'pointer',
+            pointerEvents: 'auto',
+            filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.4))',
+            zIndex: 2,
+            ...rotateWidgetStyle,
+          }}
+          onClick={handleClick}
+        >
+          <RotateWidget spinKey={widgetSpin} style={{ width: '100%', height: '100%' }} />
+        </div>
+      )}
 
       {/* Custom context menu */}
       {menuPos && (
