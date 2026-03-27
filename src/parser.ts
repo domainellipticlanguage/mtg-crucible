@@ -39,8 +39,6 @@ const PW_ABILITY_REGEX = /^([+\-\u2212]?\d+):\s*(.+)$/;
 const SAGA_CHAPTER_REGEX = /^((?:I{1,3}|IV|V|VI)(?:\s*,\s*(?:I{1,3}|IV|V|VI))*)\s*[—–-]\s*(.+)$/;
 const CLASS_LEVEL_REGEX = /^((?:\{[^}]+\})+):\s*(Level\s+\d+)$/;
 const FLAVOR_TEXT_REGEX = /^Flavor Text:\s*(.+)$/i;
-// Legacy format, kept for backward compat
-const FLAVOR_REGEX = /^\*(.+)\*$/;
 
 const ZERO_WIDTH_REGEX = /[\u200B-\u200D\uFEFF]/g;
 const SUPERTYPES = new Set<string>(['legendary', 'basic', 'snow', 'world']);
@@ -153,10 +151,6 @@ function parseColorIndicator(raw: string): Color[] | undefined {
   return colors.length > 0 ? colors : undefined;
 }
 
-function isFlavorLine(line: string): boolean {
-  const m = line.match(FLAVOR_REGEX);
-  return m !== null && /[a-zA-Z]/.test(m[1]);
-}
 
 function romanToNumber(roman: string): number {
   switch (roman.trim()) {
@@ -781,21 +775,8 @@ function parseSingleFace(text: string): CardData {
   if (kind === 'planeswalker' && !startingLoyalty) startingLoyalty = '0';
   if (lowerType.includes('battle') && !battleDefense) battleDefense = '0';
 
-  // Standard cards: extract trailing flavor text (*...*) and P/T
+  // Standard cards: extract trailing P/T
   if (!kind && !lowerType.includes('battle')) {
-    // Legacy flavor text: trailing *...* lines (only if no Flavor Text: was found)
-    if (!flavorText) {
-      let flavorStart = body.length;
-      while (flavorStart > 0 && isFlavorLine(body[flavorStart - 1])) {
-        flavorStart--;
-      }
-      if (flavorStart < body.length) {
-        const flavorLines = body.slice(flavorStart);
-        body = body.slice(0, flavorStart);
-        flavorText = flavorLines.map(l => l.match(FLAVOR_REGEX)![1]).join('\n');
-      }
-    }
-
     // P/T: last line matching N/N for creatures/vehicles
     if ((lowerType.includes('creature') || lowerType.includes('vehicle')) && body.length > 0) {
       const ptMatch = body[body.length - 1].match(PT_REGEX);

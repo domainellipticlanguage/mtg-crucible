@@ -5,470 +5,212 @@ A TypeScript library for rendering Magic: The Gathering card images as PNGs.
 ## Installation
 
 ```bash
-npm install mtg-crucible
+npm install @domainellipticlanguage/mtg-crucible
 ```
 
 ## Quick Start
 
+### From text
+
 ```typescript
-import { renderFromText } from 'mtg-crucible';
+import { renderCard } from '@domainellipticlanguage/mtg-crucible';
 import { writeFileSync } from 'fs';
 
-const png = await renderFromText(`
-  Crucible of Legends {3}
-  Art: https://raw.githubusercontent.com/nathanfdunn/mtg-crucible/refs/heads/main/logo/banner-image.png
-  Rarity: Mythic Rare
-  Legendary Artifact
-  Whenever a legendary creature you control dies, return it to your hand at the beginning of the next end step.
-  *Every great story begins with fire.*
+const result = await renderCard(`
+Crucible of Legends {3}
+Art URL: https://example.com/art.png
+Rarity: Mythic Rare
+Legendary Artifact
+Whenever a legendary creature you control dies, return it to your hand at the beginning of the next end step.
+Flavor Text: Every great story begins with fire.
 `);
 
-writeFileSync('crucible-of-legends.png', png);
+writeFileSync('crucible-of-legends.png', result.frontFace);
+```
+
+### From structured data
+
+```typescript
+import { renderCard } from '@domainellipticlanguage/mtg-crucible';
+
+const result = await renderCard({
+  name: 'Crucible of Legends',
+  manaCost: '{3}',
+  supertypes: ['legendary'],
+  types: ['artifact'],
+  rarity: 'mythic',
+  abilities: 'Whenever a legendary creature you control dies, return it to your hand at the beginning of the next end step.',
+  flavorText: 'Every great story begins with fire.',
+});
 ```
 
 <img src="logo/crucible-of-legends.png" alt="Crucible of Legends" width="300">
 
 ## API
 
-### `renderFromText(text: string): Promise<Buffer>`
+### `renderCard(input: CardData | string): Promise<RenderedCard>`
 
-Parse a text-format card definition and render it to a PNG buffer in one step.
+Parse and render a card. Accepts either a text-format string or a `CardData` object. Returns a `RenderedCard` with `frontFace` (PNG buffer), optional `backFace`, orientation info, and rotation data for multi-face cards.
 
-### `parseCard(text: string): CardInput`
+### `parseCard(text: string): CardData`
 
-Parse a text-format card definition into a `CardInput` object. Useful when you want to inspect or modify the parsed data before rendering.
+Parse a text-format card definition into a `CardData` object.
 
-### `renderCard(card: CardInput): Promise<Buffer>`
+### `formatCard(card: CardData): string`
 
-Render a `CardInput` object to a PNG buffer. Automatically dispatches to the correct renderer based on the card type (standard, planeswalker, saga, or battle).
+Convert a `CardData` object back to text format (round-trips with `parseCard`).
 
-### Individual renderers
+### `normalizeCard(card: CardData): NormalizedCardData`
 
-For direct control, each renderer is also exported:
+Normalize a `CardData` into `NormalizedCardData` with all fields resolved (frame colors derived, abilities parsed, defaults filled in).
 
-- `renderStandard(card: CardData): Promise<Buffer>`
-- `renderPlaneswalker(card: PlaneswalkerData): Promise<Buffer>`
-- `renderSaga(card: SagaData): Promise<Buffer>`
-- `renderBattle(card: BattleData): Promise<Buffer>`
+### `getArtDimensions(card: CardData, template?: TemplateName, linked?: boolean): { width: number; height: number }`
+
+Get the expected art image dimensions for a given card and template. Useful for generating or resizing art to fit correctly.
+
+### `renderCardImage(card: NormalizedCardData, templateOverride?: string): Promise<Buffer>`
+
+Low-level renderer. Renders a single face to PNG. Requires pre-normalized card data.
 
 ## Text Format
 
-Cards are defined in a plain text format inspired by official text spoilers.
-For the full grammar, metadata reference, and corner cases, see [docs/text-format.md](docs/text-format.md).
+Cards are defined in a plain text format. For the full grammar see [docs/text-format.md](docs/text-format.md).
 
 ### Standard cards
 
 ```
-Name {mana cost}
-Art: <art url> (Optional)
-Rarity: <rarity> (Optional)
-Type Line
-Rules text line 1
-Rules text line 2
-Power/Toughness
-*Flavor text*
+Lightning Bolt {R}
+Instant
+Lightning Bolt deals 3 damage to any target.
 ```
 
-Each line of rules text becomes a separate paragraph on the rendered card. Mana symbols use curly brace notation: `{W}`, `{U}`, `{B}`, `{R}`, `{G}`, `{C}`, `{T}`, `{1}`, `{2}`, etc. Hybrid and phyrexian mana are supported: `{G/U}`, `{G/P}`.
-
-Power/toughness is only parsed for creatures and vehicles. Wildcards like `*/1+*` are supported.
-
-Flavor text is wrapped in `*asterisks*` and must come after P/T (at the very end). Multiple flavor lines are joined with newlines:
+### Creatures
 
 ```
-Wrath of God {2}{W}{W}
-Sorcery
-Destroy all creatures. They can't be regenerated.
-*Legend speaks of the Creators' rage at their most prized creation.*
-```
-
-Reminder text `(like this)` in the middle of rules text is preserved as rules text, not treated as flavor.
-
-### Extended Text Spoiler Format
-
-An art image URL can be specified between the name and type line, amont other things
-
-```
-Archangel Avacyn {3}{W}{W}
-Art: https://cards.scryfall.io/art_crop/front/7/f/7f4893ef.jpg
-Rarity: Rare
-Legendary Creature — Angel
-Flash
-Flying, vigilance
-4/4
-*Some flavor text*
+Tarmogoyf {1}{G}
+Creature -- Lhurgoyf
+Tarmogoyf's power is equal to the number of card types among cards in all graveyards and its toughness is equal to that number plus 1.
+*/1+*
 ```
 
 ### Planeswalkers
 
 ```
 Liliana of the Veil {1}{B}{B}
-Legendary Planeswalker — Liliana
+Legendary Planeswalker -- Liliana
 +1: Each player discards a card.
 -2: Target player sacrifices a creature.
 -6: Separate all permanents target player controls into two piles.
 Loyalty: 3
 ```
 
-Abilities prefixed with `+N:`, `-N:`, or `0:` are parsed as loyalty abilities. Lines without a cost prefix are treated as static abilities.
-
 ### Sagas
 
 ```
 The Eldest Reborn {4}{B}
-Enchantment — Saga
-I — Each opponent sacrifices a creature or planeswalker.
-II — Each opponent discards a card.
-III — Put target creature or planeswalker card from a graveyard onto the battlefield under your control.
-```
-
-Chapter numerals (I through VI) are parsed automatically. Combined chapters are supported:
-
-```
-I, II — Create a 1/1 red Goblin creature token.
-III — Creatures you control get +2/+0 until end of turn.
+Enchantment -- Saga
+I -- Each opponent sacrifices a creature or planeswalker.
+II -- Each opponent discards a card.
+III -- Put target creature or planeswalker card from a graveyard onto the battlefield under your control.
 ```
 
 ### Battles
 
 ```
 Invasion of Gobakhan {1}{W}
-Battle — Siege
-When Invasion of Gobakhan enters the battlefield, look at target opponent's hand.
+Battle -- Siege
+When Invasion of Gobakhan enters, look at target opponent's hand.
 Defense: 3
 ```
 
-### Lands (no mana cost)
+### Multi-face cards
+
+Use `--linkType--` delimiters between faces:
 
 ```
-Command Tower
-Land
-{T}: Add one mana of any color in your commander's color identity.
+Huntmaster of the Fells {2}{R}{G}
+Creature -- Human Werewolf
+Whenever this creature enters or transforms into Huntmaster of the Fells, create a 2/2 green Wolf creature token and you gain 2 life.
+2/2
+--transform--
+Ravager of the Fells
+Color Indicator: Red and Green
+Creature -- Werewolf
+Trample
+4/4
 ```
 
-## Frame Color
+Supported link types: `--transform--`, `--mdfc--`, `--split--`, `--fuse--`, `--flip--`, `--adventure--`, `--aftermath--`
 
-The frame color is automatically derived:
+A bare `----` delimiter will infer the link type from card content (e.g. "Fuse" in text, both sides being instants/sorceries, presence of "transform" keyword).
 
-| Condition | Frame |
+### Metadata fields
+
+These can appear on any line (order doesn't matter):
+
+| Field | Example |
 |---|---|
-| Type includes "Vehicle" | `v` (vehicle) |
-| Type includes "Land" + no mana cost | `l` (land) |
-| No colored mana symbols | `a` (artifact/colorless) |
-| One color in mana cost | That color (`w`, `u`, `b`, `r`, `g`) |
-| Two or more colors | `m` (multicolor/gold) |
+| `Art URL:` | `Art URL: https://example.com/art.png` |
+| `Art Description:` | `Art Description: A fiery landscape` |
+| `Rarity:` | `Rarity: Mythic Rare` |
+| `Flavor Text:` | `Flavor Text: Some italic text` |
+| `Frame Color:` | `Frame Color: Red and Blue` |
+| `Accent Color:` | `Accent Color: Green` |
+| `Frame Effect:` | `Frame Effect: Miracle` |
+| `Color Indicator:` | `Color Indicator: Red and Green` |
+| `Has Legend Crown:` | `Has Legend Crown: true` |
+| `Set Code:` | `Set Code: MH3` |
+| `Collector Number:` | `Collector Number: 205` |
+| `Artist:` | `Artist: Chris Rahn` |
+| `Designer:` | `Designer: Mark Rosewater` |
 
-Colors are extracted from all mana symbols including hybrid (`{G/U}`) and phyrexian (`{G/P}`).
+### Mana symbols
 
-## Card Dimensions
+Use curly brace notation: `{W}`, `{U}`, `{B}`, `{R}`, `{G}`, `{C}`, `{T}`, `{1}`, `{2}`, etc.
 
-| Card Type | Width | Height |
-|---|---|---|
-| Standard | 2010 | 2814 |
-| Planeswalker | 1500 | 2100 |
-| Saga | 1500 | 2100 |
-| Battle | 2814 | 2010 (landscape) |
+Hybrid: `{G/U}`, `{W/B}`. Phyrexian: `{G/P}`, `{R/P}`.
+
+## Supported Templates
+
+- Standard (including colorless/Eldrazi full-bleed art)
+- Planeswalker (3 and 4 ability variants)
+- Saga
+- Class
+- Battle
+- Adventure
+- Transform (front and back)
+- MDFC / Modal DFC (front and back)
+- Split
+- Fuse
+- Flip (Kamigawa-style)
+- Aftermath
+- Mutate
+- Prototype
+- Leveler
+
+## React Component
+
+```tsx
+import { MtgCard } from '@domainellipticlanguage/mtg-crucible/react';
+
+<MtgCard
+  card={renderedCardDisplay}
+  cardText="searchable text for ctrl+f"
+  rotateWidgetStyle={{ display: 'none' }}  // optional: hide rotation arrow
+/>
+```
+
+The component supports:
+- Click to cycle through rotations (transform, flip, split, etc.)
+- Rotation arrow widget (Scryfall-style) with hover/click animation
+- Right-click context menu: download, copy image, copy text formats
+- Invisible searchable text overlay for Ctrl+F
+- CSS 3D transforms for card flipping
 
 ## Development
 
 ```bash
 npm test          # run tests (vitest)
 npm run build     # compile TypeScript
-npm run dev       # start local dev server on port 3000
-npm run spike     # render test cards to output/
+npm run dev       # start local dev server with hot reload
 ```
-
-## Deploy to AWS Lambda
-
-The project uses [SST](https://sst.dev) to deploy a Lambda function that serves the same UI as the dev server.
-
-**Prerequisites:** AWS credentials configured (`~/.aws/credentials` or environment variables).
-
-```bash
-npx sst deploy --stage dev    # deploy
-npx sst remove --stage dev    # tear down
-```
-
-The deploy output will print a function URL you can open in a browser. The Lambda is configured with 2 GB memory, 30s timeout, and x86_64 architecture (required for `@napi-rs/canvas`).
-
-
-## TODO
-
-- Improve set symbol generation with logo
-- Fix missing rarity on sagas
-- Test limits of parser leniency
-- Test reminder text without asterisks
-- Test multiple lines of flavor text
-- Investigate card dimensions
-- [X] Add blurb about Extended Text Spoiler format
-- Update readme examples to be custom
-- Add a carddata example to quickstart
-- Add Class enchantment to spike
-- Support Level Up https://scryfall.com/card/c13/43/echo-mage
-    - note how this affect P/T assumptions...
-- Support more hybrid mana
-    - Phyrexian hybrid
-    - colorless/color hybrid
-    - 2/color hybrid
-- Support multi-cards
-    - Enchantment Rooms
-        - https://scryfall.com/card/dsk/43/bottomless-pool-locker-room
-    - Fuse cards
-    - Adventures
-    - MDFC
-    - Kamigawa flip cards
-    - Flip cards (Werewolf, etc.)
-- Support Varying P/T
-    - Leveler Cards
-    - Prototype
-- Support Mutate
-- Test harness
-- Optimize asset size
-    - Downsample everything - it's excessive right now
-        - 744 × 1039 and jpeg to match mtg.design
-        - 672 × 936 to match scryfall
-    - Alternatively, procedurally generate textures + frames
-    - Can we get away with a single frame/format to serve Class, Saga, Case?
-    - Think we just need an AccentColor enum
-- Ponder if card template should be more coarse grained
-- Finalize the schema
-- Support color indicator
-- Support saga creature
-- Support the MDFC / Transform triangle indicator.
-- Figure out what default set/sequence/collection should be
-- Support {11} to {20}
-- Support untap symbol {Q}
-- Support two color accents & crowns - does CC have these?
-    - does not look like it...perhaps can use them as masks applied to other renders
-- Support the wedge for MDFC or transform cards
-
-## Bugs
-- Fix planeswalker ability spacing
-    - Four ability planeswalkers seem to have a different template?
-- Fix planeswalker templates to have transparency
-    - pretty sure our current setup can handle this
-- Revamp parser - Flavor Text: or Flavor:       X
-- More lenient parsing - we can ...
-- Fix planeswalker art render positioning   X
-- Fix common set logo
-- Fix colored artifacts using wrong border (do we support accents though?)
-- Fix land accents - why is command tower gold?
-    - Ok I think if it produces multiple colors, the accent changes. Colorless lands have no accent
-    - This complicates our enums...
-    - Archway of Innovation - example of other. Same with basics...
-    - Oh and dryad arbor
-- Reminder text does not get rendered in italics. (Anything in parens can be assumed to be reminder text)
-- Legendary crown is missing a shadow on the side
-- Asterisked text in flavor text should be normal faced, not italic
-- Nit: Saga reminder text could be formatted a little better
-- For gold and hybrid frames, still use the default for the name and typeline. Same for P/T box
-- Lands have distinctive text box backgrounds?
-- Make hybrid mana parsing more lenient - 
-    - but normalize it to the correct order. Similar for phyrexian mana
-- Update Flavortext parsing
-- Multicolored artifact
-- Urza's Saga - just straight up broken
-- Shrewed Hatchling - P/T box wrong color
-- Drayad Arbor - no P/T box. name and type box are wrong color
-
-- An Unearthly Child - where does that little golden bit come from?
-- Ability to override text size??
-
-- Parsing - should the unstructured PW ability use the PW ability template with '' cost?
-
-## Design Decisions
-- should we support multicolored as an alias for gold?
-- '' single letters as aliases?
-- should normalize sort mana values?
-- do we support styling in the text format? too complicated and people should just use the JSON format
-- Should we infer missing hyphens in type line?
-    - anything unrecognized is assumed to be a subtype?
-
-# TODO
-- test with LTS
-- Add {S} symbol
-- Should we expose the name and type line colors? Yeah might as well.
-
-- Expose function to Derive the art boundaries.
-
-## Future Features And Blockers
-- Pass in FrameModifier / FrameVariant / FrameStyle
-    - can be a list or single value. List will round robin??
-- Support devoid borders
-- Support nyx borders
-- Support Snow borders
-- Support miracle borders
-
-- Support various borders
-- Support hybrid mana borders
-- Support composite cards
-    - mdfc is fine
-    - transform - double the crowns?
-    - flip - another 5 templates. no pinlines?
-- Tokens?
-- Flavor Name (nickname)
-
-
-# bugs
-Arni Slays the Troll - saga drawable areay is rectangle...
-
-- fix reminder text italics
-
-https://cran.r-project.org/web/packages/scryr/vignettes/frames.html
-- Frame Effects
-
-- Lesson
-
-Only way to avoid combinatorial explosion - separate layers
-
-## Supported
-Battles (only the front face)
-
-## Maybe
-- Keyrune integration https://keyrune.andrewgioia.com/icons.html
-
-
-# API's
-```typescript
-renderCard(cardData: CardData): RenderedCard
-
-renderCard(text: string): RenderedCard
-
-parseCard(text: string): CardData
-formatCard(cardData: CardData): string
-
-normalizeCard(cardData: CardData): CardData
-
-
-// TODO maybe make a class and there should just be an aspectRatio property that does the division.
-getArtDimensions(cardTemplate: CardTemplate): { widthPixels: number; heightPixels: number; aspectRatioWidth: number; aspectRatioHeight: number; }
-```
-
-# Plan
-Note: IF you need to refer to any borders and assets, you cannot do that yet. they are downloading. But at some point you will be able to refer to Card Conjurer
-
-1. [X] Fix everything to use the new apis and types. i.e. fix the build
-1. [X (supposedly)] Harden the text parser
-1. Create test framework whereby the AI can query scryfall for the text, json, art crop, and rendered card. Then we render our own card (using the scryfall art crop for art), then we concatenate our card with the scryfall card and the AI can view them side by side in a single image to allow for excruciating detail comparison.
-1. Add support for composite cards. In the text format as well
-
-# Decisions
-Card normalization - do we help them out with boilerplate reminder text for sagas and classes?
-Could we support hybrid borders via draw tools? linear gradient to shift between them?
-
-# Tech Debt
-- The Class level one is still messed up - tried changing it and it got messed up. I think we do need to parse it as level one?
-
-# React Component
-- Let's create a react component for displaying a RenderedCard object
-- rotations - you can click likee on scryfall
-- Card name rendered in an invisible span so that people can ctrl+F
-- right click to copy scryfall text, copy crucible text, copy scryfall json, copy crucible json, copy card image (the face you are currently looking at)
-- some way to control zoom/scale (maybe that's just regular styling and the component doesn't need to care?)
-- This should be structured so that people can independently import the component or the parser or the renderer. The react component will have a peer dependency on react.
-
-devoid cards are full art
-
-
-
-Normal form - abilities should be converted to an array?
-    - should have a Null StructuredAbilities new type of Parsed
-    
-# Parser
-Explicit legendCrown field (Has Legend Crown: true/false?)
-Refactor stuff under flavor or style
-
-Maybe CardData should have an Art Alt text. For storing art description?
-- Or Art Description
-- Should Art be Art URL?
-Embed linktype in separator
-Define normalized form
-
-Remove support for asterisk-bounded flavor text
-
-Normal form - I guess we should use caps for everything? titel case? Avoid conversions...
-
-
-# Renderer
-gradient for adventure book thing - that's the accent colors
-Support split cards - no mask, just clip
-Support MDFC
-Fix battles?
-
-
-# Optimization
-Convert from O(M*N) to O(M+N)
-Extract wubrgla textures
-Extract pinlines, etc.
-
-# Scope Down
-- Remove colorless frame
-- How to deprecate levelers, etc.?
-- Deprecate battles
-
-# Cruscible Text Format
-```
-Huntmaster of the Fells {2}{R}{G}
-Creature — Human Werewolf
-Whenever this creature enters or transforms into Huntmaster of the Fells, create a 2/2 green Wolf creature token and you gain 2 life.
-At the beginning of each upkeep, if no spells were cast last turn, transform this creature.
-2/2
-Flavor Text: He's a pretty cool guy
-wraps around to next line
-Art URL: ...
-Art Description: ...
-Artist: Chris Rain
-Has Legend Crown: false
-Frame Effect: Normal
-Frame Color: Gold
-Accent Color: Red and Green
-Name Line Color: Gold
-Type Line Color: Gold
-Set Code: INR
-Collector Number: 205
-Designer: Mark Rosewater?
---transform--
-Ravager of the Fells
-Art URL: ...
-Art Description: ...
-Color Indicator: Red and Green
-Creature — Werewolf
-Trample
-Whenever this creature transforms into Ravager of the Fells, it deals 2 damage to target opponent or planeswalker and 2 damage to up to one target creature that player or that planeswalker's controller controls.
-At the beginning of each upkeep, if a player cast two or more spells last turn, transform this creature.
-4/4
-Flavor Text: Another flavor text
-```
-
-# Bugs
-accents for lands - also look for basic land names like Forest, etc. So fetch lands will work
-Let's support keyword abilities vs. ability words. Ability words are like "Landfall" and are italicized. Keyword abilities are like "Exhaust" and are not italicized. They both appear before hyphens (or M dashes). We will infer which is which by the presence of reminder text. if no reminder text, then it must be an ability word, otherwise it must be a keyword ability. Examples:
-"Landfall - Whenever you cast a land spell, this creature gets +1/+1 until end of turn."
-- since no reminder text, this is an ability word and the "Landfall" should be italicized
-"Exhaust - {3}{R}: Put two +1/+1 counters on this creature. (Activate each exhaust ability only once.)"
-- since there is reminder text, this is a keyword ability and the "Exhaust" should not be italicized
-- fuse cards need to blend in the bottom reminder text
-
-- spacing for type line of non-creature flip card is sub-optimal
-- fix colorless frames
-
-# improvements
-- for split cards with hybrid mana, do the red white and blue thing...
-- Fuse needs to use the mask and write the reminder text
-
-- support nyx crowns
-- make parser more lenient (line order, allow and, oxfoard comma,)
-- typeline color / name line color are not independent?
-- P/T box color should match with frame
-
-- When providing overrides we should infer as much as possible.
-    - ex: doing a dual frame, the type lines should inherit?
-- Support Nyx crowns
-- bullets for modal spells
-
-
-
-type line and name line color logic is impacting flip cards...
-
-Transforming sagas don't work... 
-I guess we need to add more frames..
