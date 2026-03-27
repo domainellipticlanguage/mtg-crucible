@@ -547,9 +547,11 @@ const LINK_TYPE_ALIASES: Record<string, CardData['linkType']> = {
   mdfc: 'modal_dfc',
   flip: 'flip',
   split: 'split',
+  fuse: 'fuse',
   adventure: 'adventure',
   aftermath: 'aftermath',
 };
+
 
 export function parseCard(text: string): CardData {
   // Split on delimiter for multi-face cards, capturing optional link type
@@ -987,7 +989,7 @@ function scryfallLayout(card: CardData): string {
       case 'transform': return 'transform';
       case 'modal_dfc': return 'modal_dfc';
       case 'flip': return 'flip';
-      case 'split': return 'split';
+      case 'split': case 'fuse': return 'split';
       case 'adventure': return 'adventure';
       case 'aftermath': return 'aftermath';
     }
@@ -1132,6 +1134,7 @@ export function resolveTemplate(card: CardData): TemplateName {
   if (card.battleDefense) return 'battle';
   if (card.linkType === 'adventure') return 'adventure';
   if (card.linkType === 'aftermath') return 'aftermath';
+  if (card.linkType === 'fuse') return 'fuse';
   if (card.linkType === 'split') {
     const text = getOracleText(card) + (card.linkedCard ? '\n' + getOracleText(card.linkedCard) : '');
     return /\bFuse\b/.test(text) ? 'fuse' : 'split';
@@ -1165,7 +1168,7 @@ export function inferLinkType(card: CardData): CardData['linkType'] {
 
   if (bothHaveManaCost) {
     const fullText = frontText + '\n' + backText;
-    if (/\bFuse\b/.test(fullText)) return 'split';
+    if (/\bFuse\b/.test(fullText)) return 'fuse';
     if (/\bAftermath\b/.test(fullText)) return 'aftermath';
     if (isSpell(card.types) && isSpell(card.linkedCard.types)) return 'split';
     return 'modal_dfc';
@@ -1194,6 +1197,7 @@ export function computeRotations(card: CardData): Rotation[] {
     case 'flip':
       return [identity, { x: 0, y: 0, z: 180 }];
     case 'split':
+    case 'fuse':
       return [identity, { x: 0, y: 0, z: 90 }];
     case 'aftermath':
       return [identity, { x: 0, y: 0, z: -90 }];

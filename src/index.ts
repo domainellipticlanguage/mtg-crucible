@@ -58,6 +58,7 @@ export function normalizeCard(card: CardData): NormalizedCardData {
   const nameLineColor = toArray<FrameColor>(card.nameLineColor ?? titleColor);
   const typeLineColor = toArray<FrameColor>(card.typeLineColor ?? titleColor);
 
+  const linkType = inferLinkType(card);
   const partial: CardData = {
     ...card,
     frameColor,
@@ -65,6 +66,7 @@ export function normalizeCard(card: CardData): NormalizedCardData {
     nameLineColor,
     typeLineColor,
     abilities,
+    linkType,
   };
 
   return {
@@ -101,7 +103,7 @@ export function normalizeCard(card: CardData): NormalizedCardData {
     legendCrown: card.legendCrown ?? (card.supertypes?.includes('legendary') ?? false),
 
     linkedCard: card.linkedCard ? normalizeCard(card.linkedCard) : undefined,
-    linkType: inferLinkType(card),
+    linkType,
 
     collectorNumber: card.collectorNumber ?? '000',
     artist: card.artist ?? '',
@@ -126,7 +128,7 @@ export async function renderCard(input: CardData | string): Promise<RenderedCard
   } else if (normalized.linkType === 'modal_dfc') {
     frontTemplateOverride = 'mdfc_front';
     backTemplateOverride = 'mdfc_back';
-  } else if (normalized.linkType === 'split' || normalized.linkType === 'flip') {
+  } else if (normalized.linkType === 'split' || normalized.linkType === 'fuse' || normalized.linkType === 'flip') {
     frontTemplateOverride = normalized.cardTemplate ?? normalized.linkType;
   } else if (normalized.linkType === 'aftermath') {
     frontTemplateOverride = 'aftermath';
@@ -139,7 +141,7 @@ export async function renderCard(input: CardData | string): Promise<RenderedCard
   let backFace: Buffer | undefined;
   let backFaceOrientation: 'horizontal' | 'vertical' | undefined;
   // Adventure, split, fuse, and flip cards render both faces on one image — no separate back face
-  const singleImageTypes = new Set(['adventure', 'split', 'flip', 'aftermath']);
+  const singleImageTypes = new Set(['adventure', 'split', 'fuse', 'flip', 'aftermath']);
   if (normalized.linkedCard && !singleImageTypes.has(normalized.linkType ?? '')) {
     // Already normalized via recursive normalizeCard — shallow copy to avoid mutating shared object
     const normalizedBack = { ...normalized.linkedCard };

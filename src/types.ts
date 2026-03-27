@@ -16,8 +16,7 @@ export type LinkType =
   | 'transform'     // werewolves
   | 'modal_dfc'     // modal lands
   | 'flip'          // https://scryfall.com/card/chk/93/student-of-elements-tobita-master-of-winds
-  // | 'fuse'          // https://scryfall.com/card/dgm/134/turn-burn
-    // fuse is split
+  | 'fuse'          // https://scryfall.com/card/dgm/134/turn-burn
   | 'split'         // https://scryfall.com/card/dmr/210/assault-battery
   | 'adventure'     // https://scryfall.com/card/dsc/172/beanstalk-giant-fertile-footsteps
   | 'aftermath'     // https://scryfall.com/card/hou/152/appeal-authority
