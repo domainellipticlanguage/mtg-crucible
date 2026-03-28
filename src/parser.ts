@@ -1165,6 +1165,8 @@ export function inferLinkType(card: CardData): CardData['linkType'] {
     if (isSpell(card.types) && isSpell(card.linkedCard.types)) return 'split';
     return 'modal_dfc';
   }
+  // Battles always transform
+  if (card.types?.includes('battle') || card.battleDefense) return 'transform';
   if (/\bflip\b/i.test(frontText)) return 'flip';
   const fullText = frontText + '\n' + backText;
   if (/\btransform\b/i.test(fullText)) return 'transform';
