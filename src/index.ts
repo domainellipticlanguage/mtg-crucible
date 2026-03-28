@@ -1,4 +1,5 @@
-import type { CardData, NormalizedCardData, ParsedAbilities, RenderedCard, RenderedCardDisplay, FrameColor, FrameEffect, AccentColor } from './types';
+import type { CardData, NormalizedCardData, ParsedAbilities, RenderedCard, FrameColor, FrameEffect, AccentColor } from './types';
+import type { MtgCardDisplayData } from './types';
 import { ensureInitialized } from './helpers';
 import { renderCardImage } from './renderers/render';
 import { parseCard, parseAbilities, formatAbilities, formatCard, toScryfallJson, toScryfallText, computeRotations, deriveFrameColor, resolveTemplate, getArtDimensions, inferLinkType } from './parser';
@@ -8,8 +9,9 @@ export type {
   Rarity, TemplateName, Color, AccentColor, FrameColor, FrameEffect, Supertype, Type, Subtype, LinkType,
   PlaneswalkerAbilities, SagaAbilities, ClassAbilities, LevelerAbilities, CaseAbilities, PrototypeAbilities,
   StructuredAbilities, ParsedAbilities,
-  CardData, Rotation, RenderedCard, RenderedCardDisplay,
+  CardData, Rotation, RenderedCard,
 } from './types';
+export type { MtgCardDisplayData } from './types';
 export { renderCardImage } from './renderers/render';
 export { parseCard, parseAbilities, formatAbilities, formatCard, toScryfallJson, toScryfallText, computeRotations, resolveTemplate, getArtDimensions } from './parser';
 
@@ -177,12 +179,10 @@ export async function renderCard(input: CardData | string): Promise<RenderedCard
   };
 }
 
-export function toDisplayCard(rendered: RenderedCard): RenderedCardDisplay {
+export function toDisplayCard(rendered: RenderedCard): MtgCardDisplayData {
   return {
-    frontFace: `data:image/png;base64,${rendered.frontFace.toString('base64')}`,
-    frontFaceOrientation: rendered.frontFaceOrientation,
-    backFace: rendered.backFace ? `data:image/png;base64,${rendered.backFace.toString('base64')}` : undefined,
-    backFaceOrientation: rendered.backFaceOrientation,
+    frontFaceImageUrl: `data:image/png;base64,${rendered.frontFace.toString('base64')}`,
+    backFaceImageUrl: rendered.backFace ? `data:image/png;base64,${rendered.backFace.toString('base64')}` : undefined,
     name: rendered.normalizedCardData.name ?? '',
     rotations: rendered.rotations,
     scryfallJson: rendered.scryfallJson,

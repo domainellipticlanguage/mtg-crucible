@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import type { RenderedCardDisplay } from '../types';
+import type { MtgCardDisplayData } from '../types';
 
 export interface MtgCardProps {
-  card: RenderedCardDisplay;
+  card: MtgCardDisplayData;
   cardText?: string;
   className?: string;
   style?: React.CSSProperties;
@@ -66,7 +66,7 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle }:
   const hasMultipleStates = card.rotations.length > 1;
   const currentRotation = card.rotations[rotationIndex] ?? { x: 0, y: 0, z: 0 };
   // Back face is visible when Y rotation puts it face-forward
-  const showingFront = !card.backFace || (Math.round(currentRotation.y / 180) % 2 === 0);
+  const showingFront = !card.backFaceImageUrl || (Math.round(currentRotation.y / 180) % 2 === 0);
 
   const handleClick = useCallback(() => {
     if (!hasMultipleStates) return;
@@ -101,7 +101,7 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle }:
 
   const copyImage = useCallback(async () => {
     setMenuPos(null);
-    const src = showingFront ? card.frontFace : card.backFace;
+    const src = showingFront ? card.frontFaceImageUrl : card.backFaceImageUrl;
     if (!src) return;
     try {
       const res = await fetch(src);
@@ -110,7 +110,7 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle }:
     } catch {
       // Fallback: some browsers don't support clipboard.write for images
     }
-  }, [showingFront, card.frontFace, card.backFace]);
+  }, [showingFront, card.frontFaceImageUrl, card.backFaceImageUrl]);
 
   const downloadImage = useCallback(() => {
     setMenuPos(null);
@@ -121,13 +121,13 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle }:
       a.download = `${baseName}${suffix}.png`;
       a.click();
     };
-    if (card.backFace) {
-      download(card.frontFace, '-front');
-      download(card.backFace, '-back');
+    if (card.backFaceImageUrl) {
+      download(card.frontFaceImageUrl, '-front');
+      download(card.backFaceImageUrl, '-back');
     } else {
-      download(card.frontFace, '');
+      download(card.frontFaceImageUrl, '');
     }
-  }, [card.frontFace, card.backFace, card.name]);
+  }, [card.frontFaceImageUrl, card.backFaceImageUrl, card.name]);
 
   const menuItems: ContextMenuItem[] = [
     { label: 'Download Image', action: downloadImage },
@@ -151,7 +151,7 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle }:
     position: 'absolute',
     width: '100%',
     height: '100%',
-    backfaceVisibility: card.backFace ? 'hidden' : 'visible',
+    backfaceVisibility: card.backFaceImageUrl ? 'hidden' : 'visible',
     borderRadius,
   };
 
@@ -210,15 +210,15 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle }:
         >
           <img
             className="mtg-card-face mtg-card-front"
-            src={card.frontFace}
+            src={card.frontFaceImageUrl}
             alt={card.name}
             draggable={false}
             style={{ ...faceStyle }}
           />
-          {card.backFace && (
+          {card.backFaceImageUrl && (
             <img
               className="mtg-card-face mtg-card-back"
-              src={card.backFace}
+              src={card.backFaceImageUrl}
               alt={card.name}
               draggable={false}
               style={{ ...faceStyle, transform: 'rotateY(180deg)' }}

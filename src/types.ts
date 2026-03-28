@@ -241,12 +241,10 @@ export interface RenderedCard {
   crucibleText: string;
 }
 
-/** Browser-friendly version of RenderedCard — image data as base64 data URIs instead of Buffers. */
-export interface RenderedCardDisplay {
-  frontFace: string;           // data:image/png;base64,...
-  frontFaceOrientation: 'horizontal' | 'vertical';
-  backFace?: string;           // data:image/png;base64,...
-  backFaceOrientation?: 'horizontal' | 'vertical';
+/** The data needed to display a rendered MTG card in the browser. (using MtgCard component) */
+export interface MtgCardDisplayData {
+  frontFaceImageUrl: string;
+  backFaceImageUrl?: string;
   name: string;
   rotations: Rotation[];
   scryfallJson: string;
