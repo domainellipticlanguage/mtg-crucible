@@ -157,7 +157,7 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle }:
 
   return (
     <div
-      className={className}
+      className={className ? `mtg-card ${className}` : 'mtg-card'}
       style={{
         display: 'inline-block',
         position: 'relative',
@@ -167,6 +167,7 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle }:
       {/* Searchable text overlay — transparent but highlightable with Ctrl+F */}
       {cardText && (
         <span
+          className="mtg-card-text"
           style={{
             position: 'absolute',
             inset: 0,
@@ -186,6 +187,7 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle }:
       )}
 
       <div
+        className="mtg-card-viewport"
         style={{
           perspective: '1000px',
           cursor: hasMultipleStates ? 'pointer' : 'default',
@@ -196,6 +198,7 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle }:
         onContextMenu={handleContextMenu}
       >
         <div
+          className="mtg-card-transform"
           style={{
             width: '100%',
             height: '100%',
@@ -206,6 +209,7 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle }:
           }}
         >
           <img
+            className="mtg-card-face mtg-card-front"
             src={card.frontFace}
             alt={card.name}
             draggable={false}
@@ -213,6 +217,7 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle }:
           />
           {card.backFace && (
             <img
+              className="mtg-card-face mtg-card-back"
               src={card.backFace}
               alt={card.name}
               draggable={false}
@@ -225,6 +230,7 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle }:
       {/* Rotation arrow widget */}
       {hasMultipleStates && (
         <div
+          className="mtg-card-rotate"
           style={{
             position: 'absolute',
             top: '45%',
@@ -246,6 +252,7 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle }:
       {/* Custom context menu */}
       {menuPos && (
         <div
+          className="mtg-card-menu"
           style={{
             position: 'fixed',
             left: menuPos.x,

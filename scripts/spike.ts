@@ -735,9 +735,8 @@ async function main() {
     types: ['instant'],
     frameColor: 'blue',
     rarity: 'uncommon',
-    cardTemplate: 'fuse',
     abilities: 'Until end of turn, target creature loses all abilities and becomes a red Weird with base power and toughness 0/1.',
-    linkType: 'split',
+    linkType: 'fuse',
     linkedCard: {
       name: 'Burn', manaCost: '{1}{R}',
       types: ['instant'],
@@ -776,6 +775,24 @@ async function main() {
       frameColor: 'white',
       abilities: 'Aftermath (Cast this spell only from your graveyard. Then exile it.)\nReturn all creature cards with power 2 or less from your graveyard to your hand.',
     },
+  });
+
+  // 52. Modal spell — Cryptic Command (bullets from - and *)
+  await render('cryptic-command', {
+    name: 'Cryptic Command', manaCost: '{1}{U}{U}{U}',
+    types: ['instant'],
+    frameColor: 'blue',
+    rarity: 'rare',
+    abilities: 'Choose two -\n- Counter target spell.\n- Return target permanent to its owner\'s hand.\n- Tap all creatures your opponents control.\n- Draw a card.',
+  });
+
+  // 53. Modal spell using * bullets
+  await render('charm-of-the-five-suns', {
+    name: 'Charm of the Five Suns', manaCost: '{W}{U}{B}{R}{G}',
+    types: ['instant'],
+    frameColor: 'multicolor',
+    rarity: 'mythic',
+    abilities: 'Choose one -\n* Destroy target creature.\n* Draw two cards.\n* Deal 3 damage to any target.',
   });
 
   console.log(`\nDone! ${idx} cards total, rendered to ${OUT}`);

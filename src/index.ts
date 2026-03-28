@@ -45,6 +45,16 @@ export function normalizeCard(card: CardData): NormalizedCardData {
     abilities = {};
   }
 
+  // Convert modal spell bullets: lines starting with "- " or "* " become "• "
+  if (abilities.unstructuredAbilities) {
+    abilities = {
+      ...abilities,
+      unstructuredAbilities: abilities.unstructuredAbilities.map(a =>
+        a.replace(/^[-*] /gm, '\u2022 ')
+      ),
+    };
+  }
+
   const abilitiesText = formatAbilities(abilities);
   const derived = card.frameColor && card.accentColor ? undefined : deriveFrameColor({
     ...card,
