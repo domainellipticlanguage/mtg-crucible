@@ -130,15 +130,19 @@ export async function renderCard(input: CardData | string): Promise<RenderedCard
 
   await ensureInitialized();
 
-  // Determine DFC template overrides based on linkType
+  // Determine DFC template overrides based on linkType.
+  // Only override front template for standard cards — non-standard templates
+  // (planeswalker, saga, etc.) don't have DFC-specific frames, so they keep
+  // their natural template and skip the DFC header/pinlines.
+  const STANDARD_TEMPLATES = new Set(['standard']);
+  const frontIsStandard = STANDARD_TEMPLATES.has(normalized.cardTemplate);
   let frontTemplateOverride: string | undefined;
   let backTemplateOverride: string | undefined;
   if (normalized.linkType === 'transform') {
-    // Battles use their own template even when they transform
-    if (!normalized.battleDefense) frontTemplateOverride = 'transform_front';
+    if (frontIsStandard) frontTemplateOverride = 'transform_front';
     backTemplateOverride = 'transform_back';
   } else if (normalized.linkType === 'modal_dfc') {
-    frontTemplateOverride = 'mdfc_front';
+    if (frontIsStandard) frontTemplateOverride = 'mdfc_front';
     backTemplateOverride = 'mdfc_back';
   } else if (normalized.linkType === 'split' || normalized.linkType === 'fuse' || normalized.linkType === 'flip') {
     frontTemplateOverride = normalized.cardTemplate ?? normalized.linkType;
@@ -161,8 +165,11 @@ export async function renderCard(input: CardData | string): Promise<RenderedCard
     if (normalized.linkType === 'modal_dfc') {
       normalizedBack.linkedCard = normalized;
     }
-    backFace = await renderCardImage(normalizedBack, backTemplateOverride);
-    const backTemplate = backTemplateOverride ?? resolveTemplate(normalizedBack);
+    // Only apply DFC back template override for standard cards
+    const backIsStandard = STANDARD_TEMPLATES.has(normalizedBack.cardTemplate);
+    const effectiveBackOverride = backIsStandard ? backTemplateOverride : undefined;
+    backFace = await renderCardImage(normalizedBack, effectiveBackOverride);
+    const backTemplate = effectiveBackOverride ?? resolveTemplate(normalizedBack);
     backFaceOrientation = backTemplate === 'battle' ? 'horizontal' : 'vertical';
   }
 

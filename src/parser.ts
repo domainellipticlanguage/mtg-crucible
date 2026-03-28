@@ -1178,6 +1178,8 @@ export function computeRotations(card: CardData): Rotation[] {
   const identity: Rotation = { x: 0, y: 0, z: 0 };
 
   if (!card.linkedCard || !card.linkType) {
+    // Battles always get the 90° rotation even without a back face
+    if (card.cardTemplate === 'battle') return [identity, { x: 0, y: 0, z: 90 }];
     return [identity];
   }
 
