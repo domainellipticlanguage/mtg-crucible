@@ -160,7 +160,8 @@ function romanToNumber(roman: string): number {
   }
 }
 
-function parseTypeLine(typeLine: string): { supertypes: Supertype[]; types: Type[]; subtypes: string[] } {
+function parseTypeLine(typeLine: string | undefined): { supertypes: Supertype[]; types: Type[]; subtypes: string[] } {
+  if (!typeLine) return { supertypes: [], types: [], subtypes: [] };
   const [left, right] = typeLine.split(/\s+[—–-]\s+|\s*[—–]\s*/);
   const subtypes = right ? right.split(/\s+/) : [];
   const supertypes: Supertype[] = [];
@@ -675,7 +676,7 @@ function parseSingleFace(text: string): CardData {
   }
 
   // Type line
-  const typeLine = lines[nextLine];
+  const typeLine = lines[nextLine] ?? '';
   const { supertypes, types, subtypes } = parseTypeLine(typeLine);
   let body = lines.slice(nextLine + 1);
   const lowerType = typeLine.toLowerCase();
