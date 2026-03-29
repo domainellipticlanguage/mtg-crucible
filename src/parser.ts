@@ -838,22 +838,44 @@ export function formatCard(card: CardData): string {
   let nameLine = card.name ?? '';
   if (card.manaCost) nameLine += ` ${card.manaCost}`;
   lines.push(nameLine);
+  if (card.colorIndicator && card.colorIndicator.length > 0) {
+    lines.push(`Color Indicator: ${formatList(card.colorIndicator)}`);
+  }
+
+  // Type line
+  lines.push(buildTypeLine(card));
+
+  // Abilities
+  const oracleText = getOracleText(card);
+  if (oracleText) lines.push(oracleText);
+
+  // Stats that go before abilities for pw/battle, after for creatures
+  if (card.startingLoyalty) lines.push(`Loyalty: ${card.startingLoyalty}`);
+  if (card.battleDefense) lines.push(`Defense: ${card.battleDefense}`);
+  // P/T for creatures
+  if (card.power && card.toughness) {
+    lines.push(`${card.power}/${card.toughness}`);
+  }
+
+  if (card.rarity) {
+    const rarityDisplay = card.rarity === 'mythic' ? 'Mythic Rare' : card.rarity.charAt(0).toUpperCase() + card.rarity.slice(1);
+    lines.push(`Rarity: ${rarityDisplay}`);
+  }
+
+  // Flavor text
+  if (card.flavorText) {
+    for (const fl of card.flavorText.split('\n')) {
+      lines.push(`Flavor Text: ${fl}`);
+    }
+  }
 
   // Metadata lines
   if (card.artUrl) lines.push(`Art URL: ${card.artUrl}`);
   if (card.artDescription) lines.push(`Art Description: ${card.artDescription}`);
-  if (card.rarity) lines.push(`Rarity: ${card.rarity}`);
   if (card.artist) lines.push(`Artist: ${card.artist}`);
   if (card.setCode) lines.push(`Set: ${card.setCode}`);
   if (card.collectorNumber) lines.push(`Collector Number: ${card.collectorNumber}`);
   if (card.designer) lines.push(`Designer: ${card.designer}`);
-  if (card.colorIndicator && card.colorIndicator.length > 0) {
-    lines.push(`Color Indicator: ${formatList(card.colorIndicator)}`);
-  }
-  if (card.accentColor) {
-    const accents = Array.isArray(card.accentColor) ? card.accentColor : [card.accentColor];
-    lines.push(`Accent: ${formatList(accents)}`);
-  }
   if (card.frameColor) {
     const frames = Array.isArray(card.frameColor) ? card.frameColor : [card.frameColor];
     lines.push(`Frame Color: ${formatList(frames)}`);
@@ -862,33 +884,13 @@ export function formatCard(card: CardData): string {
     const effects = Array.isArray(card.frameEffect) ? card.frameEffect : [card.frameEffect];
     lines.push(`Frame Effect: ${formatList(effects)}`);
   }
+  if (card.accentColor) {
+    const accents = Array.isArray(card.accentColor) ? card.accentColor : [card.accentColor];
+    lines.push(`Accent: ${formatList(accents)}`);
+  }
   if (card.ptBoxColor) {
     const colors = Array.isArray(card.ptBoxColor) ? card.ptBoxColor : [card.ptBoxColor];
     lines.push(`PT Box Color: ${formatList(colors)}`);
-  }
-
-  // Type line
-  lines.push(buildTypeLine(card));
-
-  // Abilities
-  const oracleText = getOracleText(card);
-
-  // Stats that go before abilities for pw/battle, after for creatures
-  if (card.startingLoyalty) lines.push(`Loyalty: ${card.startingLoyalty}`);
-  if (card.battleDefense) lines.push(`Defense: ${card.battleDefense}`);
-
-  if (oracleText) lines.push(oracleText);
-
-  // P/T for creatures
-  if (card.power && card.toughness) {
-    lines.push(`${card.power}/${card.toughness}`);
-  }
-
-  // Flavor text
-  if (card.flavorText) {
-    for (const fl of card.flavorText.split('\n')) {
-      lines.push(`Flavor Text: ${fl}`);
-    }
   }
 
   if (card.linkedCard) {
