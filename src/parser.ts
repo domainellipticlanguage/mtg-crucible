@@ -94,7 +94,6 @@ const FRAME_EFFECT_ALIASES: Record<string, FrameEffect> = {
   nyx: 'nyx',
   snow: 'snow',
   devoid: 'devoid',
-  miracle: 'miracle',
 };
 
 function parseAccentTokens(input: string): AccentColor | AccentColor[] | undefined {
@@ -890,7 +889,9 @@ export function formatCard(card: CardData): string {
   }
   if (card.ptBoxColor) {
     const colors = Array.isArray(card.ptBoxColor) ? card.ptBoxColor : [card.ptBoxColor];
-    lines.push(`PT Box Color: ${formatList(colors)}`);
+    if (colors.length > 0) {
+      lines.push(`PT Box Color: ${formatList(colors)}`);
+    }
   }
 
   if (card.linkedCard) {
@@ -1136,9 +1137,11 @@ export function getArtDimensions(card: CardData, templateOverride?: TemplateName
   const { w: cw, h: ch } = config;
   const L = (linked && config.linkedLayout) ? config.linkedLayout : config.layout;
 
-  // Colorless frames are full-bleed — art fills the entire card
+  // Colorless and devoid frames are full-bleed — art fills the entire card
   const fc = Array.isArray(card.frameColor) ? card.frameColor[0] : card.frameColor;
-  if (fc === 'colorless' && templateKey === 'standard') {
+  const fe = Array.isArray(card.frameEffect) ? card.frameEffect : card.frameEffect ? [card.frameEffect] : [];
+  const isFullBleed = (fc === 'colorless' || fe.includes('devoid')) && templateKey === 'standard';
+  if (isFullBleed) {
     return { width: 1500, height: 2100 };
   }
 

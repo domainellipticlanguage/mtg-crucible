@@ -24,7 +24,7 @@ import { getParsedAbilities } from '../parser';
 import {
   drawArt, drawCorners, drawSetSymbol, drawBottomInfo, drawManaCost, measureManaCostWidth,
   getTypeLine, frameColorCode,
-  drawColorIndicator, drawFrame, drawFrameOverlay, drawGradientCrowns,
+  drawColorIndicator, drawFrame, drawGradientCrowns,
 } from '../helpers';
 import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor, type ExclusionRect } from '../text';
 import { planeswalkerHooks } from './planeswalker';
@@ -105,17 +105,16 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
   ctx.fillStyle = '#1a1a1a';
   ctx.fillRect(0, 0, cw, ch);
 
-  // Art (colorless frames are full-bleed)
-  const artBounds = card.frameColor[0] === 'colorless' ? { x: 0, y: 0, w: 1, h: 1 } : L.art;
+  // Art (colorless and devoid frames are full-bleed)
+  const isFullBleed = card.frameColor[0] === 'colorless' || card.frameEffect.includes('devoid');
+  const artBounds = isFullBleed ? { x: 0, y: 0, w: 1, h: 1 } : L.art;
   if (card.artUrl) await drawArt(ctx, card.artUrl, artBounds, cw, ch);
 
   // Pre-frame hook (e.g. planeswalker ability backgrounds)
   if (hooks?.preFrame) await hooks.preFrame(ctx, card, L, cw, ch);
 
   // Frame — resolve per-color directories based on frame effects
-  // Overlay effects (e.g. miracle) draw the standard frame first, then overlay on top.
   // When effects and colors aren't 1:1, compute LCM to split into enough segments.
-  const OVERLAY_EFFECTS = new Set(['miracle']);
   const effects = card.frameEffect;
 
   const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
@@ -132,7 +131,7 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
 
   const frameDirs = expandedColors.map((_, i) => {
     const effect = expandedEffects[i];
-    if (effect === 'normal' || OVERLAY_EFFECTS.has(effect)) return frame;
+    if (effect === 'normal') return frame;
     if (frame !== 'standard') {
       console.warn(`Frame effect '${effect}' is not supported for '${frame}' layout, falling back to normal`);
       return frame;
@@ -151,20 +150,6 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
 
   if (!hooks?.skipStandardFrame) {
     await drawFrame(ctx, frameDirs, expandedFrameColor, accentCodes, cw, ch, nameLineCodes, typeLineCodes);
-
-    // Overlay effects: draw effect frames on top of the standard frame
-    const overlayDirs = expandedColors.map((_, i) => {
-      const effect = expandedEffects[i];
-      if (!OVERLAY_EFFECTS.has(effect)) return null;
-      if (frame !== 'standard') {
-        console.warn(`Frame effect '${effect}' is not supported for '${frame}' layout, skipping overlay`);
-        return null;
-      }
-      return effect;
-    });
-    if (overlayDirs.some(d => d !== null)) {
-      await drawFrameOverlay(ctx, overlayDirs, expandedColors, cw, ch);
-    }
   }
 
   // Legend crown (planeswalkers use their own frame treatment)

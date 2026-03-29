@@ -302,63 +302,6 @@ export async function drawFrame(
 }
 
 /**
- * Draw overlay effect frames (e.g. miracle) on top of existing frames.
- * overlayDirs[i] is the effect directory name or null (skip that color).
- * Each overlay is clipped to its gradient zone so it only covers its portion.
- */
-export async function drawFrameOverlay(
-  ctx: SKRSContext2D,
-  overlayDirs: (string | null)[],
-  colorCodes: string[],
-  cw: number, ch: number,
-): Promise<void> {
-  if (colorCodes.length === 0) return;
-  const n = colorCodes.length;
-
-  if (n === 1) {
-    // Single color: overlay covers the whole card
-    const dir = overlayDirs[0];
-    if (!dir) return;
-    const imgPath = path.join(ASSETS_DIR, 'frames', dir, `${colorCodes[0]}.png`);
-    if (fs.existsSync(imgPath)) {
-      ctx.drawImage(await loadImage(imgPath), 0, 0, cw, ch);
-    }
-    return;
-  }
-
-  // Multiple colors: each overlay is drawn through its gradient zone mask
-  for (let i = 0; i < n; i++) {
-    const dir = overlayDirs[i];
-    if (!dir) continue;
-    const imgPath = path.join(ASSETS_DIR, 'frames', dir, `${colorCodes[i]}.png`);
-    if (!fs.existsSync(imgPath)) continue;
-
-    if (i === 0) {
-      // First zone: use inverted mask of zone 1 (opaque on left, transparent on right)
-      const mask = createGradientMask(cw, ch, 1, n);
-      const data = mask.data;
-      for (let j = 3; j < data.length; j += 4) {
-        data[j] = 255 - data[j];
-      }
-      const offscreen = createCanvas(cw, ch);
-      const offCtx = offscreen.getContext('2d');
-      offCtx.putImageData(mask, 0, 0);
-      offCtx.globalCompositeOperation = 'source-in';
-      offCtx.drawImage(await loadImage(imgPath), 0, 0, cw, ch);
-      ctx.drawImage(offscreen, 0, 0);
-    } else {
-      const mask = createGradientMask(cw, ch, i, n);
-      const offscreen = createCanvas(cw, ch);
-      const offCtx = offscreen.getContext('2d');
-      offCtx.putImageData(mask, 0, 0);
-      offCtx.globalCompositeOperation = 'source-in';
-      offCtx.drawImage(await loadImage(imgPath), 0, 0, cw, ch);
-      ctx.drawImage(offscreen, 0, 0);
-    }
-  }
-}
-
-/**
  * Draw gradient-blended crown assets for legendary cards with multi-color accents.
  * Same algorithm as drawGradientFrames but for crown images.
  */

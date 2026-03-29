@@ -19,7 +19,7 @@ export const FRAME_COLORS = [
 export type AccentColor = (typeof FRAME_COLORS)[number];
 export type FrameColor = (typeof FRAME_COLORS)[number];
 
-export const FRAME_EFFECTS = ['normal', 'nyx', 'snow', 'devoid', 'miracle'] as const;
+export const FRAME_EFFECTS = ['normal', 'nyx', 'snow', 'devoid'] as const;
 export type FrameEffect = (typeof FRAME_EFFECTS)[number];
 
 export const SUPERTYPES_LIST = ['legendary', 'basic', 'snow', 'world'] as const;

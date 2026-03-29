@@ -103,6 +103,11 @@ const TEST_CARDS: { template: TemplateName; label?: string; card: CardData }[] =
     card: { name: 'Test Colorless', manaCost: '{4}', types: ['creature'], subtypes: ['Eldrazi'], frameColor: 'colorless', power: '4', toughness: '4', abilities: 'Trample' },
   },
   {
+    template: 'standard' as TemplateName,
+    label: 'devoid',
+    card: { name: 'Test Devoid', manaCost: '{2}{B}{G}', types: ['creature'], subtypes: ['Eldrazi', 'Drone'], frameEffect: 'devoid', power: '3', toughness: '3', abilities: 'Devoid\nWhen this enters, each opponent loses 2 life.' },
+  },
+  {
     template: 'planeswalker',
     card: { name: 'Test Planeswalker', manaCost: '{3}{U}', types: ['planeswalker'], subtypes: ['Jace'], frameColor: 'blue', startingLoyalty: '4', abilities: { structuredAbilities: { kind: 'planeswalker', loyaltyAbilities: [{ cost: '+1', text: 'Draw a card.' }, { cost: '-2', text: 'Return target creature.' }, { cost: '-6', text: 'You win.' }] } } },
   },
