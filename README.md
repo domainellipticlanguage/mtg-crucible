@@ -156,7 +156,7 @@ These can appear on any line (order doesn't matter):
 | `Flavor Text:` | `Flavor Text: Some italic text` |
 | `Frame Color:` | `Frame Color: Red and Blue` |
 | `Accent Color:` | `Accent Color: Green` |
-| `Frame Effect:` | `Frame Effect: Miracle` |
+| `Frame Effect:` | `Frame Effect: Nyx` |
 | `Color Indicator:` | `Color Indicator: Red and Green` |
 | `Has Legend Crown:` | `Has Legend Crown: true` |
 | `Set Code:` | `Set Code: MH3` |
@@ -213,4 +213,13 @@ The component supports:
 npm test          # run tests (vitest)
 npm run build     # compile TypeScript
 npm run dev       # start local dev server with hot reload
+```
+
+## Publishing
+
+```bash
+npm login
+npm version patch   # or minor/major
+npm run build
+npm publish --access public
 ```
