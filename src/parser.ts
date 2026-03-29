@@ -879,11 +879,15 @@ export function formatCard(card: CardData): string {
   }
   if (card.frameEffect) {
     const effects = Array.isArray(card.frameEffect) ? card.frameEffect : [card.frameEffect];
-    lines.push(`Frame Effect: ${formatList(effects)}`);
+    if (effects.length > 0) {
+      lines.push(`Frame Effect: ${formatList(effects)}`);
+    }
   }
   if (card.accentColor) {
     const accents = Array.isArray(card.accentColor) ? card.accentColor : [card.accentColor];
-    lines.push(`Accent: ${formatList(accents)}`);
+    if (accents.length > 0) {
+      lines.push(`Accent: ${formatList(accents)}`);
+    }
   }
   if (card.ptBoxColor) {
     const colors = Array.isArray(card.ptBoxColor) ? card.ptBoxColor : [card.ptBoxColor];
