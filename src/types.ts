@@ -1,28 +1,38 @@
-export type Rarity = 'common' | 'uncommon' | 'rare' | 'mythic';
+export const RARITIES = ['common', 'uncommon', 'rare', 'mythic'] as const;
+export type Rarity = (typeof RARITIES)[number];
 
-export type TemplateName = 'standard' | 'planeswalker' | 'planeswalker_tall' | 'saga' | 'class' | 'battle' | 'adventure' | 'transform_front' | 'transform_back' | 'mdfc_front' | 'mdfc_back' | 'split' | 'flip' | 'mutate' | 'prototype' | 'leveler' | 'fuse' | 'aftermath';
+export const TEMPLATE_NAMES = [
+  'standard', 'planeswalker', 'planeswalker_tall', 'saga', 'class', 'battle',
+  'adventure', 'transform_front', 'transform_back', 'mdfc_front', 'mdfc_back',
+  'split', 'flip', 'mutate', 'prototype', 'leveler', 'fuse', 'aftermath',
+] as const;
+export type TemplateName = (typeof TEMPLATE_NAMES)[number];
 
-export type Color = 'white' | 'blue' | 'black' | 'red' | 'green';
+export const COLORS = ['white', 'blue', 'black', 'red', 'green'] as const;
+export type Color = (typeof COLORS)[number];
+
+export const FRAME_COLORS = [
+  'white', 'blue', 'black', 'red', 'green',
+  'colorless', 'artifact', 'multicolor', 'vehicle', 'land',
+] as const;
 // TODO unify these types in a usage agnostic way.
-export type AccentColor = Color | 'colorless' | 'artifact' | 'multicolor' | 'vehicle' | 'land';
-export type FrameColor = Color | 'colorless' | 'artifact' | 'multicolor' | 'vehicle' | 'land';
-export type FrameEffect = 'normal' | 'nyx' | 'snow' | 'devoid' | 'miracle';
-export type Supertype = 'legendary' | 'basic' | 'snow' | 'world';
-export type Type = 'creature' | 'instant' | 'sorcery' | 'enchantment' | 'artifact' | 'planeswalker' | 'land' | 'battle';
+export type AccentColor = (typeof FRAME_COLORS)[number];
+export type FrameColor = (typeof FRAME_COLORS)[number];
+
+export const FRAME_EFFECTS = ['normal', 'nyx', 'snow', 'devoid', 'miracle'] as const;
+export type FrameEffect = (typeof FRAME_EFFECTS)[number];
+
+export const SUPERTYPES_LIST = ['legendary', 'basic', 'snow', 'world'] as const;
+export type Supertype = (typeof SUPERTYPES_LIST)[number];
+
+export const CARD_TYPES = ['creature', 'instant', 'sorcery', 'enchantment', 'artifact', 'planeswalker', 'land', 'battle'] as const;
+export type Type = (typeof CARD_TYPES)[number];
+
 // Too many to list. All creatures. All land types. Shrine, Saga, etc.
 export type Subtype = string;
 
-export type LinkType =
-  | 'transform'     // werewolves
-  | 'modal_dfc'     // modal lands
-  | 'flip'          // https://scryfall.com/card/chk/93/student-of-elements-tobita-master-of-winds
-  | 'fuse'          // https://scryfall.com/card/dgm/134/turn-burn
-  | 'split'         // https://scryfall.com/card/dmr/210/assault-battery
-  | 'adventure'     // https://scryfall.com/card/dsc/172/beanstalk-giant-fertile-footsteps
-  | 'aftermath'     // https://scryfall.com/card/hou/152/appeal-authority
-  // | 'room';         // https://scryfall.com/card/dsk/43/bottomless-pool-locker-room
-    // room is split
-  ;
+export const LINK_TYPES = ['transform', 'modal_dfc', 'flip', 'fuse', 'split', 'adventure', 'aftermath'] as const;
+export type LinkType = (typeof LINK_TYPES)[number];
 
 // transform, modal_dfc, and arguably split do not affect the rendering of the linked card (and linker card)
 // well split does influence proportions a bit
