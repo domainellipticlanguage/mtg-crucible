@@ -1,10 +1,10 @@
 import React, { useState, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { MtgCard } from '../src/react/MtgCard';
-import type { RenderedCardDisplay } from '../src/types';
+import type { MtgCardDisplayData } from '../src/types';
 
 interface RenderResult {
-  display: RenderedCardDisplay;
+  display: MtgCardDisplayData;
   cardData: any;
   crucibleTextNormalized: string;
 }

@@ -573,21 +573,19 @@ export function parseCard(text: string): CardData {
 }
 
 function parseSingleFace(text: string): CardData {
-  const lines = normalizeLines(text);
-
-  if (lines.length < 2) {
-    throw new Error('Card text must have at least a name line and type line');
-  }
+  const lines = normalizeLines(text || '');
 
   // Line 1: Name and mana cost
-  let name: string;
+  let name: string = '';
   let manaCost: string | undefined;
-  const nameMatch = lines[0].match(MANA_COST_REGEX);
-  if (nameMatch) {
-    name = nameMatch[1].trim();
-    manaCost = normalizeManaSymbols(nameMatch[2]);
-  } else {
-    name = lines[0];
+  if (lines.length > 0) {
+    const nameMatch = lines[0].match(MANA_COST_REGEX);
+    if (nameMatch) {
+      name = nameMatch[1].trim();
+      manaCost = normalizeManaSymbols(nameMatch[2]);
+    } else {
+      name = lines[0];
+    }
   }
 
   // Optional metadata lines between name and type (Art:, Rarity:)
