@@ -25,10 +25,10 @@ const SET_REGEX = /^Set:\s*([A-Za-z0-9]+)$/i;
 const COLLECTOR_REGEX = /^Collector(?:\s+(?:Number|No\.?))?:\s*(.+)$/i;
 const DESIGNER_REGEX = /^Designer:\s*(.+)$/i;
 const COLOR_INDICATOR_REGEX = /^Color Indicator:\s*(.+)$/i;
-const ACCENT_REGEX = /^Accent:\s*(.+)$/i;
+const ACCENT_REGEX = /^Accent(?: Color)?:\s*(.+)$/i;
 const FRAME_REGEX = /^Frame Color:\s*(.+)$/i;
 const FRAME_EFFECT_REGEX = /^Frame Effect:\s*(.+)$/i;
-const NAME_LINE_REGEX = /^Name Line:\s*(.+)$/i;
+const NAME_LINE_REGEX = /^Name Line(?: Color)?:\s*(.+)$/i;
 const TYPE_LINE_COLOR_REGEX = /^Type Line Color:\s*(.+)$/i;
 const PT_BOX_COLOR_REGEX = /^PT Box Color:\s*(.+)$/i;
 const PT_REGEX = /^([*\d+]+)\/([*\d+]+)$/;
@@ -886,7 +886,19 @@ export function formatCard(card: CardData): string {
   if (card.accentColor) {
     const accents = Array.isArray(card.accentColor) ? card.accentColor : [card.accentColor];
     if (accents.length > 0) {
-      lines.push(`Accent: ${formatList(accents)}`);
+      lines.push(`Accent Color: ${formatList(accents)}`);
+    }
+  }
+  if (card.nameLineColor) {
+    const colors = Array.isArray(card.nameLineColor) ? card.nameLineColor : [card.nameLineColor];
+    if (colors.length > 0) {
+      lines.push(`Name Line Color: ${formatList(colors)}`);
+    }
+  }
+  if (card.typeLineColor) {
+    const colors = Array.isArray(card.typeLineColor) ? card.typeLineColor : [card.typeLineColor];
+    if (colors.length > 0) {
+      lines.push(`Type Line Color: ${formatList(colors)}`);
     }
   }
   if (card.ptBoxColor) {

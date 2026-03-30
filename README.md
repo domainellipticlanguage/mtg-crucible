@@ -46,7 +46,7 @@ const result = await renderCard({
 });
 ```
 
-<img src="logo/crucible-of-legends.png" alt="Crucible of Legends" width="300">
+<img src="examples/crucible-of-legends.png" alt="Crucible of Legends" width="300">
 
 
 ## Supported Templates
@@ -95,12 +95,22 @@ Get the expected art image dimensions for a given card and template. Useful for 
 
 For convenience, cards can be defined in a plain text format, which is a superset of Scryfall's copy-pasteable text format. 
 
-Additional fields include 
-`Rarity:`
-`Art URL:`  
-`Art Description:`
+Additional metadata fields can appear on any line (order doesn't matter):
 
-`Flavor Text:`, `Frame Color:`, `Accent Color:`, `Frame Effect:`, `Has Legend Crown:`, `Set Code:`, `Designer:`
+- `Rarity: Mythic Rare`
+- `Flavor Text: Every great story begins with fire.`
+- `Art URL: https://example.com/art.png`
+- `Art Description: A fiery landscape`
+- `Artist: Chris Rahn`
+- `Set: MH3`
+- `Collector Number: 205`
+- `Designer: Mark Rosewater`
+- `Frame Color: Red and Blue`
+- `Frame Effect: Nyx`
+- `Accent Color: Green`
+- `Name Line Color: Blue and Red`
+- `Type Line Color: White`
+- `PT Box Color: Black`
 
 These fields can be used to create flavorful card styles. For example:
 
@@ -111,20 +121,27 @@ Artifact
 Whenever you cast an instant or sorcery spell, choose one —
 - Fire — Conduit of Fire and Ice deals 1 damage to each opponent.
 - Ice — Scry 1.
+Art URL: https://example.com/art.png
 Frame Effect: Nyx, Snow
 Frame Color: Red, Blue
 ```
+<img src="examples/conduit-of-fire-and-ice.png" alt="Crucible of Legends" width="300">
+
 
 ### Multi-color border
+```
+The Candy Striper {2}{R}{W}
+Legendary Creature — Nightmare Spirit
+Haste, lifelink
+Whenever the Candy Striper attacks, each opponent loses 1 life and you gain 1 life for each enchantment you control.
+3/3
+Art URL: https://example.com/art.png
+Frame Color: Red, White, Red, White, Red, White, Red, and White
+Accent: Red, White, Red, White, Red, White, Red, and White
+PT Box Color: Red, White, Red, White, Red, White, Red, and White
+```
 
-### 5-Color border
-```
-Warriors of Wooburg {W}{U}{B}{R}{G}
-Creature — Human Warrior
-First strike, flying, lifelink, haste, trample
-5/5
-Frame Color: White, Blue, Black, Red, Green
-```
+<img src="examples/the-candy-striper.png" alt="Crucible of Legends" width="300">
 
 ## React Component
 
