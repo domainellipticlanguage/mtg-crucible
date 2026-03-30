@@ -2,6 +2,8 @@
 
 A TypeScript library for rendering custom Magic: The Gathering card images as PNGs.
 
+Includes a react component for rendering resulting card images, complete with card rotations for double-faced cards, etc.
+
 ## Installation
 
 ```bash
@@ -46,6 +48,27 @@ const result = await renderCard({
 
 <img src="logo/crucible-of-legends.png" alt="Crucible of Legends" width="300">
 
+
+## Supported Templates
+
+- Standard (including colorless/Eldrazi full-bleed art)
+- Planeswalker (3 and 4 ability variants)
+- Saga
+- Class
+- Battle
+- Adventure
+- Transform (front and back)
+- MDFC / Modal DFC (front and back)
+- Split
+- Fuse
+- Flip (Kamigawa-style)
+- Aftermath
+- Mutate
+- Prototype
+- Leveler
+
+Also supports Snow, Devoid, and Nyx borders, although currently only for Standard cards.
+
 ## API
 
 ### `renderCard(input: CardData | string): Promise<RenderedCard>`
@@ -68,125 +91,40 @@ Normalize a `CardData` into `NormalizedCardData` with all fields resolved (frame
 
 Get the expected art image dimensions for a given card and template. Useful for generating or resizing art to fit correctly.
 
-### `renderCardImage(card: NormalizedCardData, templateOverride?: string): Promise<Buffer>`
-
-Low-level renderer. Renders a single face to PNG. Requires pre-normalized card data.
-
 ## Text Format
 
-Cards are defined in a plain text format. For the full grammar see [docs/text-format.md](docs/text-format.md).
+For convenience, cards can be defined in a plain text format, which is a superset of Scryfall's copy-pasteable text format. 
 
-### Standard cards
+Additional fields include 
+`Rarity:`
+`Art URL:`  
+`Art Description:`
 
+`Flavor Text:`, `Frame Color:`, `Accent Color:`, `Frame Effect:`, `Has Legend Crown:`, `Set Code:`, `Designer:`
+
+These fields can be used to create flavorful card styles. For example:
+
+### Combine Snow and Nyx borders
 ```
-Lightning Bolt {R}
-Instant
-Lightning Bolt deals 3 damage to any target.
-```
-
-### Creatures
-
-```
-Tarmogoyf {1}{G}
-Creature -- Lhurgoyf
-Tarmogoyf's power is equal to the number of card types among cards in all graveyards and its toughness is equal to that number plus 1.
-*/1+*
-```
-
-### Planeswalkers
-
-```
-Liliana of the Veil {1}{B}{B}
-Legendary Planeswalker -- Liliana
-+1: Each player discards a card.
--2: Target player sacrifices a creature.
--6: Separate all permanents target player controls into two piles.
-Loyalty: 3
+Conduit of Fire and Ice {2}{U/R}
+Artifact
+Whenever you cast an instant or sorcery spell, choose one —
+- Fire — Conduit of Fire and Ice deals 1 damage to each opponent.
+- Ice — Scry 1.
+Frame Effect: Nyx, Snow
+Frame Color: Red, Blue
 ```
 
-### Sagas
+### Multi-color border
 
+### 5-Color border
 ```
-The Eldest Reborn {4}{B}
-Enchantment -- Saga
-I -- Each opponent sacrifices a creature or planeswalker.
-II -- Each opponent discards a card.
-III -- Put target creature or planeswalker card from a graveyard onto the battlefield under your control.
+Warriors of Wooburg {W}{U}{B}{R}{G}
+Creature — Human Warrior
+First strike, flying, lifelink, haste, trample
+5/5
+Frame Color: White, Blue, Black, Red, Green
 ```
-
-### Battles
-
-```
-Invasion of Gobakhan {1}{W}
-Battle -- Siege
-When Invasion of Gobakhan enters, look at target opponent's hand.
-Defense: 3
-```
-
-### Multi-face cards
-
-Use `--linkType--` delimiters between faces:
-
-```
-Huntmaster of the Fells {2}{R}{G}
-Creature -- Human Werewolf
-Whenever this creature enters or transforms into Huntmaster of the Fells, create a 2/2 green Wolf creature token and you gain 2 life.
-2/2
---transform--
-Ravager of the Fells
-Color Indicator: Red and Green
-Creature -- Werewolf
-Trample
-4/4
-```
-
-Supported link types: `--transform--`, `--mdfc--`, `--split--`, `--fuse--`, `--flip--`, `--adventure--`, `--aftermath--`
-
-A bare `----` delimiter will infer the link type from card content (e.g. "Fuse" in text, both sides being instants/sorceries, presence of "transform" keyword).
-
-### Metadata fields
-
-These can appear on any line (order doesn't matter):
-
-| Field | Example |
-|---|---|
-| `Art URL:` | `Art URL: https://example.com/art.png` |
-| `Art Description:` | `Art Description: A fiery landscape` |
-| `Rarity:` | `Rarity: Mythic Rare` |
-| `Flavor Text:` | `Flavor Text: Some italic text` |
-| `Frame Color:` | `Frame Color: Red and Blue` |
-| `Accent Color:` | `Accent Color: Green` |
-| `Frame Effect:` | `Frame Effect: Nyx` |
-| `Color Indicator:` | `Color Indicator: Red and Green` |
-| `Has Legend Crown:` | `Has Legend Crown: true` |
-| `Set Code:` | `Set Code: MH3` |
-| `Collector Number:` | `Collector Number: 205` |
-| `Artist:` | `Artist: Chris Rahn` |
-| `Designer:` | `Designer: Mark Rosewater` |
-
-### Mana symbols
-
-Use curly brace notation: `{W}`, `{U}`, `{B}`, `{R}`, `{G}`, `{C}`, `{T}`, `{1}`, `{2}`, etc.
-
-Hybrid: `{G/U}`, `{W/B}`. Phyrexian: `{G/P}`, `{R/P}`.
-
-## Supported Templates
-
-- Standard (including colorless/Eldrazi full-bleed art)
-- Planeswalker (3 and 4 ability variants)
-- Saga
-- Class
-- Battle
-- Adventure
-- Transform (front and back)
-- MDFC / Modal DFC (front and back)
-- Split
-- Fuse
-- Flip (Kamigawa-style)
-- Aftermath
-- Mutate
-- Prototype
-- Leveler
 
 ## React Component
 
@@ -195,7 +133,7 @@ import { MtgCard } from '@domainellipticlanguage/mtg-crucible/react';
 
 <MtgCard
   card={renderedCardDisplay}
-  cardText="searchable text for ctrl+f"
+  cardText="Crucible of Legends"           // will be invisible, but searchable with ctrl+f
   rotateWidgetStyle={{ display: 'none' }}  // optional: hide rotation arrow
 />
 ```
@@ -215,3 +153,7 @@ npm run build     # compile TypeScript
 npm run dev       # start local dev server with hot reload
 ```
 
+## TODO
+- [ ] Add full support for Rooms
+- [ ] Support all frame effects (Snow, Nyx, Devoid) for all card types
+- [ ] Support MDFC/Transform for all card types
