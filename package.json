@@ -1,7 +1,11 @@
 {
   "name": "@domainellipticlanguage/mtg-crucible",
   "version": "0.2.5",
-  "description": "",
+  "description": "TypeScript library for rendering custom Magic: The Gathering card images as PNGs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/domainellipticlanguage/mtg-crucible.git"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -36,8 +40,8 @@
     "spike": "npx tsx scripts/spike.ts",
     "generate-assets": "npx tsx logo/generate-assets.ts"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["mtg", "magic-the-gathering", "card-renderer", "card-image", "custom-cards"],
+  "author": "domainellipticlanguage",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {

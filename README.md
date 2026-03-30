@@ -1,6 +1,6 @@
-# mtg-crucible
+# <img src="logo/logo-256.png" height="40"> MTG Crucible
 
-A TypeScript library for rendering Magic: The Gathering card images as PNGs.
+A TypeScript library for rendering custom Magic: The Gathering card images as PNGs.
 
 ## Installation
 
@@ -215,11 +215,3 @@ npm run build     # compile TypeScript
 npm run dev       # start local dev server with hot reload
 ```
 
-## Publishing
-
-```bash
-npm login
-npm version patch   # or minor/major
-npm run build
-npm publish --access public
-```
