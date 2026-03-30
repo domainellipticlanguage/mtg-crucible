@@ -1,4 +1,4 @@
-# <img src="logo/logo-256.png" height="40"> MTG Crucible
+# <img src="https://raw.githubusercontent.com/domainellipticlanguage/mtg-crucible/main/logo/logo-256.png" height="40"> MTG Crucible
 
 A TypeScript library for rendering custom Magic: The Gathering card images as PNGs.
 
@@ -46,7 +46,7 @@ const result = await renderCard({
 });
 ```
 
-<img src="examples/crucible-of-legends.png" alt="Crucible of Legends" width="300">
+<img src="https://raw.githubusercontent.com/domainellipticlanguage/mtg-crucible/main/examples/crucible-of-legends.png" alt="Crucible of Legends" width="300">
 
 
 ## Supported Templates
@@ -125,7 +125,7 @@ Art URL: https://example.com/art.png
 Frame Effect: Nyx, Snow
 Frame Color: Red, Blue
 ```
-<img src="examples/conduit-of-fire-and-ice.png" alt="Crucible of Legends" width="300">
+<img src="https://raw.githubusercontent.com/domainellipticlanguage/mtg-crucible/main/examples/conduit-of-fire-and-ice.png" alt="Crucible of Legends" width="300">
 
 
 ### Multi-color border
@@ -141,7 +141,7 @@ Accent: Red, White, Red, White, Red, White, Red, and White
 PT Box Color: Red, White, Red, White, Red, White, Red, and White
 ```
 
-<img src="examples/the-candy-striper.png" alt="Crucible of Legends" width="300">
+<img src="https://raw.githubusercontent.com/domainellipticlanguage/mtg-crucible/main/examples/the-candy-striper.png" alt="Crucible of Legends" width="300">
 
 ## React Component
 
