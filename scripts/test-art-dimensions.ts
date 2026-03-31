@@ -172,7 +172,7 @@ async function main() {
 
   for (const { template, label, card } of TEST_CARDS) {
     const fileKey = label ?? template;
-    const dims = getArtDimensions(card, template);
+    const { primaryArtDimensions: dims, secondaryArtDimensions: linkedDims } = getArtDimensions(card);
     console.log(`${fileKey}: ${dims.width}x${dims.height}`);
 
     // Generate and save the test art image
@@ -184,8 +184,7 @@ async function main() {
     const cardWithArt = { ...card, artUrl: artPath };
 
     // Also generate art for linked card if present
-    if (cardWithArt.linkedCard) {
-      const linkedDims = getArtDimensions(card, template, true);
+    if (cardWithArt.linkedCard && linkedDims) {
       const linkedArt = generateTestImage(linkedDims.width, linkedDims.height, `${fileKey}-linked`);
       const linkedArtPath = path.join(OUT, `${fileKey}-linked-art.png`);
       fs.writeFileSync(linkedArtPath, linkedArt);
