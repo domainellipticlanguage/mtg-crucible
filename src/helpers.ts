@@ -578,9 +578,10 @@ export async function drawSetSymbol(
   return sw;
 }
 
-export function drawBottomInfo(ctx: SKRSContext2D, card: Pick<NormalizedCardData, 'collectorNumber' | 'artist' | 'setCode'>, cw: number, ch: number): void {
+export async function drawBottomInfo(ctx: SKRSContext2D, card: Pick<NormalizedCardData, 'collectorNumber' | 'artist' | 'setCode' | 'designer'>, cw: number, ch: number): Promise<void> {
   const fontSize = ch * 0.0143;
-  const y = ch * 0.955;
+  const y1 = ch * 0.955;
+  const y2 = y1 + fontSize * 1.4;
   const leftX = cw * 0.0647;
   const rightX = cw * 0.935;
   ctx.save();
@@ -588,14 +589,39 @@ export function drawBottomInfo(ctx: SKRSContext2D, card: Pick<NormalizedCardData
   ctx.fillStyle = 'white';
   ctx.textBaseline = 'alphabetic';
   ctx.shadowColor = 'black'; ctx.shadowOffsetX = 1; ctx.shadowOffsetY = 1; ctx.shadowBlur = 2;
-  const num = card.collectorNumber || '000';
-  const set = card.setCode || 'CRU';
-  ctx.fillText(`${num} \u2022 ${set}`, leftX, y);
-  const artist = card.artist || '';
-  if (artist) ctx.fillText(`\u{1F58C}\uFE0E ${artist}`, leftX, y + fontSize * 1.4);
+
+  // Top line: collector number (left), designer (right, bold)
+  const num = card.collectorNumber || '1 / 1';
+  ctx.fillText(num, leftX, y1);
+  const designerFontSize = fontSize * 1.2;
   ctx.textAlign = 'right';
-  ctx.fillText('mtg-crucible', rightX, y + fontSize * 1.4);
+  ctx.font = `${designerFontSize}px "Beleren Bold"`;
+  ctx.fillText(card.designer || 'mtg-crucible', rightX, y1);
   ctx.textAlign = 'left';
+  ctx.font = `${fontSize}px "MPlantin"`;
+
+  // Bottom line: set • lang + artist brush + artist
+  const set = (card.setCode || 'CRU * EN').replace(/\s*\*\s*/g, ' \u2022 ');
+  const artist = card.artist || '';
+  const brushPad = fontSize * 0.25;
+  if (artist) {
+    const brushHeight = fontSize * 0.96;
+    const brushWidth = brushHeight * (202 / 118);
+    const setText = `${set} `;
+    const setWidth = ctx.measureText(setText).width;
+    ctx.fillText(setText, leftX, y2);
+    try {
+      const brushPath = path.join(ASSETS_DIR, 'symbols', 'misc', 'artistbrush.svg');
+      const brushImg = await loadImage(brushPath);
+      ctx.drawImage(brushImg, leftX + setWidth + brushPad, y2 - brushHeight * 0.85, brushWidth, brushHeight);
+    } catch { /* skip icon if load fails */ }
+    ctx.font = `${fontSize}px "Beleren Bold"`;
+    ctx.fillText(artist, leftX + setWidth + brushPad + brushWidth + brushPad, y2);
+    ctx.font = `${fontSize}px "MPlantin"`;
+  } else {
+    ctx.fillText(set, leftX, y2);
+  }
+
   ctx.restore();
 }
 
