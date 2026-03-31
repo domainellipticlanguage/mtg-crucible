@@ -117,10 +117,10 @@ export function normalizeCard(card: CardData): NormalizedCardData {
     linkedCard: card.linkedCard ? normalizeCard(card.linkedCard) : undefined,
     linkType,
 
-    collectorNumber: card.collectorNumber ?? '000',
+    collectorNumber: card.collectorNumber ?? '1/1',
     artist: card.artist ?? '',
-    setCode: card.setCode ?? 'CRU',
-    designer: card.designer ?? '',
+    setCode: card.setCode ?? 'CRU * EN',
+    designer: card.designer ?? 'mtg-crucible',
   };
 }
 

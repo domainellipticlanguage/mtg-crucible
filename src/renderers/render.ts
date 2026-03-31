@@ -288,10 +288,10 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
     ctx.save();
     ctx.translate(cw, 0);
     ctx.rotate(Math.PI / 2);
-    drawBottomInfo(ctx, card, ch, cw);
+    await drawBottomInfo(ctx, card, ch, cw);
     ctx.restore();
   } else {
-    drawBottomInfo(ctx, card, cw, ch);
+    await drawBottomInfo(ctx, card, cw, ch);
   }
 
   // Corners
