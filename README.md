@@ -87,9 +87,9 @@ Convert a `CardData` object back to text format (round-trips with `parseCard`).
 
 Normalize a `CardData` into `NormalizedCardData` with all fields resolved (frame colors derived, abilities parsed, defaults filled in).
 
-### `getArtDimensions(card: CardData, template?: TemplateName, linked?: boolean): { width: number; height: number }`
+### `getArtDimensions(card: CardData): { primaryArtDimensions: { width, height }; secondaryArtDimensions?: { width, height } }`
 
-Get the expected art image dimensions for a given card and template. Useful for generating or resizing art to fit correctly.
+Get the expected art image dimensions for a card. Returns primary dimensions, and secondary dimensions if the card has a linked card (e.g. transform, split, aftermath).
 
 ## Text Format
 

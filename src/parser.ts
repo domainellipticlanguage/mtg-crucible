@@ -1145,8 +1145,7 @@ export function resolveTemplate(card: CardData): TemplateName {
   return 'standard';
 }
 
-export function getArtDimensions(card: CardData, templateOverride?: TemplateName, linked?: boolean): { width: number; height: number } {
-  const templateKey = templateOverride ?? resolveTemplate(card);
+function getArtDimensionsForFace(card: CardData, templateKey: TemplateName, linked: boolean): { width: number; height: number } {
   const config = TEMPLATE_CONFIGS[templateKey] ?? TEMPLATE_CONFIGS.standard;
   const { w: cw, h: ch } = config;
   const L = (linked && config.linkedLayout) ? config.linkedLayout : config.layout;
@@ -1167,6 +1166,16 @@ export function getArtDimensions(card: CardData, templateOverride?: TemplateName
     return { width: artH, height: artW };
   }
   return { width: artW, height: artH };
+}
+
+export function getArtDimensions(card: CardData): { primaryArtDimensions: { width: number; height: number }; secondaryArtDimensions?: { width: number; height: number } } {
+  const templateKey = resolveTemplate(card);
+  const primary = getArtDimensionsForFace(card, templateKey, false);
+  let secondary: { width: number; height: number } | undefined;
+  if (card.linkedCard) {
+    secondary = getArtDimensionsForFace(card.linkedCard, templateKey, true);
+  }
+  return { primaryArtDimensions: primary, secondaryArtDimensions: secondary };
 }
 
 export function inferLinkType(card: CardData): CardData['linkType'] {
