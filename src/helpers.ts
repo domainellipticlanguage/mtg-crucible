@@ -358,17 +358,6 @@ export async function drawGradientCrowns(
   }
 }
 
-export function getTypeLine(card: Pick<NormalizedCardData, 'supertypes' | 'types' | 'subtypes'>): string {
-  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-  const parts: string[] = [];
-  if (card.supertypes) parts.push(...card.supertypes.map(capitalize));
-  if (card.types) parts.push(...card.types.map(capitalize));
-  let line = parts.join(' ');
-  if (card.subtypes && card.subtypes.length > 0) {
-    line += ' \u2014 ' + card.subtypes.join(' ');
-  }
-  return line;
-}
 
 const COLOR_HEX: Record<Color, string> = {
   white: '#ccced0',
@@ -580,7 +569,7 @@ export async function drawSetSymbol(
 
 export async function drawBottomInfo(ctx: SKRSContext2D, card: Pick<NormalizedCardData, 'collectorNumber' | 'artist' | 'setCode' | 'designer'>, cw: number, ch: number): Promise<void> {
   const fontSize = ch * 0.0143;
-  const y1 = ch * 0.955;
+  const y1 = ch * 0.965;
   const y2 = y1 + fontSize * 1.4;
   const leftX = cw * 0.0647;
   const rightX = cw * 0.935;

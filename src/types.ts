@@ -31,6 +31,12 @@ export type Type = (typeof CARD_TYPES)[number];
 // Too many to list. All creatures. All land types. Shrine, Saga, etc.
 export type Subtype = string;
 
+export interface ParsedTypeLine {
+  supertypes: Supertype[];
+  types: Type[];
+  subtypes: string[];
+}
+
 export const LINK_TYPES = ['transform', 'modal_dfc', 'flip', 'fuse', 'split', 'adventure', 'aftermath'] as const;
 export type LinkType = (typeof LINK_TYPES)[number];
 
@@ -156,9 +162,7 @@ export interface CardData {
 
   name?: string; // Will default to Untitled
   manaCost?: string;
-  supertypes?: Supertype[]; // e.g. legendary
-  types?: Type[];
-  subtypes?: string[];
+  typeLine?: string | ParsedTypeLine;
   // Todo move to cardgrouping?
   rarity?: Rarity;
 
@@ -202,9 +206,7 @@ export interface NormalizedCardData {
 
   name: string;
   manaCost: string;
-  supertypes: Supertype[];
-  types: Type[];
-  subtypes: string[];
+  typeLine: ParsedTypeLine;
   rarity: Rarity;
 
   colorIndicator: Color[];

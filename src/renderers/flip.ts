@@ -3,7 +3,8 @@ import * as path from 'path';
 import { loadImage, type SKRSContext2D } from '@napi-rs/canvas';
 import type { NormalizedCardData } from '../types';
 import { drawSingleLineText, drawWrappedText } from '../text';
-import { getTypeLine, frameColorCode } from '../helpers';
+import { frameColorCode } from '../helpers';
+import { formatTypeLine } from '../parser';
 import { ASSETS_DIR } from '../layout';
 import { getParsedAbilities } from '../parser';
 import type { TemplateHooks, AnyLayout } from './render';
@@ -62,7 +63,7 @@ const flipBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
     const y = (1 - t2.y) * ch;
     const ptInset = hasPt2 ? (L.type2PtInset ?? 0) : 0;
     const typeW = (t2.w - ptInset) * cw;
-    drawSingleLineText(ctx, getTypeLine(other), x, y, typeW, t2.h * ch, t2.font, t2.size * ch, 'left', 'black');
+    drawSingleLineText(ctx, formatTypeLine(other.typeLine), x, y, typeW, t2.h * ch, t2.font, t2.size * ch, 'left', 'black');
   }
 
   const r2 = L.rules2;

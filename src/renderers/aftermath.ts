@@ -1,8 +1,8 @@
 import { type SKRSContext2D } from '@napi-rs/canvas';
 import type { NormalizedCardData } from '../types';
 import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor } from '../text';
-import { drawArt, drawManaCost, measureManaCostWidth, getTypeLine, drawFrame, frameColorCode } from '../helpers';
-import { getParsedAbilities } from '../parser';
+import { drawArt, drawManaCost, measureManaCostWidth, drawFrame, frameColorCode } from '../helpers';
+import { getParsedAbilities, formatTypeLine } from '../parser';
 import { AFTERMATH_BOTTOM_LAYOUT } from '../layout';
 import type { TemplateHooks, AnyLayout } from './render';
 
@@ -57,7 +57,7 @@ async function renderBottomText(
 
   // Type line — offset in local y (leftward from anchor = increasing y)
   const typeY = (L.name.x - L.type.x) * cw;
-  drawSingleLineText(ctx, getTypeLine(card), 0, typeY, L.type.w * ch, L.type.h * cw, L.type.font, L.type.size * ch, 'left', 'black');
+  drawSingleLineText(ctx, formatTypeLine(card.typeLine), 0, typeY, L.type.w * ch, L.type.h * cw, L.type.font, L.type.size * ch, 'left', 'black');
 
   // Rules text
   const pa = getParsedAbilities(card);
