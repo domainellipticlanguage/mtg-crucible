@@ -1,8 +1,8 @@
 import { type SKRSContext2D } from '@napi-rs/canvas';
 import type { NormalizedCardData } from '../types';
 import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor, type ExclusionRect } from '../text';
-import { drawArt, drawManaCost, drawSetSymbol, measureManaCostWidth, getTypeLine, drawFrame, frameColorCode } from '../helpers';
-import { getParsedAbilities } from '../parser';
+import { drawArt, drawManaCost, drawSetSymbol, measureManaCostWidth, drawFrame, frameColorCode } from '../helpers';
+import { getParsedAbilities, formatTypeLine } from '../parser';
 import { SPLIT_RIGHT_LAYOUT, SPLIT_LEFT_LAYOUT } from '../layout';
 import type { TemplateHooks, AnyLayout } from './render';
 
@@ -72,7 +72,7 @@ async function renderSplitText(
   drawSingleLineText(ctx, card.name ?? '', 0, L.name.x * cw, nameW, L.name.h * cw, L.name.font, L.name.size * ch, 'left', 'black');
 
   // Type line
-  drawSingleLineText(ctx, getTypeLine(card), 0, L.type.x * cw, L.type.w * ch, L.type.h * cw, L.type.font, L.type.size * ch, 'left', 'black');
+  drawSingleLineText(ctx, formatTypeLine(card.typeLine), 0, L.type.x * cw, L.type.w * ch, L.type.h * cw, L.type.font, L.type.size * ch, 'left', 'black');
 
   // Set symbol (in rotated space: swap ch/cw)
   await drawSetSymbol(ctx, card.rarity || 'common', L.setSymbol, cw, ch);

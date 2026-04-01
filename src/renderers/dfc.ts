@@ -45,10 +45,10 @@ const mdfcBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
   const F = L.flipside;
 
   const titleCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-  const isCreature = other.types?.includes('creature');
+  const isCreature = other.typeLine.types.includes('creature');
   const shortType = isCreature
     ? `${other.power}/${other.toughness} Creature`
-    : titleCase(other.subtypes?.[0] ?? other.types?.[0] ?? '');
+    : titleCase(other.typeLine.subtypes[0] ?? other.typeLine.types[0] ?? '');
   const hint = getFlipsideHint(other);
 
   const hintColor = F.color ?? 'white';

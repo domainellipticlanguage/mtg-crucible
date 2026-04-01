@@ -1,4 +1,4 @@
-import type { CardData, AccentColor, Color, FrameColor, FrameEffect, Rarity, Rotation, Supertype, Type, ParsedAbilities, PlaneswalkerAbilities, StructuredAbilities, TemplateName } from './types';
+import type { CardData, NormalizedCardData, AccentColor, Color, FrameColor, FrameEffect, Rarity, Rotation, Supertype, Type, ParsedAbilities, ParsedTypeLine, PlaneswalkerAbilities, StructuredAbilities, TemplateName } from './types';
 import {
   STD_W, STD_H, STD_LAYOUT,
   PW_W, PW_H, PW_LAYOUT, PW_TALL_LAYOUT,
@@ -159,7 +159,7 @@ function romanToNumber(roman: string): number {
   }
 }
 
-function parseTypeLine(typeLine: string | undefined): { supertypes: Supertype[]; types: Type[]; subtypes: string[] } {
+export function parseTypeLine(typeLine: string | undefined): ParsedTypeLine {
   if (!typeLine) return { supertypes: [], types: [], subtypes: [] };
   const [left, right] = typeLine.split(/\s+[—–-]\s+|\s*[—–]\s*/);
   const subtypes = right ? right.split(/\s+/) : [];
@@ -246,7 +246,7 @@ function colorsToAccent(colors: Set<string>): AccentColor | AccentColor[] | unde
 
 type DerivedFrame = { frameColor: FrameColor | FrameColor[]; accentColor?: AccentColor | AccentColor[] };
 
-export function deriveFrameColor(card: Pick<CardData, 'subtypes' | 'types' | 'manaCost' | 'colorIndicator'> & { abilitiesText?: string }): DerivedFrame {
+export function deriveFrameColor(typeLine: ParsedTypeLine, card: Pick<CardData, 'manaCost' | 'colorIndicator'> & { abilitiesText?: string }): DerivedFrame {
   // Effective colors: from mana cost, or fall back to color indicator
   const colors = extractManaColors(card.manaCost);
   const fromIndicator = colors.size === 0 && card.colorIndicator && card.colorIndicator.length > 0;
@@ -262,11 +262,11 @@ export function deriveFrameColor(card: Pick<CardData, 'subtypes' | 'types' | 'ma
   const accent = colorsToAccent(colors);
 
   // 1. Vehicle subtype
-  if (card.subtypes?.some(s => s.toLowerCase() === 'vehicle')) return { frameColor: 'vehicle' };
+  if (typeLine.subtypes.some(s => s.toLowerCase() === 'vehicle')) return { frameColor: 'vehicle' };
 
   // 2. Land type — accent from produced colors, then card colors fallback
-  if (card.types?.includes('land')) {
-    const produced = extractProducedColors(card.subtypes, card.abilitiesText);
+  if (typeLine.types.includes('land')) {
+    const produced = extractProducedColors(typeLine.subtypes, card.abilitiesText);
     const landAccent = colorsToAccent(produced);
     if (landAccent) return { frameColor: 'land', accentColor: landAccent };
     if (accent) return { frameColor: 'land', accentColor: accent };
@@ -274,7 +274,7 @@ export function deriveFrameColor(card: Pick<CardData, 'subtypes' | 'types' | 'ma
   }
 
   // 3. Artifact type
-  if (card.types?.includes('artifact')) {
+  if (typeLine.types.includes('artifact')) {
     return accent ? { frameColor: 'artifact', accentColor: accent } : { frameColor: 'artifact' };
   }
 
@@ -791,9 +791,9 @@ function parseSingleFace(text: string): CardData {
 
   // Build card
   const card: CardData = { name };
-  if (supertypes.length > 0) card.supertypes = supertypes;
-  if (types.length > 0) card.types = types;
-  if (subtypes.length > 0) card.subtypes = subtypes;
+  if (supertypes.length > 0 || types.length > 0 || subtypes.length > 0) {
+    card.typeLine = { supertypes, types, subtypes };
+  }
   if (manaCost) card.manaCost = manaCost;
   if (abilities) card.abilities = abilities;
   if (flavorText) card.flavorText = flavorText;
@@ -840,7 +840,8 @@ export function formatCard(card: CardData): string {
   }
 
   // Type line
-  lines.push(buildTypeLine(card));
+  if (typeof card.typeLine === 'string') lines.push(card.typeLine);
+  else if (card.typeLine) lines.push(formatTypeLine(card.typeLine));
 
   // Abilities
   const oracleText = getOracleText(card);
@@ -963,17 +964,18 @@ function calcCmc(manaCost: string | undefined): number {
   return total;
 }
 
-/** Build the type line string like "Legendary Creature — Human Wizard" */
-function buildTypeLine(card: CardData): string {
+/** Format a ParsedTypeLine into a string like "Legendary Creature — Human Wizard" */
+export function formatTypeLine(typeLine: ParsedTypeLine): string {
   const parts: string[] = [];
-  if (card.supertypes) parts.push(...card.supertypes.map(s => s.charAt(0).toUpperCase() + s.slice(1)));
-  if (card.types) parts.push(...card.types.map(t => t.charAt(0).toUpperCase() + t.slice(1)));
+  if (typeLine.supertypes) parts.push(...typeLine.supertypes.map(s => s.charAt(0).toUpperCase() + s.slice(1)));
+  if (typeLine.types) parts.push(...typeLine.types.map(t => t.charAt(0).toUpperCase() + t.slice(1)));
   let line = parts.join(' ');
-  if (card.subtypes && card.subtypes.length > 0) {
-    line += ' \u2014 ' + card.subtypes.join(' ');
+  if (typeLine.subtypes && typeLine.subtypes.length > 0) {
+    line += ' \u2014 ' + typeLine.subtypes.join(' ');
   }
   return line;
 }
+
 
 export function getOracleText(card: CardData): string {
   if (!card.abilities) return '';
@@ -982,7 +984,7 @@ export function getOracleText(card: CardData): string {
 }
 
 /** Map LinkType to Scryfall layout string */
-function scryfallLayout(card: CardData): string {
+function scryfallLayout(card: NormalizedCardData): string {
   if (card.linkType) {
     switch (card.linkType) {
       case 'transform': return 'transform';
@@ -997,11 +999,11 @@ function scryfallLayout(card: CardData): string {
 }
 
 /** Build a Scryfall-like card face object */
-function buildScryfallFace(card: CardData): Record<string, any> {
+function buildScryfallFace(card: NormalizedCardData): Record<string, any> {
   const face: Record<string, any> = {};
-  face.name = card.name ?? '';
+  face.name = card.name;
   if (card.manaCost) face.mana_cost = card.manaCost;
-  face.type_line = buildTypeLine(card);
+  face.type_line = formatTypeLine(card.typeLine);
 
   const oracleText = getOracleText(card);
   if (oracleText) face.oracle_text = oracleText;
@@ -1027,15 +1029,15 @@ function buildScryfallFace(card: CardData): Record<string, any> {
   return face;
 }
 
-/** Convert CardData to a Scryfall-compatible JSON string */
-export function toScryfallJson(card: CardData): string {
+/** Convert NormalizedCardData to a Scryfall-compatible JSON string */
+export function toScryfallJson(card: NormalizedCardData): string {
   const obj: Record<string, any> = {};
 
   obj.layout = scryfallLayout(card);
-  obj.name = card.name ?? '';
+  obj.name = card.name;
 
   if (card.linkedCard) {
-    obj.name = `${card.name ?? ''} // ${card.linkedCard.name ?? ''}`;
+    obj.name = `${card.name} // ${card.linkedCard.name}`;
     obj.card_faces = [buildScryfallFace(card), buildScryfallFace(card.linkedCard)];
   } else {
     Object.assign(obj, buildScryfallFace(card));
@@ -1043,7 +1045,7 @@ export function toScryfallJson(card: CardData): string {
 
   if (card.manaCost) obj.mana_cost = card.manaCost;
   obj.cmc = calcCmc(card.manaCost);
-  obj.type_line = buildTypeLine(card);
+  obj.type_line = formatTypeLine(card.typeLine);
 
   const colors = card.colorIndicator
     ? card.colorIndicator.map(c => COLOR_TO_LETTER[c])
@@ -1059,14 +1061,14 @@ export function toScryfallJson(card: CardData): string {
 }
 
 /** Format a single face as Scryfall spoiler text */
-function formatScryfallFaceText(card: CardData): string {
+function formatScryfallFaceText(card: NormalizedCardData): string {
   const lines: string[] = [];
 
-  let nameLine = card.name ?? '';
+  let nameLine = card.name;
   if (card.manaCost) nameLine += ` ${card.manaCost}`;
   lines.push(nameLine);
 
-  lines.push(buildTypeLine(card));
+  lines.push(formatTypeLine(card.typeLine));
 
   const oracleText = getOracleText(card);
   if (oracleText) lines.push(oracleText);
@@ -1082,8 +1084,8 @@ function formatScryfallFaceText(card: CardData): string {
   return lines.join('\n');
 }
 
-/** Convert CardData to Scryfall-style spoiler text */
-export function toScryfallText(card: CardData): string {
+/** Convert NormalizedCardData to Scryfall-style spoiler text */
+export function toScryfallText(card: NormalizedCardData): string {
   const parts = [formatScryfallFaceText(card)];
   if (card.linkedCard) {
     parts.push('----');
@@ -1178,24 +1180,25 @@ export function getArtDimensions(card: CardData): { primaryArtDimensions: { widt
   return { primaryArtDimensions: primary, secondaryArtDimensions: secondary };
 }
 
-export function inferLinkType(card: CardData): CardData['linkType'] {
+export function inferLinkType(card: CardData, frontTypeLine: ParsedTypeLine, backTypeLine: ParsedTypeLine): CardData['linkType'] {
   if (!card.linkedCard) return undefined;
   if (card.linkType) return card.linkType;
 
   const frontText = getOracleText(card);
   const backText = getOracleText(card.linkedCard);
   const bothHaveManaCost = !!card.manaCost && !!card.linkedCard.manaCost;
-  const isSpell = (types?: Type[]) => !!types?.length && types.some(t => t === 'instant' || t === 'sorcery');
+  const isSpell = (typeLine: ParsedTypeLine) =>
+    typeLine.types.length > 0 && typeLine.types.some(t => t === 'instant' || t === 'sorcery');
 
   if (bothHaveManaCost) {
     const fullText = frontText + '\n' + backText;
     if (/\bFuse\b/.test(fullText)) return 'fuse';
     if (/\bAftermath\b/.test(fullText)) return 'aftermath';
-    if (isSpell(card.types) && isSpell(card.linkedCard.types)) return 'split';
+    if (isSpell(frontTypeLine) && isSpell(backTypeLine)) return 'split';
     return 'modal_dfc';
   }
   // Battles always transform
-  if (card.types?.includes('battle') || card.battleDefense) return 'transform';
+  if (frontTypeLine.types.includes('battle') || card.battleDefense) return 'transform';
   if (/\bflip\b/i.test(frontText)) return 'flip';
   const fullText = frontText + '\n' + backText;
   if (/\btransform\b/i.test(fullText)) return 'transform';

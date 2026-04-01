@@ -1,19 +1,18 @@
-import type { CardData, NormalizedCardData, ParsedAbilities, RenderedCard, FrameColor, FrameEffect, AccentColor } from './types';
+import type { CardData, NormalizedCardData, ParsedAbilities, ParsedTypeLine, RenderedCard, FrameColor, FrameEffect, AccentColor } from './types';
 import type { MtgCardDisplayData } from './types';
 import { ensureInitialized } from './helpers';
 import { renderCardImage } from './renderers/render';
-import { parseCard, parseAbilities, formatAbilities, formatCard, toScryfallJson, toScryfallText, computeRotations, deriveFrameColor, resolveTemplate, getArtDimensions, inferLinkType } from './parser';
+import { parseCard, parseAbilities, parseTypeLine, formatAbilities, formatTypeLine, formatCard, toScryfallJson, toScryfallText, computeRotations, deriveFrameColor, resolveTemplate, getArtDimensions, inferLinkType } from './parser';
 import { deriveTitleColor } from './helpers';
 
 export type {
   Rarity, TemplateName, Color, AccentColor, FrameColor, FrameEffect, Supertype, Type, Subtype, LinkType,
   PlaneswalkerAbilities, SagaAbilities, ClassAbilities, LevelerAbilities, CaseAbilities, PrototypeAbilities,
-  StructuredAbilities, ParsedAbilities,
+  StructuredAbilities, ParsedAbilities, ParsedTypeLine,
   CardData, Rotation, RenderedCard,
 } from './types';
 export type { MtgCardDisplayData } from './types';
-export { renderCardImage } from './renderers/render';
-export { parseCard, parseAbilities, formatAbilities, formatCard, toScryfallJson, toScryfallText, computeRotations, resolveTemplate, getArtDimensions } from './parser';
+export { parseCard, formatCard, parseTypeLine, formatTypeLine, parseAbilities, formatAbilities, getArtDimensions, resolveTemplate, toScryfallJson, toScryfallText } from './parser';
 
 // Backwards-compatible individual renderer exports
 export const renderStandard = (card: CardData) => renderCardImage(normalizeCard(card), 'standard');
@@ -23,12 +22,18 @@ export const renderBattle = (card: CardData) => renderCardImage(normalizeCard(ca
 export const renderClass = (card: CardData) => renderCardImage(normalizeCard(card), 'class');
 
 /** Infer the ability kind from card types/subtypes. */
-function inferAbilityKind(card: CardData): ParsedAbilities['structuredAbilities'] extends { kind: infer K } ? K : undefined {
-  if (card.types?.includes('planeswalker')) return 'planeswalker' as any;
-  if (card.subtypes?.some(s => s.toLowerCase() === 'saga')) return 'saga' as any;
-  if (card.subtypes?.some(s => s.toLowerCase() === 'class')) return 'class' as any;
-  if (card.subtypes?.some(s => s.toLowerCase() === 'case')) return 'case' as any;
+function inferAbilityKind(tl: ParsedTypeLine): ParsedAbilities['structuredAbilities'] extends { kind: infer K } ? K : undefined {
+  if (tl.types.includes('planeswalker')) return 'planeswalker' as any;
+  if (tl.subtypes.some(s => s.toLowerCase() === 'saga')) return 'saga' as any;
+  if (tl.subtypes.some(s => s.toLowerCase() === 'class')) return 'class' as any;
+  if (tl.subtypes.some(s => s.toLowerCase() === 'case')) return 'case' as any;
   return undefined as any;
+}
+
+function resolveTypeLine(card: CardData): ParsedTypeLine {
+  if (!card.typeLine) return { supertypes: [], types: [], subtypes: [] };
+  if (typeof card.typeLine === 'string') return parseTypeLine(card.typeLine);
+  return card.typeLine;
 }
 
 function toArray<T>(v: T | T[] | undefined): T[] {
@@ -37,10 +42,13 @@ function toArray<T>(v: T | T[] | undefined): T[] {
 }
 
 export function normalizeCard(card: CardData): NormalizedCardData {
+  // Resolve typeLine
+  const typeLine = resolveTypeLine(card);
+
   // Resolve abilities to ParsedAbilities
   let abilities: ParsedAbilities;
   if (typeof card.abilities === 'string') {
-    abilities = parseAbilities(card.abilities, inferAbilityKind(card));
+    abilities = parseAbilities(card.abilities, inferAbilityKind(typeLine));
   } else if (card.abilities && typeof card.abilities === 'object') {
     abilities = card.abilities;
   } else {
@@ -58,7 +66,7 @@ export function normalizeCard(card: CardData): NormalizedCardData {
   }
 
   const abilitiesText = formatAbilities(abilities);
-  const derived = card.frameColor && card.accentColor ? undefined : deriveFrameColor({
+  const derived = card.frameColor && card.accentColor ? undefined : deriveFrameColor(typeLine, {
     ...card,
     abilitiesText,
   });
@@ -70,7 +78,8 @@ export function normalizeCard(card: CardData): NormalizedCardData {
   const nameLineColor = toArray<FrameColor>(card.nameLineColor ?? titleColor);
   const typeLineColor = toArray<FrameColor>(card.typeLineColor ?? titleColor);
 
-  const linkType = inferLinkType(card);
+  const backTypeLine = card.linkedCard ? resolveTypeLine(card.linkedCard) : { supertypes: [], types: [], subtypes: [] } as ParsedTypeLine;
+  const linkType = inferLinkType(card, typeLine, backTypeLine);
   const partial: CardData = {
     ...card,
     frameColor,
@@ -92,9 +101,7 @@ export function normalizeCard(card: CardData): NormalizedCardData {
 
     name: card.name ?? '',
     manaCost: card.manaCost ?? '',
-    supertypes: card.supertypes ?? [],
-    types: card.types ?? [],
-    subtypes: card.subtypes ?? [],
+    typeLine,
     rarity: card.rarity ?? 'rare',
 
     colorIndicator: card.colorIndicator ?? [],
@@ -112,7 +119,7 @@ export function normalizeCard(card: CardData): NormalizedCardData {
     startingLoyalty: card.startingLoyalty ?? '',
     battleDefense: card.battleDefense ?? '',
 
-    legendCrown: card.legendCrown ?? (card.supertypes?.includes('legendary') ?? false),
+    legendCrown: card.legendCrown ?? typeLine.supertypes.includes('legendary'),
 
     linkedCard: card.linkedCard ? normalizeCard(card.linkedCard) : undefined,
     linkType,

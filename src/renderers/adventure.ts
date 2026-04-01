@@ -1,7 +1,8 @@
 import { type SKRSContext2D } from '@napi-rs/canvas';
 import type { NormalizedCardData } from '../types';
 import { drawSingleLineText, drawWrappedText } from '../text';
-import { drawManaCost, measureManaCostWidth, getTypeLine } from '../helpers';
+import { drawManaCost, measureManaCostWidth } from '../helpers';
+import { formatTypeLine } from '../parser';
 
 async function body(ctx: SKRSContext2D, card: NormalizedCardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
   const adv = card.linkedCard;
@@ -18,7 +19,7 @@ async function body(ctx: SKRSContext2D, card: NormalizedCardData, L: Record<stri
   }
 
   // Adventure type line
-  const advTypeLine = getTypeLine(adv);
+  const advTypeLine = formatTypeLine(adv.typeLine);
   drawSingleLineText(ctx, advTypeLine, L.advType.x * cw, L.advType.y * ch, L.advType.w * cw, L.advType.h * ch, L.advType.font, L.advType.size * ch, 'left', 'white');
 
   // Adventure rules text (left book area)

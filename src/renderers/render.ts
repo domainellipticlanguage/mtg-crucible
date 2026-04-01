@@ -19,11 +19,11 @@ import {
   AFTERMATH_TOP_LAYOUT,
   ASSETS_DIR,
 } from '../layout';
-import { getParsedAbilities } from '../parser';
+import { getParsedAbilities, formatTypeLine } from '../parser';
 
 import {
   drawArt, drawCorners, drawSetSymbol, drawBottomInfo, drawManaCost, measureManaCostWidth,
-  getTypeLine, frameColorCode,
+  frameColorCode,
   drawColorIndicator, drawFrame, drawGradientCrowns,
 } from '../helpers';
 import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor, type ExclusionRect } from '../text';
@@ -153,7 +153,7 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
   }
 
   // Legend crown (planeswalkers use their own frame treatment)
-  if (L.crown && card.supertypes?.includes('legendary') && !templateKey.startsWith('planeswalker')) {
+  if (L.crown && card.typeLine.supertypes.includes('legendary') && !templateKey.startsWith('planeswalker')) {
     const crownBase = crownDir ? path.join(ASSETS_DIR, 'crowns', crownDir) : path.join(ASSETS_DIR, 'crowns');
     const crownPath = path.join(crownBase, `${crownCodes[0]}.png`);
     if (fs.existsSync(crownPath)) {
@@ -243,7 +243,7 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
     const typeH = L.type.h * ch;
     const indicatorOffset = drawColorIndicator(ctx, card.colorIndicator, typeX, typeY, typeH);
     const typeW = L.type.w * cw - indicatorOffset - setSymW;
-    drawSingleLineText(ctx, getTypeLine(card), typeX + indicatorOffset, typeY, typeW, typeH, L.type.font, L.type.size * ch, 'left', L.type.color ?? textColor);
+    drawSingleLineText(ctx, formatTypeLine(card.typeLine), typeX + indicatorOffset, typeY, typeW, typeH, L.type.font, L.type.size * ch, 'left', L.type.color ?? textColor);
 
     // Rules + flavor text (for templates with a rules area)
     const pa = getParsedAbilities(card);
