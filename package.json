@@ -13,11 +13,7 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./constants": {
-      "types": "./dist/constants/constants/index.d.ts",
-      "default": "./dist/constants/constants/index.js"
-    },
-    "./parser": {
+"./parser": {
       "types": "./dist/parser/parser/index.d.ts",
       "default": "./dist/parser/parser/index.js"
     },
@@ -32,7 +28,7 @@
   ],
   "scripts": {
     "test": "vitest",
-    "build": "tsc && tsc -p tsconfig.parser.json && tsc -p tsconfig.constants.json && tsc -p tsconfig.react.json",
+    "build": "tsc && tsc -p tsconfig.parser.json && tsc -p tsconfig.react.json",
     "build:parser": "tsc -p tsconfig.parser.json",
     "build:core": "tsc",
     "build:react": "tsc -p tsconfig.react.json",
