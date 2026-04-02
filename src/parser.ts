@@ -1233,3 +1233,138 @@ export function computeRotations(card: CardData): Rotation[] {
       return [identity];
   }
 }
+
+const MANA_LETTER_TO_FRAME: Record<string, FrameColor> = { W: 'white', U: 'blue', B: 'black', R: 'red', G: 'green' };
+
+export function deriveTitleColor(manaCost: string | undefined, colorIndicator: CardData['colorIndicator']): FrameColor {
+  const WUBRG = ['W', 'U', 'B', 'R', 'G'];
+  const nonHybrid = new Set<string>();
+  const hybrid = new Set<string>();
+  const symbols = manaCost?.match(/\{([^}]+)\}/g) || [];
+  for (const sym of symbols) {
+    const inner = sym.slice(1, -1).toUpperCase();
+    const isHybrid = inner.includes('/');
+    for (const c of WUBRG) {
+      if (inner.includes(c)) {
+        if (isHybrid) hybrid.add(c); else nonHybrid.add(c);
+      }
+    }
+  }
+  const colors = nonHybrid.size > 0
+    ? new Set([...nonHybrid, ...hybrid])
+    : new Set<string>();
+  if (colors.size === 0 && colorIndicator) {
+    const COLOR_MAP: Record<string, string> = { white: 'W', blue: 'U', black: 'B', red: 'R', green: 'G' };
+    for (const c of colorIndicator) { if (COLOR_MAP[c]) colors.add(COLOR_MAP[c]); }
+  }
+  if (colors.size === 0) return 'artifact';
+  if (colors.size === 1) return MANA_LETTER_TO_FRAME[[...colors][0]];
+  return 'multicolor';
+}
+
+/** Infer the ability kind from card types/subtypes. */
+function inferAbilityKind(tl: ParsedTypeLine): ParsedAbilities['structuredAbilities'] extends { kind: infer K } ? K : undefined {
+  if (tl.types.includes('planeswalker')) return 'planeswalker' as any;
+  if (tl.subtypes.some(s => s.toLowerCase() === 'saga')) return 'saga' as any;
+  if (tl.subtypes.some(s => s.toLowerCase() === 'class')) return 'class' as any;
+  if (tl.subtypes.some(s => s.toLowerCase() === 'case')) return 'case' as any;
+  return undefined as any;
+}
+
+function resolveTypeLine(card: CardData): ParsedTypeLine {
+  if (!card.typeLine) return { supertypes: [], types: [], subtypes: [] };
+  if (typeof card.typeLine === 'string') return parseTypeLine(card.typeLine);
+  return card.typeLine;
+}
+
+function toArray<T>(v: T | T[] | undefined): T[] {
+  if (v == null) return [];
+  return Array.isArray(v) ? v : [v];
+}
+
+export function normalizeCard(card: CardData): NormalizedCardData {
+  const typeLine = resolveTypeLine(card);
+
+  let abilities: ParsedAbilities;
+  if (typeof card.abilities === 'string') {
+    abilities = parseAbilities(card.abilities, inferAbilityKind(typeLine));
+  } else if (card.abilities && typeof card.abilities === 'object') {
+    abilities = card.abilities;
+  } else {
+    abilities = {};
+  }
+
+  if (abilities.unstructuredAbilities) {
+    abilities = {
+      ...abilities,
+      unstructuredAbilities: abilities.unstructuredAbilities.map(a =>
+        a.replace(/^[-*] /gm, '\u2022 ')
+      ),
+    };
+  }
+
+  const abilitiesText = formatAbilities(abilities);
+  const derived = card.frameColor && card.accentColor ? undefined : deriveFrameColor(typeLine, {
+    ...card,
+    abilitiesText,
+  });
+
+  const frameColor = toArray<FrameColor>(card.frameColor ?? derived?.frameColor);
+  const frameEffect = toArray<FrameEffect>(card.frameEffect ?? 'normal');
+  const accentColor = toArray<AccentColor>(card.accentColor ?? derived?.accentColor);
+  const titleColor = card.nameLineColor ?? card.typeLineColor ?? deriveTitleColor(card.manaCost, card.colorIndicator);
+  const nameLineColor = toArray<FrameColor>(card.nameLineColor ?? titleColor);
+  const typeLineColor = toArray<FrameColor>(card.typeLineColor ?? titleColor);
+
+  const backTypeLine = card.linkedCard ? resolveTypeLine(card.linkedCard) : { supertypes: [], types: [], subtypes: [] } as ParsedTypeLine;
+  const linkType = inferLinkType(card, typeLine, backTypeLine);
+  const partial: CardData = {
+    ...card,
+    frameColor,
+    accentColor,
+    nameLineColor,
+    typeLineColor,
+    abilities,
+    linkType,
+  };
+
+  return {
+    cardTemplate: resolveTemplate(partial),
+    frameColor,
+    frameEffect,
+    accentColor,
+    nameLineColor,
+    typeLineColor,
+    ptBoxColor: toArray<FrameColor>(card.ptBoxColor),
+
+    name: card.name ?? '',
+    manaCost: card.manaCost ?? '',
+    typeLine,
+    rarity: card.rarity ?? 'rare',
+
+    colorIndicator: card.colorIndicator ?? [],
+
+    abilities,
+
+    power: card.power ?? '',
+    toughness: card.toughness ?? '',
+
+    artUrl: card.artUrl ?? '',
+    artDescription: card.artDescription ?? '',
+
+    flavorText: card.flavorText ?? '',
+
+    startingLoyalty: card.startingLoyalty ?? '',
+    battleDefense: card.battleDefense ?? '',
+
+    legendCrown: card.legendCrown ?? typeLine.supertypes.includes('legendary'),
+
+    linkedCard: card.linkedCard ? normalizeCard(card.linkedCard) : undefined,
+    linkType,
+
+    collectorNumber: card.collectorNumber ?? '1/1',
+    artist: card.artist ?? '',
+    setCode: card.setCode ?? 'CRU * EN',
+    designer: card.designer ?? 'mtg-crucible',
+  };
+}

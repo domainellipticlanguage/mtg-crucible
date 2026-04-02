@@ -4,7 +4,7 @@ import { loadImage, type SKRSContext2D } from '@napi-rs/canvas';
 import type { NormalizedCardData, LevelerAbilities } from '../types';
 import { drawSingleLineText, drawWrappedText } from '../text';
 import { frameColorCode } from '../helpers';
-import { ASSETS_DIR } from '../layout';
+import { ASSETS_DIR } from '../assets-dir';
 import { getParsedAbilities } from '../parser';
 import type { TemplateHooks, AnyLayout } from './render';
 

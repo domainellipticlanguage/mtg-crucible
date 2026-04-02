@@ -5,7 +5,7 @@ import type { NormalizedCardData } from '../types';
 import { drawSingleLineText, drawWrappedText } from '../text';
 import { frameColorCode } from '../helpers';
 import { formatTypeLine } from '../parser';
-import { ASSETS_DIR } from '../layout';
+import { ASSETS_DIR } from '../assets-dir';
 import { getParsedAbilities } from '../parser';
 import type { TemplateHooks, AnyLayout } from './render';
 

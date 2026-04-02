@@ -3,6 +3,8 @@ export {
   parseCard,
   parseAbilities,
   formatAbilities,
+  parseTypeLine,
+  formatTypeLine,
   formatCard,
   toScryfallJson,
   toScryfallText,
@@ -15,6 +17,8 @@ export {
   inferLinkType,
 } from '../parser';
 
+export { normalizeCard } from '../parser';
+
 export {
   RARITIES, TEMPLATE_NAMES, COLORS, FRAME_COLORS, FRAME_EFFECTS,
   SUPERTYPES_LIST, CARD_TYPES, LINK_TYPES,
@@ -23,6 +27,7 @@ export {
 export type {
   Rarity, TemplateName, Color, AccentColor, FrameColor, FrameEffect,
   Supertype, Type, Subtype, LinkType,
+  ParsedTypeLine,
   PlaneswalkerAbilities, SagaAbilities, ClassAbilities, LevelerAbilities,
   CaseAbilities, PrototypeAbilities, MutateAbilities, NoneAbilities,
   StructuredAbilities, ParsedAbilities,

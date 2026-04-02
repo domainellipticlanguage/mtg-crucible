@@ -294,12 +294,12 @@ describe('parseCard', () => {
     });
   });
 
-  it('parses flavor text wrapped in *asterisks*', () => {
+  it('parses flavor text with Flavor Text: prefix', () => {
     const card = parseCard(`
       Lightning Bolt {R}
       Instant
       Lightning Bolt deals 3 damage to any target.
-      *"The sparkmage shrieked."*
+      Flavor Text: "The sparkmage shrieked."
     `);
     expect(card).toMatchObject({
       abilities: { unstructuredAbilities: ['Lightning Bolt deals 3 damage to any target.'] },
@@ -312,8 +312,8 @@ describe('parseCard', () => {
       Wrath of God {2}{W}{W}
       Sorcery
       Destroy all creatures. They can't be regenerated.
-      *"Legend speaks of the Creators' rage"*
-      *"at their most prized creation."*
+      Flavor Text: "Legend speaks of the Creators' rage"
+      Flavor Text: "at their most prized creation."
     `);
     expect(card).toMatchObject({
       abilities: { unstructuredAbilities: ["Destroy all creatures. They can't be regenerated."] },
@@ -321,7 +321,7 @@ describe('parseCard', () => {
     });
   });
 
-  it('does not treat mid-rules *reminder text* as flavor', () => {
+  it('does not treat reminder text as flavor', () => {
     const card = parseCard(`
       Questing Beast {2}{G}{G}
       Legendary Creature \u2014 Beast
@@ -329,7 +329,7 @@ describe('parseCard', () => {
       *(Deathtouch means any damage this deals is enough.)*
       Questing Beast can't be blocked by creatures with power 2 or less.
       4/4
-      *"The beast never rests."*
+      Flavor Text: "The beast never rests."
     `);
     expect(card).toMatchObject({
       abilities: { unstructuredAbilities: ['Vigilance, deathtouch, haste', '*(Deathtouch means any damage this deals is enough.)*', "Questing Beast can't be blocked by creatures with power 2 or less."] },
@@ -896,18 +896,16 @@ Flavor Text: It is a mystery even to its creator.`;
     expect(reparsed.name).toBe('Darksteel Relic');
   });
 
-  it('preserves flavor text through legacy *asterisk* format', () => {
+  it('preserves flavor text through round-trip', () => {
     const card = parseCard(`
       Bolt {R}
       Instant
       Deal 3 damage.
-      *"Zap."*
+      Flavor Text: "Zap."
     `);
     expect(card.flavorText).toBe('"Zap."');
-    // formatCard outputs Flavor Text: format
     const output = formatCard(card);
     expect(output).toContain('Flavor Text: "Zap."');
-    // Re-parsing the new format preserves it
     const reparsed = parseCard(output);
     expect(reparsed.flavorText).toBe('"Zap."');
   });

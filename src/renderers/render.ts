@@ -17,8 +17,8 @@ import {
   PROTO_LAYOUT,
   LEVELER_LAYOUT,
   AFTERMATH_TOP_LAYOUT,
-  ASSETS_DIR,
 } from '../layout';
+import { ASSETS_DIR } from '../assets-dir';
 import { getParsedAbilities, formatTypeLine } from '../parser';
 
 import {

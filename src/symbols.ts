@@ -1,7 +1,7 @@
 import { loadImage, type Image } from '@napi-rs/canvas';
 import * as fs from 'fs';
 import * as path from 'path';
-import { ASSETS_DIR } from './layout';
+import { ASSETS_DIR } from './assets-dir';
 
 const manaCache = new Map<string, Image | null>();
 const symbolDir = path.join(ASSETS_DIR, 'symbols');
