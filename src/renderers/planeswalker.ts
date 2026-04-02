@@ -2,7 +2,7 @@ import { loadImage, type SKRSContext2D } from '@napi-rs/canvas';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { NormalizedCardData, PlaneswalkerAbilities } from '../types';
-import { ASSETS_DIR } from '../layout';
+import { ASSETS_DIR } from '../assets-dir';
 import { getParsedAbilities } from '../parser';
 
 /** Combine unstructured abilities (as cost-less entries) with loyalty abilities. */

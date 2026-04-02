@@ -2,7 +2,8 @@ import { loadImage, type SKRSContext2D } from '@napi-rs/canvas';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { NormalizedCardData, ClassAbilities } from '../types';
-import { ASSETS_DIR, FONT_HEIGHT_RATIO } from '../layout';
+import { FONT_HEIGHT_RATIO } from '../layout';
+import { ASSETS_DIR } from '../assets-dir';
 import { drawWrappedText, drawRichLine, wrapParagraphs, computeHeight } from '../text';
 import { getParsedAbilities } from '../parser';
 

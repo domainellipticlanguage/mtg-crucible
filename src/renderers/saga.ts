@@ -1,7 +1,7 @@
 import { loadImage, type SKRSContext2D } from '@napi-rs/canvas';
 import * as path from 'path';
 import type { NormalizedCardData, SagaAbilities } from '../types';
-import { ASSETS_DIR } from '../layout';
+import { ASSETS_DIR } from '../assets-dir';
 import { drawWrappedText, fillTextHeavy, wrapParagraphs, computeHeight } from '../text';
 import { getParsedAbilities } from '../parser';
 

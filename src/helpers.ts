@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import https from 'https';
 import type { CardData, NormalizedCardData, Color, FrameColor } from './types';
-import { ASSETS_DIR } from './layout';
+import { ASSETS_DIR } from './assets-dir';
 
 const FRAME_COLOR_CODES: Record<FrameColor, string> = {
   white: 'w', blue: 'u', black: 'b', red: 'r', green: 'g',
@@ -129,40 +129,6 @@ async function drawGradientFrames(
  *   1. Draw the accent color frame(s) (the visible inner color, possibly gradient)
  *   2. Overlay the base frame's border using the frame mask (e.g. land rocky border)
  */
-/**
- * Derive the color code for title/type bars from mana cost and color indicator.
- * Hybrid-only mana = colorless, unless mixed with non-hybrid colors.
- */
-const MANA_LETTER_TO_FRAME: Record<string, FrameColor> = { W: 'white', U: 'blue', B: 'black', R: 'red', G: 'green' };
-
-export function deriveTitleColor(manaCost: string | undefined, colorIndicator: CardData['colorIndicator']): FrameColor {
-  const WUBRG = ['W', 'U', 'B', 'R', 'G'];
-  const nonHybrid = new Set<string>();
-  const hybrid = new Set<string>();
-  const symbols = manaCost?.match(/\{([^}]+)\}/g) || [];
-  for (const sym of symbols) {
-    const inner = sym.slice(1, -1).toUpperCase();
-    const isHybrid = inner.includes('/');
-    for (const c of WUBRG) {
-      if (inner.includes(c)) {
-        if (isHybrid) hybrid.add(c); else nonHybrid.add(c);
-      }
-    }
-  }
-  // Hybrid colors only count when mixed with non-hybrid
-  const colors = nonHybrid.size > 0
-    ? new Set([...nonHybrid, ...hybrid])
-    : new Set<string>();
-  // Fall back to color indicator
-  if (colors.size === 0 && colorIndicator) {
-    const COLOR_MAP: Record<string, string> = { white: 'W', blue: 'U', black: 'B', red: 'R', green: 'G' };
-    for (const c of colorIndicator) { if (COLOR_MAP[c]) colors.add(COLOR_MAP[c]); }
-  }
-  if (colors.size === 0) return 'artifact';
-  if (colors.size === 1) return MANA_LETTER_TO_FRAME[[...colors][0]];
-  return 'multicolor';
-}
-
 export async function drawFrame(
   ctx: SKRSContext2D,
   template: string | string[],
