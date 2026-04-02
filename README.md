@@ -38,8 +38,7 @@ import { renderCard } from '@domainellipticlanguage/mtg-crucible';
 const result = await renderCard({
   name: 'Crucible of Legends',
   manaCost: '{3}',
-  supertypes: ['legendary'],
-  types: ['artifact'],
+  typeLine: 'Legendary Artifact',
   rarity: 'mythic',
   abilities: 'Whenever a legendary creature you control dies, return it to your hand at the beginning of the next end step.',
   flavorText: 'Every great story begins with fire.',
@@ -138,10 +137,27 @@ Whenever the Candy Striper attacks, each opponent loses 1 life and you gain 1 li
 Art URL: https://example.com/art.png
 Frame Color: Red, White, Red, White, Red, White, Red, and White
 Accent: Red, White, Red, White, Red, White, Red, and White
+Name Line Color: Red, White, Red, White, Red, White, Red, and White
+Type Line Color: Red, White, Red, White, Red, White, Red, and White
 PT Box Color: Red, White, Red, White, Red, White, Red, and White
 ```
 
-<img src="https://raw.githubusercontent.com/domainellipticlanguage/mtg-crucible/main/examples/the-candy-striper.png" alt="Crucible of Legends" width="300">
+<img src="https://raw.githubusercontent.com/domainellipticlanguage/mtg-crucible/main/examples/the-candy-striper.png" alt="The Candy Striper" width="300">
+
+### Split card
+```
+Gloom {1}{G}
+Instant
+Destroy target artifact or enchantment.
+--split--
+Doom {2}{B}
+Sorcery
+Each player sacrifices a creature.
+```
+
+<img src="https://raw.githubusercontent.com/domainellipticlanguage/mtg-crucible/main/examples/gloom-doom.png" alt="Gloom // Doom" width="300">
+
+Supported link types: `--transform--`, `--mdfc--`, `--split--`, `--fuse--`, `--flip--`, `--adventure--`, `--aftermath--`
 
 ## React Component
 
@@ -174,6 +190,7 @@ npm run dev       # start local dev server with hot reload
 - [ ] Add full support for Rooms
 - [ ] Support all frame effects (Snow, Nyx, Devoid) for all card types
 - [ ] Support MDFC/Transform for all card types
+- [ ] Support composite artist credits
 
 ## Acknowledgements
 

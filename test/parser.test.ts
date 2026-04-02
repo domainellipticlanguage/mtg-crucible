@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parseCard, formatCard, toScryfallText } from '../src/parser';
-import { renderCard } from '../src';
+import { renderCard, normalizeCard, parseTypeLine } from '../src';
 
 describe('parseCard', () => {
   it('parses a simple instant', () => {
@@ -12,9 +12,7 @@ describe('parseCard', () => {
     expect(card).toEqual({
       name: 'Lightning Bolt',
       manaCost: '{R}',
-      types: ['instant'],
-      frameColor: 'red',
-      rarity: 'rare',
+      typeLine: { supertypes: [], types: ['instant'], subtypes: [] },
       abilities: { unstructuredAbilities: ['Lightning Bolt deals 3 damage to any target.'] },
     });
   });
@@ -28,10 +26,7 @@ describe('parseCard', () => {
     expect(card).toEqual({
       name: 'Grizzly Bears',
       manaCost: '{1}{G}',
-      types: ['creature'],
-      subtypes: ['Bear'],
-      frameColor: 'green',
-      rarity: 'rare',
+      typeLine: { supertypes: [], types: ['creature'], subtypes: ['Bear'] },
       power: '2',
       toughness: '2',
     });
@@ -48,10 +43,7 @@ describe('parseCard', () => {
     expect(card).toMatchObject({
       name: 'Questing Beast',
       manaCost: '{2}{G}{G}',
-      supertypes: ['legendary'],
-      types: ['creature'],
-      subtypes: ['Beast'],
-      frameColor: 'green',
+      typeLine: { supertypes: ['legendary'], types: ['creature'], subtypes: ['Beast'] },
       power: '4',
       toughness: '4',
       abilities: { unstructuredAbilities: ['Vigilance, deathtouch, haste', "Questing Beast can't be blocked by creatures with power 2 or less."] },
@@ -69,10 +61,7 @@ describe('parseCard', () => {
     expect(card).toMatchObject({
       name: 'Najeela, the Blade-Blossom',
       manaCost: '{2}{R}',
-      supertypes: ['legendary'],
-      types: ['creature'],
-      subtypes: ['Human', 'Warrior'],
-      frameColor: 'red',
+      typeLine: { supertypes: ['legendary'], types: ['creature'], subtypes: ['Human', 'Warrior'] },
       power: '3',
       toughness: '2',
     });
@@ -88,11 +77,8 @@ describe('parseCard', () => {
     `);
     expect(card).toEqual({
       name: 'Command Tower',
-      types: ['land'],
-      frameColor: 'land',
-      rarity: 'rare',
+      typeLine: { supertypes: [], types: ['land'], subtypes: [] },
       abilities: { unstructuredAbilities: ["{T}: Add one mana of any color in your commander's color identity."] },
-      accentColor: 'multicolor',
     });
   });
 
@@ -104,119 +90,113 @@ describe('parseCard', () => {
       Crew 1
       3/3
     `);
-    expect(card).toMatchObject({
-      frameColor: 'vehicle',
+    const normalized = normalizeCard(card);
+    expect(normalized).toMatchObject({
+      frameColor: ['vehicle'],
       power: '3',
       toughness: '3',
     });
   });
 
   it('derives multicolor gold frame', () => {
-    const card = parseCard(`
+    const card = normalizeCard(parseCard(`
       Maelstrom Wanderer {5}{U}{R}{G}
       Legendary Creature \u2014 Elemental
       Creatures you control have haste.
       Cascade, cascade
       7/5
-    `);
+    `));
     expect(card).toMatchObject({
-      frameColor: 'multicolor',
-      supertypes: ['legendary'],
+      frameColor: ['multicolor'],
+      typeLine: { supertypes: ['legendary'] },
     });
   });
 
   it('derives artifact frame for colorless non-land', () => {
-    const card = parseCard(`
+    const card = normalizeCard(parseCard(`
       Sol Ring {1}
       Artifact
       {T}: Add {C}{C}.
-    `);
-    expect(card).toMatchObject({ frameColor: 'artifact' });
+    `));
+    expect(card).toMatchObject({ frameColor: ['artifact'] });
   });
 
   it('derives artifact frame with accent from phyrexian mana', () => {
-    const card = parseCard(`
+    const card = normalizeCard(parseCard(`
       Birthing Pod {3}{G/P}
       Artifact
       {1}{G/P}, {T}, Sacrifice a creature: Search your library.
-    `);
+    `));
     expect(card).toMatchObject({
       manaCost: '{3}{G/P}',
-      frameColor: 'artifact',
-      accentColor: 'green',
+      frameColor: ['artifact'],
+      accentColor: ['green'],
     });
   });
 
   it('derives artifact frame with multicolor accent', () => {
-    const card = parseCard(`
+    const card = normalizeCard(parseCard(`
       Chromatic Orrery {7}
       Legendary Artifact
       You may spend mana as though it were mana of any color.
-    `);
-    expect(card).toMatchObject({ frameColor: 'artifact' });
-    expect(card.accentColor).toBeUndefined();
+    `));
+    expect(card).toMatchObject({ frameColor: ['artifact'] });
+    expect(card.accentColor).toEqual([]);
   });
 
   it('derives artifact frame with accent from colored mana', () => {
-    const card = parseCard(`
+    const card = normalizeCard(parseCard(`
       Bolas's Citadel {3}{B}{B}{B}
       Legendary Artifact
       You may look at the top card of your library any time.
-    `);
+    `));
     expect(card).toMatchObject({
-      frameColor: 'artifact',
-      accentColor: 'black',
+      frameColor: ['artifact'],
+      accentColor: ['black'],
     });
   });
 
   it('derives land frame with multicolor accent for colorless land', () => {
-    const card = parseCard(`
+    const card = normalizeCard(parseCard(`
       Command Tower
       Land
       {T}: Add one mana of any color in your commander's color identity.
-    `);
-    expect(card).toMatchObject({ frameColor: 'land', accentColor: 'multicolor' });
+    `));
+    expect(card).toMatchObject({ frameColor: ['land'], accentColor: ['multicolor'] });
   });
 
   it('derives land frame with accent from colorIndicator', () => {
-    const card = parseCard(`
+    const card = normalizeCard(parseCard(`
       Dryad Arbor
       Color Indicator: green
       Land Creature — Forest Dryad
       1/1
-    `);
+    `));
     expect(card).toMatchObject({
-      frameColor: 'land',
-      accentColor: 'green',
+      frameColor: ['land'],
+      accentColor: ['green'],
     });
   });
 
   it('derives land frame with accent from land subtypes', () => {
-    const card = parseCard(`
+    const card = normalizeCard(parseCard(`
       Test Land
       Color Indicator: blue, red
       Land Creature — Island Mountain
       1/1
-    `);
+    `));
     expect(card).toMatchObject({
-      frameColor: 'land',
+      frameColor: ['land'],
       accentColor: ['blue', 'red'],
     });
   });
 
   it('derives hybrid frame as array for 2-color hybrid mana', () => {
-    const card = parseCard(`
-      Boros Charm {R}{W}
-      Frame Color: blue, red
-      Instant
-      Choose one —
-    `);
-    // Frame Color: override takes precedence, but let's test derivation without it
-    const card2 = parseCard(`
+    const card2 = normalizeCard(parseCard(`
       Boros Charm {R/W}{R/W}
       Instant
       Choose one —
-    `);
+    `));
     expect(card2).toMatchObject({
       frameColor: ['white', 'red'],
       accentColor: ['white', 'red'],
@@ -224,23 +204,23 @@ describe('parseCard', () => {
   });
 
   it('derives multicolor frame with 2-color accent for non-hybrid 2-color', () => {
-    const card = parseCard(`
+    const card = normalizeCard(parseCard(`
       Electrolyze {1}{U}{R}
       Instant
       Electrolyze deals 2 damage divided as you choose.
-    `);
+    `));
     expect(card).toMatchObject({
-      frameColor: 'multicolor',
+      frameColor: ['multicolor'],
       accentColor: ['blue', 'red'],
     });
   });
 
   it('derives hybrid frame for mixed hybrid + mono 2-color', () => {
-    const card = parseCard(`
+    const card = normalizeCard(parseCard(`
       Shaman of the Great Hunt {U}{U/R}{R}
       Creature — Shaman
       2/2
-    `);
+    `));
     expect(card).toMatchObject({
       frameColor: ['blue', 'red'],
       accentColor: ['blue', 'red'],
@@ -248,57 +228,57 @@ describe('parseCard', () => {
   });
 
   it('derives artifact frame with 2-color accent array', () => {
-    const card = parseCard(`
+    const card = normalizeCard(parseCard(`
       Talisman of Creativity {2}
       Artifact
       {T}: Add {U} or {R}.
-    `);
+    `));
     // 0 colors in mana cost — no accent
-    expect(card.accentColor).toBeUndefined();
+    expect(card.accentColor).toEqual([]);
 
-    const card2 = parseCard(`
+    const card2 = normalizeCard(parseCard(`
       Izzet Signet {1}{U}{R}
       Artifact
       Rules text.
-    `);
+    `));
     expect(card2).toMatchObject({
-      frameColor: 'artifact',
+      frameColor: ['artifact'],
       accentColor: ['blue', 'red'],
     });
   });
 
   it('derives 3+ color as multicolor with no array accent', () => {
-    const card = parseCard(`
+    const card = normalizeCard(parseCard(`
       Maelstrom Wanderer {5}{U}{R}{G}
       Legendary Creature — Elemental
       Creatures you control have haste.
       7/5
-    `);
-    expect(card).toMatchObject({ frameColor: 'multicolor' });
+    `));
+    expect(card).toMatchObject({ frameColor: ['multicolor'] });
   });
 
   it('derives land accent from tap ability mana production', () => {
-    const card = parseCard(`
+    const card = normalizeCard(parseCard(`
       Super Cool Island
       Rarity: Mythic Rare
       Land — Island
       {T}: Add {R} or {U}.
-    `);
+    `));
     expect(card).toMatchObject({
-      frameColor: 'land',
+      frameColor: ['land'],
       accentColor: ['blue', 'red'],
     });
   });
 
   it('derives land accent from single basic land type', () => {
-    const card = parseCard(`
+    const card = normalizeCard(parseCard(`
       Mystic Sanctuary
       Land — Island
       Mystic Sanctuary enters the battlefield tapped unless you control three or more other Islands.
-    `);
+    `));
     expect(card).toMatchObject({
-      frameColor: 'land',
-      accentColor: 'blue',
+      frameColor: ['land'],
+      accentColor: ['blue'],
     });
   });
 
@@ -310,7 +290,6 @@ describe('parseCard', () => {
       Mystic Sanctuary enters the battlefield tapped unless you control three or more other Islands.
     `);
     expect(card).toMatchObject({
-      frameColor: 'land',
       accentColor: 'blue',
     });
   });
@@ -382,10 +361,7 @@ describe('parseCard', () => {
     expect(card).toMatchObject({
       name: 'Liliana of the Veil',
       manaCost: '{1}{B}{B}',
-      supertypes: ['legendary'],
-      types: ['planeswalker'],
-      subtypes: ['Liliana'],
-      frameColor: 'black',
+      typeLine: { supertypes: ['legendary'], types: ['planeswalker'], subtypes: ['Liliana'] },
       startingLoyalty: '3',
       abilities: { structuredAbilities: {
         kind: 'planeswalker',
@@ -425,7 +401,6 @@ describe('parseCard', () => {
     `);
     expect(card).toMatchObject({
       name: 'The Eldest Reborn',
-      frameColor: 'black',
       abilities: { structuredAbilities: {
         kind: 'saga',
         chapters: [
@@ -462,7 +437,6 @@ describe('parseCard', () => {
     `);
     expect(card).toMatchObject({
       name: 'Invasion of Gobakhan',
-      frameColor: 'white',
       battleDefense: '3',
       abilities: { unstructuredAbilities: ["When Invasion of Gobakhan enters the battlefield, look at target opponent's hand."] },
     });
@@ -480,9 +454,7 @@ describe('parseCard', () => {
     expect(card).toMatchObject({
       name: 'Archangel Avacyn',
       artUrl: 'https://cards.scryfall.io/art_crop/front/7/f/7f4893ef.jpg',
-      supertypes: ['legendary'],
-      types: ['creature'],
-      subtypes: ['Angel'],
+      typeLine: { supertypes: ['legendary'], types: ['creature'], subtypes: ['Angel'] },
       power: '4',
       toughness: '4',
     });
@@ -507,7 +479,7 @@ describe('parseCard', () => {
     expect(card).toMatchObject({
       name: 'Sol Ring',
       rarity: 'uncommon',
-      types: ['artifact'],
+      typeLine: { types: ['artifact'] },
     });
   });
 
@@ -546,14 +518,13 @@ describe('parseCard', () => {
       name: 'Archangel Avacyn',
       rarity: 'mythic',
       artUrl: 'https://cards.scryfall.io/art_crop/front/7/f/7f4893ef.jpg',
-      supertypes: ['legendary'],
-      types: ['creature'],
-      subtypes: ['Angel'],
+      typeLine: { supertypes: ['legendary'], types: ['creature'], subtypes: ['Angel'] },
     });
   });
 
-  it('throws for insufficient lines', () => {
-    expect(() => parseCard('Just a name')).toThrow('at least a name line and type line');
+  it('handles single-line input gracefully', () => {
+    const card = parseCard('Just a name');
+    expect(card).toMatchObject({ name: 'Just a name' });
   });
 
   it('handles wildcard P/T', () => {
@@ -582,7 +553,6 @@ describe('parseCard', () => {
     expect(card).toMatchObject({
       name: 'Barbarian Class',
       manaCost: '{R}',
-      frameColor: 'red',
       abilities: { structuredAbilities: {
         kind: 'class',
         classLevels: [
@@ -671,7 +641,7 @@ Deal 2 damage to any target.\r
 `);
     expect(card).toMatchObject({
       manaCost: '{1}{R}',
-      types: ['instant'],
+      typeLine: { types: ['instant'] },
       abilities: { unstructuredAbilities: ['Deal 2 damage to any target.'] },
     });
   });
@@ -687,7 +657,7 @@ Deal 2 damage to any target.\r
     `);
     expect(card).toMatchObject({
       name: 'Example Card',
-      types: ['creature'],
+      typeLine: { types: ['creature'] },
       abilities: { unstructuredAbilities: ['Reach'] },
       power: '2',
       toughness: '4',
@@ -753,8 +723,7 @@ Deal 2 damage to any target.\r
       2/2
     `);
     expect(card).toMatchObject({
-      types: ['creature'],
-      subtypes: ['Bear'],
+      typeLine: { types: ['creature'], subtypes: ['Bear'] },
     });
   });
 
@@ -765,7 +734,7 @@ Deal 2 damage to any target.\r
       2/2
     `);
     expect(card).toMatchObject({
-      subtypes: ['Time-Lord', 'Doctor'],
+      typeLine: { subtypes: ['Time-Lord', 'Doctor'] },
     });
   });
 
@@ -777,7 +746,6 @@ Deal 2 damage to any target.\r
       {T}: Add {R} or {U}.
     `);
     expect(card).toMatchObject({
-      frameColor: 'land',
       accentColor: ['red', 'blue'],
     });
   });
@@ -850,8 +818,8 @@ Deal 2 damage to any target.\r
     const { frontFace } = await renderCard({
       name: 'Gradient Test',
       frameColor: ['blue', 'red'],
-      types: ['instant'],
-      oracleText: 'Test card.',
+      typeLine: { supertypes: [], types: ['instant'], subtypes: [] },
+      abilities: 'Test card.',
     });
     expect(frontFace).toBeInstanceOf(Buffer);
     expect(frontFace.length).toBeGreaterThan(1000);
@@ -873,7 +841,7 @@ Flavor Text: "The sparkmage shrieked."`;
     const reparsed = parseCard(output);
     expect(reparsed.name).toBe(card.name);
     expect(reparsed.manaCost).toBe(card.manaCost);
-    expect(reparsed.types).toEqual(card.types);
+    expect(reparsed.typeLine).toEqual(card.typeLine);
     expect(reparsed.flavorText).toBe(card.flavorText);
     expect((reparsed.abilities as any).unstructuredAbilities).toEqual(
       (card.abilities as any).unstructuredAbilities,
@@ -893,8 +861,7 @@ Flavor Text: "Don't try to outrun one; it'll just make you a meal on the go."
     expect(reparsed.power).toBe('2');
     expect(reparsed.toughness).toBe('2');
     expect(reparsed.flavorText).toBe(card.flavorText);
-    expect(reparsed.types).toEqual(['creature']);
-    expect(reparsed.subtypes).toEqual(['Bear']);
+    expect(reparsed.typeLine).toMatchObject({ types: ['creature'], subtypes: ['Bear'] });
   });
 
   it('round-trips a legendary creature with abilities', () => {
@@ -908,7 +875,7 @@ Questing Beast can't be blocked by creatures with power 2 or less.
     const output = formatCard(card);
     const reparsed = parseCard(output);
     expect(reparsed.name).toBe(card.name);
-    expect(reparsed.supertypes).toEqual(['legendary']);
+    expect(reparsed.typeLine).toMatchObject({ supertypes: ['legendary'] });
     expect(reparsed.power).toBe('4');
     expect(reparsed.toughness).toBe('4');
     expect((reparsed.abilities as any).unstructuredAbilities).toEqual(
@@ -948,11 +915,11 @@ Flavor Text: It is a mystery even to its creator.`;
 
 describe('parseCard ↔ toScryfallText round-trip', () => {
   it('round-trips a simple instant', () => {
-    const card = parseCard(`
+    const card = normalizeCard(parseCard(`
       Lightning Bolt {R}
       Instant
       Lightning Bolt deals 3 damage to any target.
-    `);
+    `));
     const sfText = toScryfallText(card);
     expect(sfText).toContain('Lightning Bolt {R}');
     expect(sfText).toContain('Instant');
@@ -961,42 +928,41 @@ describe('parseCard ↔ toScryfallText round-trip', () => {
     const reparsed = parseCard(sfText);
     expect(reparsed.name).toBe('Lightning Bolt');
     expect(reparsed.manaCost).toBe('{R}');
-    expect(reparsed.types).toEqual(['instant']);
+    expect(reparsed.typeLine).toMatchObject({ types: ['instant'] });
     expect((reparsed.abilities as any).unstructuredAbilities).toEqual(
       ['Lightning Bolt deals 3 damage to any target.'],
     );
   });
 
   it('round-trips a creature with P/T', () => {
-    const card = parseCard(`
+    const card = normalizeCard(parseCard(`
       Tarmogoyf {1}{G}
       Creature \u2014 Lhurgoyf
       Tarmogoyf's power is equal to the number of card types among cards in all graveyards and its toughness is equal to that number plus 1.
       0/1
-    `);
+    `));
     const sfText = toScryfallText(card);
     expect(sfText).toContain('0/1');
     const reparsed = parseCard(sfText);
     expect(reparsed.name).toBe('Tarmogoyf');
     expect(reparsed.manaCost).toBe('{1}{G}');
-    expect(reparsed.types).toEqual(['creature']);
-    expect(reparsed.subtypes).toEqual(['Lhurgoyf']);
+    expect(reparsed.typeLine).toMatchObject({ types: ['creature'], subtypes: ['Lhurgoyf'] });
     expect(reparsed.power).toBe('0');
     expect(reparsed.toughness).toBe('1');
   });
 
   it('round-trips a legendary creature with multiple abilities', () => {
-    const card = parseCard(`
+    const card = normalizeCard(parseCard(`
       Questing Beast {2}{G}{G}
       Legendary Creature \u2014 Beast
       Vigilance, deathtouch, haste
       Questing Beast can't be blocked by creatures with power 2 or less.
       4/4
-    `);
+    `));
     const sfText = toScryfallText(card);
     const reparsed = parseCard(sfText);
     expect(reparsed.name).toBe('Questing Beast');
-    expect(reparsed.supertypes).toEqual(['legendary']);
+    expect(reparsed.typeLine).toMatchObject({ supertypes: ['legendary'] });
     expect(reparsed.power).toBe('4');
     expect(reparsed.toughness).toBe('4');
     expect((reparsed.abilities as any).unstructuredAbilities).toEqual([
@@ -1006,21 +972,21 @@ describe('parseCard ↔ toScryfallText round-trip', () => {
   });
 
   it('round-trips a sorcery with no P/T', () => {
-    const card = parseCard(`
+    const card = normalizeCard(parseCard(`
       Wrath of God {2}{W}{W}
       Sorcery
       Destroy all creatures. They can't be regenerated.
-    `);
+    `));
     const sfText = toScryfallText(card);
     const reparsed = parseCard(sfText);
     expect(reparsed.name).toBe('Wrath of God');
-    expect(reparsed.types).toEqual(['sorcery']);
+    expect(reparsed.typeLine).toMatchObject({ types: ['sorcery'] });
     expect(reparsed.power).toBeUndefined();
     expect(reparsed.toughness).toBeUndefined();
   });
 
   it('round-trips a planeswalker with loyalty', () => {
-    const card = parseCard(`
+    const card = normalizeCard(parseCard(`
       Jace, the Mind Sculptor {2}{U}{U}
       Legendary Planeswalker \u2014 Jace
       +2: Look at the top card of target player's library.
@@ -1028,13 +994,13 @@ describe('parseCard ↔ toScryfallText round-trip', () => {
       -1: Return target creature to its owner's hand.
       -12: Exile all cards from target player's library, then that player shuffles their hand into their library.
       Loyalty: 3
-    `);
+    `));
     const sfText = toScryfallText(card);
     expect(sfText).toContain('Loyalty: 3');
     const reparsed = parseCard(sfText);
     expect(reparsed.name).toBe('Jace, the Mind Sculptor');
     expect(reparsed.startingLoyalty).toBe('3');
-    expect(reparsed.types).toEqual(['planeswalker']);
+    expect(reparsed.typeLine).toMatchObject({ types: ['planeswalker'] });
   });
 
   it('round-trips a planeswalker with Unicode minus abilities', () => {
@@ -1054,7 +1020,7 @@ describe('parseCard ↔ toScryfallText round-trip', () => {
     expect(sa.loyaltyAbilities[2].cost).toBe('-1');
     expect(sa.loyaltyAbilities[3].cost).toBe('-12');
     // Round-trip through Scryfall text
-    const sfText = toScryfallText(card);
+    const sfText = toScryfallText(normalizeCard(card));
     const reparsed = parseCard(sfText);
     const rsa = (reparsed.abilities as any).structuredAbilities;
     expect(rsa.loyaltyAbilities).toHaveLength(4);
@@ -1064,18 +1030,18 @@ describe('parseCard ↔ toScryfallText round-trip', () => {
   });
 
   it('round-trips a battle with defense', () => {
-    const card = parseCard(`
+    const card = normalizeCard(parseCard(`
       Invasion of Gobakhan {1}{W}
       Battle \u2014 Siege
       When Invasion of Gobakhan enters the battlefield, look at target opponent's hand.
       Defense: 3
-    `);
+    `));
     const sfText = toScryfallText(card);
     expect(sfText).toContain('Defense: 3');
     const reparsed = parseCard(sfText);
     expect(reparsed.name).toBe('Invasion of Gobakhan');
     expect(reparsed.battleDefense).toBe('3');
-    expect(reparsed.types).toEqual(['battle']);
+    expect(reparsed.typeLine).toMatchObject({ types: ['battle'] });
   });
 });
 
@@ -1094,7 +1060,7 @@ describe('parseCard — metadata ordering', () => {
       rarity: 'mythic',
       frameColor: 'blue',
       artist: 'Someone',
-      types: ['instant'],
+      typeLine: { types: ['instant'] },
     });
   });
 
@@ -1108,7 +1074,7 @@ describe('parseCard — metadata ordering', () => {
     expect(card).toMatchObject({
       name: 'Test Card',
       rarity: 'mythic',
-      types: ['instant'],
+      typeLine: { types: ['instant'] },
       abilities: { unstructuredAbilities: ['Deal 3 damage.'] },
     });
   });
@@ -1125,7 +1091,7 @@ describe('parseCard — metadata ordering', () => {
       name: 'Test Card',
       rarity: 'uncommon',
       artist: 'Artist Name',
-      types: ['instant'],
+      typeLine: { types: ['instant'] },
       abilities: { unstructuredAbilities: ['Deal 3 damage.'] },
     });
   });
@@ -1145,8 +1111,7 @@ describe('parseCard — metadata ordering', () => {
       frameColor: 'green',
       rarity: 'rare',
       artist: 'John Doe',
-      types: ['creature'],
-      subtypes: ['Beast'],
+      typeLine: { types: ['creature'], subtypes: ['Beast'] },
       power: '4',
       toughness: '4',
       abilities: { unstructuredAbilities: ['Trample'] },
@@ -1183,7 +1148,7 @@ describe('parseCard — metadata ordering', () => {
 
 describe('parseCard — multi-face inference', () => {
   it('infers split linkType for two instants/sorceries with mana costs', () => {
-    const card = parseCard(`
+    const card = normalizeCard(parseCard(`
       Assault {R}
       Sorcery
       Assault deals 2 damage to any target.
@@ -1191,13 +1156,13 @@ describe('parseCard — multi-face inference', () => {
       Battery {3}{G}
       Sorcery
       Create a 3/3 green Elephant creature token.
-    `);
+    `));
     expect(card.linkType).toBe('split');
     expect(card.linkedCard?.name).toBe('Battery');
   });
 
-  it('infers fuse as split linkType with Fuse keyword', () => {
-    const card = parseCard(`
+  it('infers fuse linkType with Fuse keyword', () => {
+    const card = normalizeCard(parseCard(`
       Turn {2}{U}
       Instant
       Target creature becomes 0/1.
@@ -1207,13 +1172,13 @@ describe('parseCard — multi-face inference', () => {
       Instant
       Deal 2 damage to any target.
       Fuse
-    `);
-    expect(card.linkType).toBe('split');
+    `));
+    expect(card.linkType).toBe('fuse');
     expect(card.linkedCard?.name).toBe('Burn');
   });
 
   it('infers aftermath linkType with Aftermath keyword', () => {
-    const card = parseCard(`
+    const card = normalizeCard(parseCard(`
       Appeal {G}
       Sorcery
       Target creature gets +X/+X.
@@ -1222,12 +1187,12 @@ describe('parseCard — multi-face inference', () => {
       Sorcery
       Aftermath
       Tap up to two target creatures.
-    `);
+    `));
     expect(card.linkType).toBe('aftermath');
   });
 
   it('infers transform linkType when only front has mana cost', () => {
-    const card = parseCard(`
+    const card = normalizeCard(parseCard(`
       Delver of Secrets {U}
       Creature \u2014 Human Wizard
       At the beginning of your upkeep, look at the top card of your library. You may reveal that card. If an instant or sorcery card is revealed this way, transform Delver of Secrets.
@@ -1237,12 +1202,12 @@ describe('parseCard — multi-face inference', () => {
       Creature \u2014 Human Insect
       Flying
       3/2
-    `);
+    `));
     expect(card.linkType).toBe('transform');
   });
 
   it('infers modal_dfc when both faces have mana costs and at least one is a permanent', () => {
-    const card = parseCard(`
+    const card = normalizeCard(parseCard(`
       Emeria's Call {4}{W}{W}{W}
       Sorcery
       Create two 4/4 white Angel Warrior tokens with flying.
@@ -1251,12 +1216,12 @@ describe('parseCard — multi-face inference', () => {
       Land
       Emeria enters tapped.
       {T}: Add {W}.
-    `);
-    expect(card.linkType).toBe('transform');
+    `));
+    expect(card.linkType).toBe('modal_dfc');
   });
 
   it('infers modal_dfc for two permanents with mana costs', () => {
-    const card = parseCard(`
+    const card = normalizeCard(parseCard(`
       Barkchannel Pathway {G}
       Land
       {T}: Add {G}.
@@ -1264,12 +1229,12 @@ describe('parseCard — multi-face inference', () => {
       Tidechannel Pathway {U}
       Land
       {T}: Add {U}.
-    `);
+    `));
     expect(card.linkType).toBe('modal_dfc');
   });
 
   it('infers flip linkType when rules text contains "flip"', () => {
-    const card = parseCard(`
+    const card = normalizeCard(parseCard(`
       Akki Lavarunner {3}{R}
       Creature \u2014 Goblin Warrior
       Whenever Akki Lavarunner deals damage to an opponent, flip it.
@@ -1280,7 +1245,7 @@ describe('parseCard — multi-face inference', () => {
       Protection from red
       If a red source would deal damage, it deals that much damage plus 1 instead.
       2/2
-    `);
+    `));
     expect(card.linkType).toBe('flip');
   });
 });
