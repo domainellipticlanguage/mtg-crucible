@@ -153,6 +153,7 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle }:
     height: '100%',
     backfaceVisibility: card.backFaceImageUrl ? 'hidden' : 'visible',
     borderRadius,
+    boxShadow: '0 0 0 1px #555',
   };
 
   return (
