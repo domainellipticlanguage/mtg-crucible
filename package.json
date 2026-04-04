@@ -14,12 +14,12 @@
       "default": "./dist/index.js"
     },
     "./parser": {
-      "types": "./dist/parser/parser/index.d.ts",
-      "default": "./dist/parser/parser/index.js"
+      "types": "./dist/parser/index.d.ts",
+      "default": "./dist/parser/index.js"
     },
     "./react": {
-      "types": "./dist/react/react/index.d.ts",
-      "default": "./dist/react/react/index.js"
+      "types": "./dist/react/index.d.ts",
+      "default": "./dist/react/index.js"
     }
   },
   "files": [
@@ -28,7 +28,7 @@
   ],
   "scripts": {
     "test": "vitest",
-    "build": "tsc && tsc -p tsconfig.parser.json && tsc -p tsconfig.react.json",
+    "build": "rm -rf dist && tsc && tsc -p tsconfig.parser.json && tsc -p tsconfig.react.json",
     "build:parser": "tsc -p tsconfig.parser.json",
     "build:core": "tsc",
     "build:react": "tsc -p tsconfig.react.json",
