@@ -278,7 +278,7 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
 
     // P/T text
     if (L.pt && card.power && card.toughness) {
-      const ptTextColor = L.textColor || (card.frameColor[0] === 'vehicle' ? 'white' : 'black');
+      const ptTextColor = L.textColor || 'black';
       drawSingleLineText(ctx, `${card.power}/${card.toughness}`, L.pt.x * cw, L.pt.y * ch, L.pt.w * cw, L.pt.h * ch, L.pt.font, L.pt.size * ch, 'center', ptTextColor);
     }
   }
