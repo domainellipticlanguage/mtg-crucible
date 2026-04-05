@@ -17,7 +17,7 @@ import {
 } from './layout';
 
 const MANA_COST_REGEX = /^(.+?)\s+((?:\{[^}]+\})+)$/;
-const ART_REGEX = /^Art URL:\s*(https?:\/\/\S+)$/i;
+const ART_REGEX = /^Art URL:\s*(.+)$/i;
 const ART_DESCRIPTION_REGEX = /^Art Description:\s*(.+)$/i;
 const RARITY_REGEX = /^Rarity:\s*(common|uncommon|rare|mythic(?:\s+rare)?)$/i;
 const ARTIST_REGEX = /^Artist:\s*(.+)$/i;
