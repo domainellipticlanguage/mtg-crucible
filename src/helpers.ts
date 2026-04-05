@@ -455,6 +455,14 @@ export async function ensureInitialized(): Promise<void> {
 }
 
 export function fetchBuffer(url: string): Promise<Buffer> {
+  // Support data URIs
+  if (url.startsWith('data:')) {
+    const comma = url.indexOf(',');
+    if (comma === -1) return Promise.reject(new Error('Invalid data URI'));
+    const isBase64 = url.slice(0, comma).includes(';base64');
+    const data = url.slice(comma + 1);
+    return Promise.resolve(Buffer.from(data, isBase64 ? 'base64' : 'utf-8'));
+  }
   // Support local file paths
   if (url.startsWith('/') || url.startsWith('./')) {
     return fs.promises.readFile(url);
