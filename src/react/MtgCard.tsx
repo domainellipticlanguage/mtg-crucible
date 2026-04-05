@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import type { MtgCardDisplayData } from '../types';
 
 export interface MtgCardProps {
@@ -250,8 +251,8 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle }:
         </div>
       )}
 
-      {/* Custom context menu */}
-      {menuPos && (
+      {/* Custom context menu — portalled to document.body to escape ancestor CSS transforms */}
+      {menuPos && createPortal(
         <div
           className="mtg-card-menu"
           style={{
@@ -286,7 +287,8 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle }:
               {item.label}
             </div>
           ))}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
