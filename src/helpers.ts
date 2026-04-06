@@ -553,38 +553,40 @@ export async function drawBottomInfo(ctx: SKRSContext2D, card: Pick<NormalizedCa
   ctx.textBaseline = 'alphabetic';
   ctx.shadowColor = 'black'; ctx.shadowOffsetX = 1; ctx.shadowOffsetY = 1; ctx.shadowBlur = 2;
 
-  // Top line: collector number (left), designer (right, bold)
-  const num = card.collectorNumber || '1 / 1';
-  ctx.fillText(num, leftX, y1);
-  if (card.designer) {
-    const designerFontSize = fontSize * 1.2;
-    ctx.textAlign = 'right';
-    ctx.font = `${designerFontSize}px "Beleren Bold"`;
-    ctx.fillText(card.designer, rightX, y1);
-    ctx.textAlign = 'left';
-    ctx.font = `${fontSize}px "MPlantin"`;
-  }
-
-  // Middle line: set • lang + artist brush + artist
   const set = (card.setCode || 'CRU * EN').replace(/\s*\*\s*/g, ' \u2022 ');
   const artist = card.artist || '';
   const brushPad = fontSize * 0.25;
+  const setWidth = ctx.measureText(`${set} `).width;
+  const brushHeight = fontSize * 0.96;
+  const brushWidth = brushHeight * (202 / 118);
+  const artistX = leftX + setWidth + brushPad + brushWidth + brushPad;
+
+  // Top line: collector number (left), Not For Sale (aligned above artist), WotC copyright (right)
+  const num = card.collectorNumber || '1 / 1';
+  ctx.fillText(num, leftX, y1);
+  const notForSaleX = cw * 0.21;
+  ctx.fillText('Not For Sale', notForSaleX, y1);
+  ctx.textAlign = 'right';
+  ctx.fillText(`\u2122 & \u00A9 ${new Date().getFullYear()} Wizards of the Coast`, rightX, y1);
+  ctx.textAlign = 'left';
+
+  // Bottom line: set • lang + artist brush + artist (left), designer (right)
+  ctx.fillText(`${set} `, leftX, y2);
   if (artist) {
-    const brushHeight = fontSize * 0.96;
-    const brushWidth = brushHeight * (202 / 118);
-    const setText = `${set} `;
-    const setWidth = ctx.measureText(setText).width;
-    ctx.fillText(setText, leftX, y2);
     try {
       const brushPath = path.join(ASSETS_DIR, 'symbols', 'misc', 'artistbrush.svg');
       const brushImg = await loadImage(brushPath);
       ctx.drawImage(brushImg, leftX + setWidth + brushPad, y2 - brushHeight * 0.85, brushWidth, brushHeight);
     } catch { /* skip icon if load fails */ }
     ctx.font = `${fontSize}px "Beleren Bold"`;
-    ctx.fillText(artist, leftX + setWidth + brushPad + brushWidth + brushPad, y2);
+    ctx.fillText(artist, artistX, y2);
     ctx.font = `${fontSize}px "MPlantin"`;
-  } else {
-    ctx.fillText(set, leftX, y2);
+  }
+  if (card.designer) {
+    const designerFontSize = fontSize * 1.2;
+    ctx.textAlign = 'right';
+    ctx.font = `${designerFontSize}px "Beleren Bold"`;
+    ctx.fillText(card.designer, rightX, y2);
   }
 
   ctx.restore();
