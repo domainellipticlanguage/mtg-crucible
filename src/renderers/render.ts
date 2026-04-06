@@ -311,7 +311,7 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
     rctx.translate(0, cw);
     rctx.rotate(-Math.PI / 2);
     rctx.drawImage(canvas, 0, 0);
-    return scaleOutput(rotated, STD_H, STD_W, quality, format);
+    return scaleOutput(rotated, STD_W, STD_H, quality, format);
   }
 
   return scaleOutput(canvas, STD_W, STD_H, quality, format);

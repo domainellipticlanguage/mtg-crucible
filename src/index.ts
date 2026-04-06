@@ -90,6 +90,7 @@ export function toDisplayCard(rendered: RenderedCard): MtgCardDisplayData {
     frontFaceImageUrl: `data:image/${rendered.format};base64,${rendered.frontFace.toString('base64')}`,
     backFaceImageUrl: rendered.backFace ? `data:image/${rendered.format};base64,${rendered.backFace.toString('base64')}` : undefined,
     name: rendered.normalizedCardData.name ?? '',
+    backFaceName: rendered.normalizedCardData.linkedCard?.name,
     rotations: rendered.rotations,
     scryfallJson: rendered.scryfallJson,
     scryfallText: rendered.scryfallText,

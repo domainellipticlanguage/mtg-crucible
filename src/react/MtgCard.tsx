@@ -115,20 +115,18 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle }:
 
   const downloadImage = useCallback(() => {
     setMenuPos(null);
-    const baseName = card.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
-    const download = (src: string, suffix: string) => {
+    const slugify = (s: string) => s.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+    const download = (src: string, name: string) => {
       const a = document.createElement('a');
       a.href = src;
-      a.download = `${baseName}${suffix}.png`;
+      a.download = `${slugify(name)}.png`;
       a.click();
     };
-    if (card.backFaceImageUrl) {
-      download(card.frontFaceImageUrl, '-front');
-      download(card.backFaceImageUrl, '-back');
-    } else {
-      download(card.frontFaceImageUrl, '');
+    download(card.frontFaceImageUrl, card.name);
+    if (card.backFaceImageUrl && card.backFaceName) {
+      download(card.backFaceImageUrl, card.backFaceName);
     }
-  }, [card.frontFaceImageUrl, card.backFaceImageUrl, card.name]);
+  }, [card.frontFaceImageUrl, card.backFaceImageUrl, card.name, card.backFaceName]);
 
   const menuItems: ContextMenuItem[] = [
     { label: 'Download Image', action: downloadImage },
@@ -146,7 +144,9 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle }:
   const cardTransform = transforms.join(' ') || 'none';
 
   const aspectRatio = '5 / 7';
-  const borderRadius = '4.5% / 3.2%';
+  // const borderRadius = '4.5% / 3.2%';
+  // const borderRadius = '10% / 10%';
+  const borderRadius = '20px';
 
   const faceStyle: React.CSSProperties = {
     position: 'absolute',

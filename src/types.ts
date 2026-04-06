@@ -268,6 +268,7 @@ export interface MtgCardDisplayData {
   frontFaceImageUrl: string;
   backFaceImageUrl?: string;
   name: string;
+  backFaceName?: string;
   rotations: Rotation[];
   scryfallJson: string;
   scryfallText: string;
