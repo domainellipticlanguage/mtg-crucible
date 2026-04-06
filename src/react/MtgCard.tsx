@@ -117,9 +117,10 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle }:
     setMenuPos(null);
     const slugify = (s: string) => s.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
     const download = (src: string, name: string) => {
+      const ext = src.startsWith('data:image/jpeg') ? 'jpg' : 'png';
       const a = document.createElement('a');
       a.href = src;
-      a.download = `${slugify(name)}.png`;
+      a.download = `${slugify(name)}.${ext}`;
       a.click();
     };
     download(card.frontFaceImageUrl, card.name);
@@ -144,9 +145,7 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle }:
   const cardTransform = transforms.join(' ') || 'none';
 
   const aspectRatio = '5 / 7';
-  // const borderRadius = '4.5% / 3.2%';
-  // const borderRadius = '10% / 10%';
-  const borderRadius = '20px';
+  const borderRadius = '16px';
 
   const faceStyle: React.CSSProperties = {
     position: 'absolute',
