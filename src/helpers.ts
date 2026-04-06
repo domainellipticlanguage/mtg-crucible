@@ -556,14 +556,16 @@ export async function drawBottomInfo(ctx: SKRSContext2D, card: Pick<NormalizedCa
   // Top line: collector number (left), designer (right, bold)
   const num = card.collectorNumber || '1 / 1';
   ctx.fillText(num, leftX, y1);
-  const designerFontSize = fontSize * 1.2;
-  ctx.textAlign = 'right';
-  ctx.font = `${designerFontSize}px "Beleren Bold"`;
-  ctx.fillText(card.designer || 'mtg-crucible', rightX, y1);
-  ctx.textAlign = 'left';
-  ctx.font = `${fontSize}px "MPlantin"`;
+  if (card.designer) {
+    const designerFontSize = fontSize * 1.2;
+    ctx.textAlign = 'right';
+    ctx.font = `${designerFontSize}px "Beleren Bold"`;
+    ctx.fillText(card.designer, rightX, y1);
+    ctx.textAlign = 'left';
+    ctx.font = `${fontSize}px "MPlantin"`;
+  }
 
-  // Bottom line: set • lang + artist brush + artist
+  // Middle line: set • lang + artist brush + artist
   const set = (card.setCode || 'CRU * EN').replace(/\s*\*\s*/g, ' \u2022 ');
   const artist = card.artist || '';
   const brushPad = fontSize * 0.25;
@@ -584,6 +586,15 @@ export async function drawBottomInfo(ctx: SKRSContext2D, card: Pick<NormalizedCa
   } else {
     ctx.fillText(set, leftX, y2);
   }
+
+  // Bottom line: powered by
+  ctx.font = `${fontSize}px "Beleren Bold"`;
+  const brandWidth = ctx.measureText('mtg-crucible').width;
+  ctx.font = `${fontSize}px "MPlantin"`;
+  const prefixWidth = ctx.measureText('Powered by ').width;
+  ctx.fillText('Powered by ', rightX - brandWidth - prefixWidth, y2);
+  ctx.font = `${fontSize}px "Beleren Bold"`;
+  ctx.fillText('mtg-crucible', rightX - brandWidth, y2);
 
   ctx.restore();
 }

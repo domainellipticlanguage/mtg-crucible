@@ -1365,6 +1365,6 @@ export function normalizeCard(card: CardData): NormalizedCardData {
     collectorNumber: card.collectorNumber ?? '1/1',
     artist: card.artist ?? '',
     setCode: card.setCode ?? 'CRU * EN',
-    designer: card.designer ?? 'mtg-crucible',
+    designer: card.designer ?? '',
   };
 }
