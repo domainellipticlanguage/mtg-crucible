@@ -195,6 +195,7 @@ npm run dev       # start local dev server with hot reload
 - [ ] Support all frame effects (Snow, Nyx, Devoid) for all card types
 - [ ] Support MDFC/Transform for all card types
 - [ ] Support composite artist credits
+- [ ] Support custom set symbol image via `setSymbolUrl`
 
 ## Acknowledgements
 
