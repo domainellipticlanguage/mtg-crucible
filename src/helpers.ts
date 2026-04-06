@@ -587,15 +587,6 @@ export async function drawBottomInfo(ctx: SKRSContext2D, card: Pick<NormalizedCa
     ctx.fillText(set, leftX, y2);
   }
 
-  // Bottom line: powered by
-  ctx.font = `${fontSize}px "Beleren Bold"`;
-  const brandWidth = ctx.measureText('mtg-crucible').width;
-  ctx.font = `${fontSize}px "MPlantin"`;
-  const prefixWidth = ctx.measureText('Powered by ').width;
-  ctx.fillText('Powered by ', rightX - brandWidth - prefixWidth, y2);
-  ctx.font = `${fontSize}px "Beleren Bold"`;
-  ctx.fillText('mtg-crucible', rightX - brandWidth, y2);
-
   ctx.restore();
 }
 
