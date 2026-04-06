@@ -7,7 +7,7 @@ Includes a react component for rendering resulting card images, complete with ca
 ## Installation
 
 ```bash
-npm install @domainellipticlanguage/mtg-crucible
+npm install mtg-crucible
 ```
 
 ## Quick Start
@@ -15,7 +15,7 @@ npm install @domainellipticlanguage/mtg-crucible
 ### From text
 
 ```typescript
-import { renderCard } from '@domainellipticlanguage/mtg-crucible';
+import { renderCard } from 'mtg-crucible';
 import { writeFileSync } from 'fs';
 
 const result = await renderCard(`
@@ -33,7 +33,7 @@ writeFileSync('crucible-of-legends.png', result.frontFace);
 ### From structured data
 
 ```typescript
-import { renderCard } from '@domainellipticlanguage/mtg-crucible';
+import { renderCard } from 'mtg-crucible';
 
 const result = await renderCard({
   name: 'Crucible of Legends',
@@ -70,9 +70,13 @@ Also supports Snow, Devoid, and Nyx borders, although currently only for Standar
 
 ## API
 
-### `renderCard(input: CardData | string): Promise<RenderedCard>`
+### `renderCard(input: CardData | string, options?: RenderOptions): Promise<RenderedCard>`
 
-Parse and render a card. Accepts either a text-format string or a `CardData` object. Returns a `RenderedCard` with `frontFace` (PNG buffer), optional `backFace`, orientation info, and rotation data for multi-face cards.
+Parse and render a card. Accepts either a text-format string or a `CardData` object. Returns a `RenderedCard` with `frontFace` (image buffer), optional `backFace`, orientation info, and rotation data for multi-face cards.
+
+Options:
+- `quality` — `'high'` (2010x2814, default), `'medium'` (745x1040), or `'low'` (350x490)
+- `format` — `'png'` (default, lossless with transparency) or `'jpeg'` (smaller files, no transparency)
 
 ### `parseCard(text: string): CardData`
 
@@ -162,7 +166,7 @@ Supported link types: `--transform--`, `--mdfc--`, `--split--`, `--fuse--`, `--f
 ## React Component
 
 ```tsx
-import { MtgCard } from '@domainellipticlanguage/mtg-crucible/react';
+import { MtgCard } from 'mtg-crucible/react';
 
 <MtgCard
   card={renderedCardDisplay}

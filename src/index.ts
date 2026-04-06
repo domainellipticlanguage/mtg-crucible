@@ -1,4 +1,4 @@
-import type { CardData, RenderedCard } from './types';
+import type { CardData, RenderedCard, RenderOptions } from './types';
 import type { MtgCardDisplayData } from './types';
 import { ensureInitialized } from './helpers';
 import { renderCardImage } from './renderers/render';
@@ -8,7 +8,7 @@ export type {
   Rarity, TemplateName, Color, AccentColor, FrameColor, FrameEffect, Supertype, Type, Subtype, LinkType,
   PlaneswalkerAbilities, SagaAbilities, ClassAbilities, LevelerAbilities, CaseAbilities, PrototypeAbilities,
   StructuredAbilities, ParsedAbilities, ParsedTypeLine,
-  CardData, Rotation, RenderedCard,
+  CardData, Rotation, RenderedCard, RenderQuality, RenderFormat, RenderOptions,
 } from './types';
 export type { MtgCardDisplayData } from './types';
 export { parseCard, formatCard, parseTypeLine, formatTypeLine, parseAbilities, formatAbilities, normalizeCard, getArtDimensions, resolveTemplate, toScryfallJson, toScryfallText } from './parser';
@@ -20,9 +20,11 @@ export const renderSaga = (card: CardData) => renderCardImage(normalizeCard(card
 export const renderBattle = (card: CardData) => renderCardImage(normalizeCard(card), 'battle');
 export const renderClass = (card: CardData) => renderCardImage(normalizeCard(card), 'class');
 
-export async function renderCard(input: CardData | string): Promise<RenderedCard> {
+export async function renderCard(input: CardData | string, options?: RenderOptions): Promise<RenderedCard> {
   const card = typeof input === 'string' ? parseCard(input) : input;
   const normalized = normalizeCard(card);
+  const quality = options?.quality ?? 'high';
+  const format = options?.format ?? 'png';
 
   await ensureInitialized();
 
@@ -46,7 +48,7 @@ export async function renderCard(input: CardData | string): Promise<RenderedCard
     frontTemplateOverride = 'aftermath';
   }
 
-  const frontFace = await renderCardImage(normalized, frontTemplateOverride);
+  const frontFace = await renderCardImage(normalized, frontTemplateOverride, quality, format);
   const frontTemplate = frontTemplateOverride ?? resolveTemplate(normalized);
   const frontFaceOrientation = frontTemplate === 'battle' ? 'horizontal' : 'vertical';
 
@@ -64,7 +66,7 @@ export async function renderCard(input: CardData | string): Promise<RenderedCard
     // Only apply DFC back template override for standard cards
     const backIsStandard = STANDARD_TEMPLATES.has(normalizedBack.cardTemplate);
     const effectiveBackOverride = backIsStandard ? backTemplateOverride : undefined;
-    backFace = await renderCardImage(normalizedBack, effectiveBackOverride);
+    backFace = await renderCardImage(normalizedBack, effectiveBackOverride, quality, format);
     const backTemplate = effectiveBackOverride ?? resolveTemplate(normalizedBack);
     backFaceOrientation = backTemplate === 'battle' ? 'horizontal' : 'vertical';
   }
@@ -74,6 +76,7 @@ export async function renderCard(input: CardData | string): Promise<RenderedCard
     frontFaceOrientation,
     backFace,
     backFaceOrientation,
+    format,
     normalizedCardData: normalized,
     rotations: computeRotations(normalized),
     scryfallJson: toScryfallJson(normalized),
@@ -84,8 +87,8 @@ export async function renderCard(input: CardData | string): Promise<RenderedCard
 
 export function toDisplayCard(rendered: RenderedCard): MtgCardDisplayData {
   return {
-    frontFaceImageUrl: `data:image/png;base64,${rendered.frontFace.toString('base64')}`,
-    backFaceImageUrl: rendered.backFace ? `data:image/png;base64,${rendered.backFace.toString('base64')}` : undefined,
+    frontFaceImageUrl: `data:image/${rendered.format};base64,${rendered.frontFace.toString('base64')}`,
+    backFaceImageUrl: rendered.backFace ? `data:image/${rendered.format};base64,${rendered.backFace.toString('base64')}` : undefined,
     name: rendered.normalizedCardData.name ?? '',
     rotations: rendered.rotations,
     scryfallJson: rendered.scryfallJson,

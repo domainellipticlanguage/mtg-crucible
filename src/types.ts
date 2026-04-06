@@ -241,11 +241,21 @@ export interface Rotation {
   z: number;
 }
 
+export type RenderQuality = 'low' | 'medium' | 'high';
+
+export type RenderFormat = 'png' | 'jpeg';
+
+export interface RenderOptions {
+  quality?: RenderQuality;
+  format?: RenderFormat;
+}
+
 export interface RenderedCard {
   frontFace: Buffer;
   frontFaceOrientation: 'horizontal' | 'vertical';
   backFace?: Buffer;
   backFaceOrientation?: 'horizontal' | 'vertical';
+  format: RenderFormat;
   normalizedCardData: NormalizedCardData;
   rotations: Rotation[];
   scryfallJson: string;

@@ -1,7 +1,7 @@
-import { createCanvas, loadImage, type SKRSContext2D } from '@napi-rs/canvas';
+import { createCanvas, loadImage, type SKRSContext2D, type Canvas } from '@napi-rs/canvas';
 import * as fs from 'fs';
 import * as path from 'path';
-import type { NormalizedCardData, TemplateName } from '../types';
+import type { NormalizedCardData, TemplateName, RenderQuality, RenderFormat } from '../types';
 import {
   STD_W, STD_H, STD_LAYOUT,
   PW_W, PW_H, PW_LAYOUT, PW_TALL_LAYOUT,
@@ -85,7 +85,14 @@ const TEMPLATES: Record<string, TemplateConfig> = {
   aftermath:          { layout: AFTERMATH_TOP_LAYOUT, w: PW_W, h: PW_H, frame: 'aftermath', hooks: aftermathHooks },
 };
 
-export async function renderCardImage(card: NormalizedCardData, templateOverride?: string): Promise<Buffer> {
+// Quality scale factors relative to standard 2010x2814
+const QUALITY_SCALE: Record<RenderQuality, number> = {
+  high: 1,
+  medium: 745 / STD_W,
+  low: 350 / STD_W,
+};
+
+export async function renderCardImage(card: NormalizedCardData, templateOverride?: string, quality: RenderQuality = 'high', format: RenderFormat = 'png'): Promise<Buffer> {
   const templateKey = templateOverride ?? card.cardTemplate;
   const config = TEMPLATES[templateKey] ?? TEMPLATES.standard;
   const { layout: L, w: cw, h: ch, frame, hooks, crownDir, ptDir } = config;
@@ -304,8 +311,40 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
     rctx.translate(0, cw);
     rctx.rotate(-Math.PI / 2);
     rctx.drawImage(canvas, 0, 0);
-    return rotated.toBuffer('image/png');
+    return scaleOutput(rotated, STD_H, STD_W, quality, format);
   }
 
-  return canvas.toBuffer('image/png');
+  return scaleOutput(canvas, STD_W, STD_H, quality, format);
+}
+
+function encodeCanvas(canvas: Canvas, format: RenderFormat): Buffer {
+  return format === 'jpeg' ? canvas.toBuffer('image/jpeg') : canvas.toBuffer('image/png');
+}
+
+function scaleOutput(source: Canvas, targetW: number, targetH: number, quality: RenderQuality, format: RenderFormat): Buffer {
+  const scale = QUALITY_SCALE[quality];
+  const outW = Math.round(targetW * scale);
+  const outH = Math.round(targetH * scale);
+  if (source.width === outW && source.height === outH) {
+    return encodeCanvas(source, format);
+  }
+  // Step-down scaling: halve dimensions iteratively for much better resampling
+  let current: Canvas = source;
+  while (current.width / 2 >= outW && current.height / 2 >= outH) {
+    const halfW = Math.round(current.width / 2);
+    const halfH = Math.round(current.height / 2);
+    const step = createCanvas(halfW, halfH);
+    const sctx = step.getContext('2d');
+    sctx.imageSmoothingEnabled = true;
+    sctx.imageSmoothingQuality = 'high';
+    sctx.drawImage(current, 0, 0, halfW, halfH);
+    current = step;
+  }
+  // Final step to exact target dimensions
+  const out = createCanvas(outW, outH);
+  const ctx = out.getContext('2d');
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(current, 0, 0, outW, outH);
+  return encodeCanvas(out, format);
 }
