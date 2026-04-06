@@ -92,7 +92,7 @@ const QUALITY_SCALE: Record<RenderQuality, number> = {
   low: 350 / STD_W,
 };
 
-export async function renderCardImage(card: NormalizedCardData, templateOverride?: string, quality: RenderQuality = 'high', format: RenderFormat = 'png'): Promise<Buffer> {
+export async function renderCardImage(card: NormalizedCardData, templateOverride?: string, quality: RenderQuality = 'high', format: RenderFormat = 'png', allowUnsafeArtUrls = false): Promise<Buffer> {
   const templateKey = templateOverride ?? card.cardTemplate;
   const config = TEMPLATES[templateKey] ?? TEMPLATES.standard;
   const { layout: L, w: cw, h: ch, frame, hooks, crownDir, ptDir } = config;
@@ -115,7 +115,7 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
   // Art (colorless and devoid frames are full-bleed)
   const isFullBleed = card.frameColor[0] === 'colorless' || card.frameEffect.includes('devoid');
   const artBounds = isFullBleed ? { x: 0, y: 0, w: 1, h: 1 } : L.art;
-  if (card.artUrl) await drawArt(ctx, card.artUrl, artBounds, cw, ch);
+  if (card.artUrl) await drawArt(ctx, card.artUrl, artBounds, cw, ch, { allowUnsafe: allowUnsafeArtUrls });
 
   // Pre-frame hook (e.g. planeswalker ability backgrounds)
   if (hooks?.preFrame) await hooks.preFrame(ctx, card, L, cw, ch);
@@ -227,6 +227,7 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
   // Template-specific body (abilities, chapters, levels, etc.)
   // Expose frame dir to hooks via layout (e.g. split needs it for second-half coloring)
   L._frame = frame;
+  L._allowUnsafeArtUrls = allowUnsafeArtUrls;
   if (hooks?.body) await hooks.body(ctx, card, L, cw, ch);
 
   if (!hooks?.skipStandardText) {

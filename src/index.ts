@@ -25,6 +25,7 @@ export async function renderCard(input: CardData | string, options?: RenderOptio
   const normalized = normalizeCard(card);
   const quality = options?.quality ?? 'high';
   const format = options?.format ?? 'png';
+  const allowUnsafeArtUrls = options?.allowUnsafeArtUrls ?? false;
 
   await ensureInitialized();
 
@@ -48,7 +49,7 @@ export async function renderCard(input: CardData | string, options?: RenderOptio
     frontTemplateOverride = 'aftermath';
   }
 
-  const frontFace = await renderCardImage(normalized, frontTemplateOverride, quality, format);
+  const frontFace = await renderCardImage(normalized, frontTemplateOverride, quality, format, allowUnsafeArtUrls);
   const frontTemplate = frontTemplateOverride ?? resolveTemplate(normalized);
   const frontFaceOrientation = frontTemplate === 'battle' ? 'horizontal' : 'vertical';
 
@@ -66,7 +67,7 @@ export async function renderCard(input: CardData | string, options?: RenderOptio
     // Only apply DFC back template override for standard cards
     const backIsStandard = STANDARD_TEMPLATES.has(normalizedBack.cardTemplate);
     const effectiveBackOverride = backIsStandard ? backTemplateOverride : undefined;
-    backFace = await renderCardImage(normalizedBack, effectiveBackOverride, quality, format);
+    backFace = await renderCardImage(normalizedBack, effectiveBackOverride, quality, format, allowUnsafeArtUrls);
     const backTemplate = effectiveBackOverride ?? resolveTemplate(normalizedBack);
     backFaceOrientation = backTemplate === 'battle' ? 'horizontal' : 'vertical';
   }

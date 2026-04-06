@@ -1,7 +1,10 @@
 import { createCanvas, loadImage, GlobalFonts, ImageData, type SKRSContext2D } from '@napi-rs/canvas';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as dns from 'dns';
+import * as net from 'net';
 import https from 'https';
+import * as ipaddr from 'ipaddr.js';
 import type { CardData, NormalizedCardData, Color, FrameColor } from './types';
 import { ASSETS_DIR } from './assets-dir';
 
@@ -454,24 +457,60 @@ export async function ensureInitialized(): Promise<void> {
   initialized = true;
 }
 
-export function fetchBuffer(url: string): Promise<Buffer> {
-  // Support data URIs
+function isUnsafeIp(ip: string): boolean {
+  try {
+    const range = ipaddr.parse(ip).range();
+    return range !== 'unicast';
+  } catch {
+    return true;
+  }
+}
+
+async function resolveHostnameSafe(hostname: string): Promise<void> {
+  // URL.hostname returns IPv6 addresses wrapped in brackets, e.g. "[::1]"
+  const bare = hostname.startsWith('[') && hostname.endsWith(']') ? hostname.slice(1, -1) : hostname;
+  if (net.isIP(bare)) {
+    if (isUnsafeIp(bare)) throw new Error(`Refusing to fetch unsafe IP: ${bare}`);
+    return;
+  }
+  const addrs = await dns.promises.lookup(bare, { all: true });
+  for (const a of addrs) {
+    if (isUnsafeIp(a.address)) {
+      throw new Error(`Hostname ${bare} resolves to unsafe IP: ${a.address}`);
+    }
+  }
+}
+
+export async function fetchBuffer(url: string, allowUnsafe = false): Promise<Buffer> {
+  // Support data URIs (always safe)
   if (url.startsWith('data:')) {
     const comma = url.indexOf(',');
-    if (comma === -1) return Promise.reject(new Error('Invalid data URI'));
+    if (comma === -1) throw new Error('Invalid data URI');
     const isBase64 = url.slice(0, comma).includes(';base64');
     const data = url.slice(comma + 1);
-    return Promise.resolve(Buffer.from(data, isBase64 ? 'base64' : 'utf-8'));
+    return Buffer.from(data, isBase64 ? 'base64' : 'utf-8');
   }
-  // Support local file paths
-  if (url.startsWith('/') || url.startsWith('./')) {
-    return fs.promises.readFile(url);
+  // Local file paths and file:// URIs (gated by allowUnsafe)
+  if (url.startsWith('file://') || url.startsWith('/') || url.startsWith('./')) {
+    if (!allowUnsafe) throw new Error('Local file art URLs are disabled. Set allowUnsafeArtUrls: true to enable.');
+    const filePath = url.startsWith('file://') ? new URL(url).pathname : url;
+    return fs.promises.readFile(filePath);
+  }
+  // HTTP(S): check that the hostname doesn't resolve to a private/loopback/etc IP
+  if (!allowUnsafe) {
+    const { hostname } = new URL(url);
+    await resolveHostnameSafe(hostname);
   }
   const httpModule = url.startsWith('http://') ? require('http') : https;
-  return new Promise((resolve, reject) => {
+  return new Promise<Buffer>((resolve, reject) => {
     httpModule.get(url, (res: any) => {
-      if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        return fetchBuffer(res.headers.location).then(resolve, reject);
+      const status = res.statusCode ?? 0;
+      if (status >= 300 && status < 400 && res.headers.location) {
+        return fetchBuffer(res.headers.location, allowUnsafe).then(resolve, reject);
+      }
+      if (status < 200 || status >= 300) {
+        res.resume(); // drain
+        return reject(new Error(`HTTP ${status} ${res.statusMessage || ''}`.trim()));
       }
       const chunks: Buffer[] = [];
       res.on('data', (chunk: Buffer) => chunks.push(chunk));
@@ -485,10 +524,10 @@ export async function drawArt(
   ctx: SKRSContext2D, artUrl: string,
   bounds: { x: number; y: number; w: number; h: number },
   cw: number, ch: number,
-  options?: { rotate?: number },
+  options?: { rotate?: number; allowUnsafe?: boolean },
 ): Promise<void> {
   try {
-    const buf = await fetchBuffer(artUrl);
+    const buf = await fetchBuffer(artUrl, options?.allowUnsafe);
     let img = await loadImage(buf);
     // Rotate the image if requested (90 = CW, -90 = CCW)
     if (options?.rotate) {
@@ -511,7 +550,10 @@ export async function drawArt(
     if (artAspect > boxAspect) { sw = img.height * boxAspect; sx = (img.width - sw) / 2; }
     else { sh = img.width / boxAspect; sy = (img.height - sh) / 2; }
     ctx.drawImage(img, sx, sy, sw, sh, ax, ay, aw, ah);
-  } catch (e) { console.warn(`  Failed to load art: ${e}`); }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.warn(`  Failed to load art from ${artUrl}: ${msg}`);
+  }
 }
 
 export function drawCorners(ctx: SKRSContext2D, cw: number, ch: number): void {

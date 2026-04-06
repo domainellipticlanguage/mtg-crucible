@@ -248,6 +248,25 @@ export type RenderFormat = 'png' | 'jpeg';
 export interface RenderOptions {
   quality?: RenderQuality;
   format?: RenderFormat;
+  /**
+   * Allow art URLs that point to local files (`/path`, `./path`, `file://`)
+   * or to private/loopback/link-local IP addresses. Defaults to `false`.
+   *
+   * Leave this off (the default) when rendering user-supplied card data on a
+   * server — it prevents SSRF and local file disclosure attacks. Public URLs
+   * like `https://i.imgur.com/abc.png` or `https://example.com/art.jpg` work
+   * fine with this off; only "local" or "internal" URLs are blocked.
+   *
+   * Safe to enable in single-user / CLI / build-script contexts where the
+   * card data comes from you, not from untrusted users.
+   *
+   * Note: even with this off, protection is best-effort. There is a small
+   * DNS-rebinding race window between resolution and connection. For
+   * stronger guarantees, enforce egress rules at the network level.
+   *
+   * See: https://owasp.org/www-community/attacks/Server_Side_Request_Forgery
+   */
+  allowUnsafeArtUrls?: boolean;
 }
 
 export interface RenderedCard {

@@ -77,6 +77,7 @@ Parse and render a card. Accepts either a text-format string or a `CardData` obj
 Options:
 - `quality` — `'high'` (2010x2814, default), `'medium'` (745x1040), or `'low'` (350x490)
 - `format` — `'png'` (default, lossless with transparency) or `'jpeg'` (smaller files, no transparency)
+- `allowUnsafeArtUrls` — defaults to `false`. See [Security](#security) below.
 
 ### `parseCard(text: string): CardData`
 
@@ -196,6 +197,21 @@ npm run dev       # start local dev server with hot reload
 - [ ] Support MDFC/Transform for all card types
 - [ ] Support composite artist credits
 - [ ] Support custom set symbol image via `setSymbolUrl`
+
+## Security
+
+When rendering card data from untrusted users (e.g. on a public web server), leave `allowUnsafeArtUrls` off (the default). This blocks art URLs that point to:
+
+- Local files (`/path`, `./path`, `file://`)
+- Loopback addresses (`127.0.0.1`, `localhost`)
+- Private network ranges (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`)
+- Link-local addresses (`169.254.0.0/16`, including cloud metadata services like `169.254.169.254`)
+
+Safe to enable in single-user, CLI, or build-script contexts where the card data comes from you, not from untrusted users.
+
+Public URLs like `https://i.imgur.com/abc.png` always work fine — only "local" or "internal" URLs are affected by `allowUnsafeArtUrls`. This prevents [SSRF](https://owasp.org/www-community/attacks/Server_Side_Request_Forgery) and local file disclosure attacks.
+
+Note: protection is best-effort. There is a small DNS-rebinding race window between hostname resolution and connection. For stronger guarantees, enforce egress rules at the network level.
 
 ## Acknowledgements
 
