@@ -144,9 +144,12 @@ export const TF_FRONT_LAYOUT = {
 
 // Transform back layout (packM15TransformBack.js)
 // Same as front but with white text. Frame is mirrored horizontally.
+// Note: front face shifts the name RIGHT to leave room for the transform icon on the left.
+// The back face has the icon on the RIGHT side, so the name starts at the standard left
+// position but its width is reduced to leave room on the right for the back-face icon.
 export const TF_BACK_LAYOUT = {
   art:       { x: 115/1500, y: 237/2100, w: 1271/1500, h: 930/2100 },
-  name:      { x: 0.16, y: 0.0522, w: 0.7547, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
+  name:      { x: 0.0854, y: 0.0522, w: 0.7547, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
   mana:      { y: 0.0613, w: 0.9292, size: 71/1638, shadowX: -0.001, shadowY: 0.0029 },
   type:      { x: 0.0854, y: 0.5664, w: 0.8292, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
   rules:     { x: 0.086, y: 0.6303, w: 0.828, h: 0.2875, size: 0.0362, font: 'MPlantin' },
