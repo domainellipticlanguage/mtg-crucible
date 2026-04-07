@@ -123,7 +123,12 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle }:
       a.download = `${slugify(name)}.${ext}`;
       a.click();
     };
-    download(card.frontFaceImageUrl, card.name);
+    // For single-image multi-face cards (split, fuse, aftermath, adventure):
+    // linkedCard exists (backFaceName) but is rendered into one image (no backFaceImageUrl).
+    // Use a combined "front--back" filename.
+    const isSingleImageMultiFace = !card.backFaceImageUrl && !!card.backFaceName;
+    const frontName = isSingleImageMultiFace ? `${card.name}--${card.backFaceName}` : card.name;
+    download(card.frontFaceImageUrl, frontName);
     if (card.backFaceImageUrl && card.backFaceName) {
       download(card.backFaceImageUrl, card.backFaceName);
     }
