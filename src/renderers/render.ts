@@ -231,9 +231,11 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
   if (hooks?.body) await hooks.body(ctx, card, L, cw, ch);
 
   if (!hooks?.skipStandardText) {
-    // Set symbol
+    // Set symbol — modern convention: back faces of transform/mdfc cards don't show
+    // a rarity indicator (the front face's set symbol represents the whole card).
     let setSymW = 0;
-    if (L.setSymbol) {
+    const isBackFace = templateKey === 'transform_back' || templateKey === 'mdfc_back';
+    if (L.setSymbol && !isBackFace) {
       setSymW = await drawSetSymbol(ctx, card.rarity || 'common', L.setSymbol, ch, cw);
     }
 

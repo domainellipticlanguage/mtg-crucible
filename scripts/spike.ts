@@ -163,7 +163,7 @@ async function main() {
   // 14
   await render('invasion-gobakhan', {
     name: 'Invasion of Gobakhan', manaCost: '{1}{W}',
-    types: ['battle'], subtypes: ['Siege'],
+    typeLine: { supertypes: [], types: ['battle'], subtypes: ['Siege'] },
     abilities: 'When Invasion of Gobakhan enters the battlefield, look at target opponent\'s hand and exile a nonland card from it. For as long as that card remains exiled, its owner may play it. A spell cast this way costs {2} more to cast.',
     frameColor: 'white', rarity: 'rare',
     artist: 'Zoltan Boros', collectorNumber: '014',
@@ -463,7 +463,7 @@ async function main() {
   // 35. Custom dual-effect card — Snow blue / Nyx red
   await render('conduit-of-fire-and-ice', {
     name: 'Conduit of Fire and Ice', manaCost: '{2}{U}{R}',
-    types: ['artifact'],
+    typeLine: { supertypes: [], types: ['artifact'], subtypes: [] },
     frameColor: ['blue', 'red'],
     frameEffect: ['snow', 'nyx'],
     rarity: 'mythic',
@@ -474,7 +474,7 @@ async function main() {
   // 36. Adventure card — Bonecrusher Giant // Stomp
   await render('bonecrusher-giant', {
     name: 'Bonecrusher Giant', manaCost: '{2}{R}',
-    types: ['creature'], subtypes: ['Giant'],
+    typeLine: { supertypes: [], types: ['creature'], subtypes: ['Giant'] },
     frameColor: 'red',
     rarity: 'rare',
     abilities: 'Whenever Bonecrusher Giant becomes the target of a spell, Bonecrusher Giant deals 2 damage to that spell\'s controller.',
@@ -482,8 +482,7 @@ async function main() {
     linkType: 'adventure',
     linkedCard: {
       name: 'Stomp', manaCost: '{1}{R}',
-      types: ['instant'],
-      subtypes: ['Adventure'],
+      typeLine: { supertypes: [], types: ['instant'], subtypes: ['Adventure'] },
       abilities: 'Damage can\'t be prevented this turn. Stomp deals 2 damage to any target.',
     },
   });
@@ -491,7 +490,7 @@ async function main() {
   // 37. Adventure card — Lovestruck Beast // Heart's Desire (multicolor test)
   await render('lovestruck-beast', {
     name: 'Lovestruck Beast', manaCost: '{2}{G}',
-    types: ['creature'], subtypes: ['Beast', 'Noble'],
+    typeLine: { supertypes: [], types: ['creature'], subtypes: ['Beast', 'Noble'] },
     frameColor: 'green',
     rarity: 'rare',
     abilities: 'Lovestruck Beast can\'t attack unless you control a 1/1 creature.',
@@ -499,8 +498,7 @@ async function main() {
     linkType: 'adventure',
     linkedCard: {
       name: 'Heart\'s Desire', manaCost: '{G}',
-      types: ['sorcery'],
-      subtypes: ['Adventure'],
+      typeLine: { supertypes: [], types: ['sorcery'], subtypes: ['Adventure'] },
       abilities: 'Create a 1/1 white Human creature token.',
     },
   });
@@ -508,8 +506,7 @@ async function main() {
   // 38. Adventure card — multicolor stress test (Fae of Wishes // Granted style)
   await render('fae-of-wishes', {
     name: 'Fae of Wishes', manaCost: '{1}{U}{B}',
-    types: ['creature'], subtypes: ['Faerie', 'Wizard'],
-    supertypes: ['legendary'],
+    typeLine: { supertypes: ['legendary'], types: ['creature'], subtypes: ['Faerie', 'Wizard'] },
     frameColor: ['blue', 'black'],
     rarity: 'mythic',
     abilities: 'Flying\nWhenever Fae of Wishes deals combat damage to a player, you may cast a spell from exile without paying its mana cost if it was put there with Granted.',
@@ -517,8 +514,7 @@ async function main() {
     linkType: 'adventure',
     linkedCard: {
       name: 'Granted', manaCost: '{3}{U}{B}',
-      types: ['sorcery'],
-      subtypes: ['Adventure'],
+      typeLine: { supertypes: [], types: ['sorcery'], subtypes: ['Adventure'] },
       abilities: 'Search your library for a noncreature card, exile it face down, then shuffle. You may look at it for as long as it remains exiled.',
     },
   });
@@ -526,7 +522,7 @@ async function main() {
   // 39. Transform card — Delver of Secrets // Insectile Aberration
   const delver = await render('delver-of-secrets', {
     name: 'Delver of Secrets', manaCost: '{U}',
-    types: ['creature'], subtypes: ['Human', 'Wizard'],
+    typeLine: { supertypes: [], types: ['creature'], subtypes: ['Human', 'Wizard'] },
     frameColor: 'blue',
     rarity: 'common',
     abilities: 'At the beginning of your upkeep, look at the top card of your library. You may reveal that card. If an instant or sorcery card is revealed this way, transform Delver of Secrets.',
@@ -534,7 +530,7 @@ async function main() {
     linkType: 'transform',
     linkedCard: {
       name: 'Insectile Aberration',
-      types: ['creature'], subtypes: ['Human', 'Insect'],
+      typeLine: { supertypes: [], types: ['creature'], subtypes: ['Human', 'Insect'] },
       frameColor: 'blue',
       colorIndicator: ['blue'],
       abilities: 'Flying',
@@ -549,15 +545,14 @@ async function main() {
   // 40. Modal DFC — Emeria's Call // Emeria, Shattered Skyclave
   const emeria = await render('emerias-call', {
     name: "Emeria's Call", manaCost: '{4}{W}{W}{W}',
-    supertypes: ['legendary'],
-    types: ['sorcery'],
+    typeLine: { supertypes: ['legendary'], types: ['sorcery'], subtypes: [] },
     frameColor: 'white',
     rarity: 'mythic',
     abilities: 'Create two 4/4 white Angel Warrior creature tokens with flying. Non-Angel creatures you control gain indestructible until your next turn.',
     linkType: 'modal_dfc',
     linkedCard: {
       name: 'Emeria, Shattered Skyclave',
-      types: ['land'],
+      typeLine: { supertypes: [], types: ['land'], subtypes: [] },
       frameColor: 'land',
       abilities: 'As Emeria, Shattered Skyclave enters, you may pay 3 life. If you don\'t, it enters tapped.\n{T}: Add {W}.',
     },
@@ -569,7 +564,7 @@ async function main() {
   // 41. Multicolor Transform — Archangel Avacyn // Avacyn, the Purifier (gold pinlines)
   const avacynTf = await render('avacyn-transform', {
     name: 'Archangel Avacyn', manaCost: '{3}{W}{W}',
-    supertypes: ['legendary'], types: ['creature'], subtypes: ['Angel'],
+    typeLine: { supertypes: ['legendary'], types: ['creature'], subtypes: ['Angel'] },
     frameColor: ['white', 'red'], accentColor: 'multicolor',
     rarity: 'mythic',
     abilities: 'Flash\nFlying, vigilance\nWhen Archangel Avacyn enters the battlefield, creatures you control gain indestructible until end of turn.\nWhen a non-Angel creature you control dies, transform Archangel Avacyn at the beginning of the next upkeep.',
@@ -577,7 +572,7 @@ async function main() {
     linkType: 'transform',
     linkedCard: {
       name: 'Avacyn, the Purifier',
-      types: ['creature'], subtypes: ['Angel'],
+      typeLine: { supertypes: [], types: ['creature'], subtypes: ['Angel'] },
       frameColor: 'red',
       colorIndicator: ['red'],
       abilities: 'Flying\nWhen this creature transforms into Avacyn, the Purifier, it deals 3 damage to each other creature and each opponent.',
@@ -591,14 +586,14 @@ async function main() {
   // 42. Multicolor MDFC — Shatterskull Smashing // Shatterskull, the Hammer Pass
   const shatterskull = await render('shatterskull-smashing', {
     name: 'Shatterskull Smashing', manaCost: '{X}{R}{R}',
-    types: ['sorcery'],
+    typeLine: { supertypes: [], types: ['sorcery'], subtypes: [] },
     frameColor: ['red', 'land'], accentColor: 'multicolor',
     rarity: 'mythic',
     abilities: "Shatterskull Smashing deals X damage divided as you choose among any number of target creatures and/or planeswalkers. If X is 6 or more, Shatterskull Smashing deals twice X damage divided as you choose among them instead.",
     linkType: 'modal_dfc',
     linkedCard: {
       name: 'Shatterskull, the Hammer Pass',
-      types: ['land'],
+      typeLine: { supertypes: [], types: ['land'], subtypes: [] },
       frameColor: 'land',
       abilities: "As Shatterskull, the Hammer Pass enters, you may pay 3 life. If you don't, it enters tapped.\n{T}: Add {R}.",
     },
@@ -610,14 +605,14 @@ async function main() {
   // 43. Split card — Fire // Ice
   await render('fire-ice', {
     name: 'Fire', manaCost: '{1}{R}',
-    types: ['instant'],
+    typeLine: { supertypes: [], types: ['instant'], subtypes: [] },
     frameColor: 'red',
     rarity: 'uncommon',
     abilities: 'Fire deals 2 damage divided as you choose among one or two targets.',
     linkType: 'split',
     linkedCard: {
       name: 'Ice', manaCost: '{1}{U}',
-      types: ['instant'],
+      typeLine: { supertypes: [], types: ['instant'], subtypes: [] },
       frameColor: 'blue',
       abilities: 'Tap target permanent.\nDraw a card.',
     },
@@ -626,14 +621,14 @@ async function main() {
   // 44. Fuse card — Wear // Tear
   await render('wear-tear', {
     name: 'Wear', manaCost: '{1}{R}',
-    types: ['instant'],
+    typeLine: { supertypes: [], types: ['instant'], subtypes: [] },
     frameColor: 'red',
     rarity: 'uncommon',
     abilities: 'Destroy target artifact.',
     linkType: 'split',
     linkedCard: {
       name: 'Tear', manaCost: '{W}',
-      types: ['instant'],
+      typeLine: { supertypes: [], types: ['instant'], subtypes: [] },
       frameColor: 'white',
       abilities: 'Destroy target enchantment.',
     },
@@ -642,7 +637,7 @@ async function main() {
   // 45. Flip card — Bushi Tenderfoot // Kenzo the Hardhearted
   await render('bushi-tenderfoot', {
     name: 'Bushi Tenderfoot', manaCost: '{W}',
-    types: ['creature'], subtypes: ['Human', 'Soldier', 'Monk', 'Turtle', 'Zebra'],
+    typeLine: { supertypes: [], types: ['creature'], subtypes: ['Human', 'Soldier', 'Monk', 'Turtle', 'Zebra'] },
     frameColor: 'white',
     rarity: 'uncommon',
     abilities: 'When a creature dealt damage by Bushi Tenderfoot this turn dies, flip Bushi Tenderfoot.',
@@ -650,8 +645,7 @@ async function main() {
     linkType: 'flip',
     linkedCard: {
       name: 'Kenzo the Hardhearted',
-      supertypes: ['legendary'],
-      types: ['creature'], subtypes: ['Human', 'Samurai'],
+      typeLine: { supertypes: ['legendary'], types: ['creature'], subtypes: ['Human', 'Samurai'] },
       frameColor: 'white',
       abilities: 'Double strike; bushido 2',
       power: '3', toughness: '4',
@@ -661,8 +655,7 @@ async function main() {
   // 45b. Flip card — Erayo (flip side is enchantment, no P/T)
   await render('erayo', {
     name: 'Erayo, Soratami Ascendant', manaCost: '{1}{U}',
-    supertypes: ['legendary'],
-    types: ['creature'], subtypes: ['Moonfolk', 'Monk'],
+    typeLine: { supertypes: ['legendary'], types: ['creature'], subtypes: ['Moonfolk', 'Monk'] },
     frameColor: 'blue',
     rarity: 'rare',
     abilities: 'Flying\nWhenever the fourth spell of a turn is cast, flip Erayo, Soratami Ascendant.',
@@ -670,8 +663,7 @@ async function main() {
     linkType: 'flip',
     linkedCard: {
       name: "Erayo's Essence",
-      supertypes: ['legendary'],
-      types: ['enchantment'],
+      typeLine: { supertypes: ['legendary'], types: ['enchantment'], subtypes: [] },
       frameColor: 'blue',
       abilities: 'Whenever an opponent casts a spell for the first time each turn, counter that spell.',
     },
@@ -680,7 +672,7 @@ async function main() {
   // 46. Mutate card — Gemrazer
   await render('gemrazer', {
     name: 'Gemrazer', manaCost: '{3}{G}',
-    types: ['creature'], subtypes: ['Beast'],
+    typeLine: { supertypes: [], types: ['creature'], subtypes: ['Beast'] },
     frameColor: 'green',
     rarity: 'rare',
     abilities: {
@@ -696,7 +688,7 @@ async function main() {
   // 47. Prototype card — Phyrexian Fleshgorger
   await render('phyrexian-fleshgorger', {
     name: 'Phyrexian Fleshgorger', manaCost: '{7}',
-    types: ['artifact', 'creature'], subtypes: ['Phyrexian', 'Wurm'],
+    typeLine: { supertypes: [], types: ['artifact', 'creature'], subtypes: ['Phyrexian', 'Wurm'] },
     frameColor: 'artifact',
     rarity: 'mythic',
     cardTemplate: 'prototype',
@@ -713,7 +705,7 @@ async function main() {
   // 48. Leveler card — Student of Warfare
   await render('student-of-warfare', {
     name: 'Student of Warfare', manaCost: '{W}',
-    types: ['creature'], subtypes: ['Human', 'Knight'],
+    typeLine: { supertypes: [], types: ['creature'], subtypes: ['Human', 'Knight'] },
     frameColor: 'white',
     rarity: 'rare',
     abilities: {
@@ -732,14 +724,14 @@ async function main() {
   // 49. Fuse card — Turn // Burn
   await render('turn-burn', {
     name: 'Turn', manaCost: '{2}{U}',
-    types: ['instant'],
+    typeLine: { supertypes: [], types: ['instant'], subtypes: [] },
     frameColor: 'blue',
     rarity: 'uncommon',
     abilities: 'Until end of turn, target creature loses all abilities and becomes a red Weird with base power and toughness 0/1.',
     linkType: 'fuse',
     linkedCard: {
       name: 'Burn', manaCost: '{1}{R}',
-      types: ['instant'],
+      typeLine: { supertypes: [], types: ['instant'], subtypes: [] },
       frameColor: 'red',
       abilities: 'Burn deals 2 damage to any target.',
     },
@@ -748,14 +740,14 @@ async function main() {
   // 50. Aftermath card — Appeal // Authority
   await render('appeal-authority', {
     name: 'Appeal', manaCost: '{G}',
-    types: ['sorcery'],
+    typeLine: { supertypes: [], types: ['sorcery'], subtypes: [] },
     frameColor: 'green',
     rarity: 'uncommon',
     abilities: 'Until end of turn, target creature gains trample and gets +X/+X, where X is the number of creatures you control.',
     linkType: 'aftermath',
     linkedCard: {
       name: 'Authority', manaCost: '{1}{W}',
-      types: ['sorcery'],
+      typeLine: { supertypes: [], types: ['sorcery'], subtypes: [] },
       frameColor: 'white',
       abilities: 'Aftermath\nTap up to two target creatures your opponents control.',
     },
@@ -764,14 +756,14 @@ async function main() {
   // 51. Aftermath card — Dusk // Dawn (same as CC gallery reference)
   await render('dusk-dawn', {
     name: 'Dusk', manaCost: '{2}{W}{W}',
-    types: ['sorcery'],
+    typeLine: { supertypes: [], types: ['sorcery'], subtypes: [] },
     frameColor: 'white',
     rarity: 'rare',
     abilities: 'Destroy all creatures with power 3 or greater.',
     linkType: 'aftermath',
     linkedCard: {
       name: 'Dawn', manaCost: '{3}{W}{W}',
-      types: ['sorcery'],
+      typeLine: { supertypes: [], types: ['sorcery'], subtypes: [] },
       frameColor: 'white',
       abilities: 'Aftermath (Cast this spell only from your graveyard. Then exile it.)\nReturn all creature cards with power 2 or less from your graveyard to your hand.',
     },
@@ -780,7 +772,7 @@ async function main() {
   // 52. Modal spell — Cryptic Command (bullets from - and *)
   await render('cryptic-command', {
     name: 'Cryptic Command', manaCost: '{1}{U}{U}{U}',
-    types: ['instant'],
+    typeLine: { supertypes: [], types: ['instant'], subtypes: [] },
     frameColor: 'blue',
     rarity: 'rare',
     abilities: 'Choose two -\n- Counter target spell.\n- Return target permanent to its owner\'s hand.\n- Tap all creatures your opponents control.\n- Draw a card.',
@@ -789,7 +781,7 @@ async function main() {
   // 53. Modal spell using * bullets
   await render('charm-of-the-five-suns', {
     name: 'Charm of the Five Suns', manaCost: '{W}{U}{B}{R}{G}',
-    types: ['instant'],
+    typeLine: { supertypes: [], types: ['instant'], subtypes: [] },
     frameColor: 'multicolor',
     rarity: 'mythic',
     abilities: 'Choose one -\n* Destroy target creature.\n* Draw two cards.\n* Deal 3 damage to any target.',
