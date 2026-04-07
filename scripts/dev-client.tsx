@@ -55,6 +55,8 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [timing, setTiming] = useState('');
+  const [quality, setQuality] = useState<'low' | 'medium' | 'high'>('high');
+  const [format, setFormat] = useState<'png' | 'jpeg'>('jpeg');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const doRender = async () => {
@@ -67,7 +69,7 @@ function App() {
       const res = await fetch('/render', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: cardText }),
+        body: JSON.stringify({ text: cardText, quality, format }),
       });
       const serverMs = res.headers.get('X-Render-Time-Ms');
 
@@ -133,6 +135,21 @@ function App() {
           />
           <div className="controls">
             <button onClick={doRender} disabled={loading}>Render</button>
+            <label style={{ marginLeft: 12, fontSize: 13 }}>
+              Quality:&nbsp;
+              <select value={quality} onChange={(e) => setQuality(e.target.value as any)}>
+                <option value="low">low</option>
+                <option value="medium">medium</option>
+                <option value="high">high</option>
+              </select>
+            </label>
+            <label style={{ marginLeft: 12, fontSize: 13 }}>
+              Format:&nbsp;
+              <select value={format} onChange={(e) => setFormat(e.target.value as any)}>
+                <option value="jpeg">jpeg</option>
+                <option value="png">png</option>
+              </select>
+            </label>
           </div>
         </div>
         <div className="output-panel">

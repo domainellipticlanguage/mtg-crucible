@@ -152,13 +152,17 @@ const server = http.createServer(async (req, res) => {
     const chunks: Buffer[] = [];
     for await (const chunk of req) chunks.push(chunk as Buffer);
     const body = JSON.parse(Buffer.concat(chunks).toString());
-    const { text } = body as { text: string };
+    const { text, quality, format } = body as { text: string; quality?: 'low' | 'medium' | 'high'; format?: 'png' | 'jpeg' };
 
     try {
       let input: any = text;
       try { input = JSON.parse(text); } catch {}
       const t0 = performance.now();
-      const rendered = await renderCard(input, { format: 'jpeg', allowUnsafeArtUrls: true });
+      const rendered = await renderCard(input, {
+        format: format ?? 'jpeg',
+        quality: quality ?? 'high',
+        allowUnsafeArtUrls: true,
+      });
       const display = toDisplayCard(rendered);
       const ms = Math.round(performance.now() - t0);
       res.writeHead(200, { 'Content-Type': 'application/json', 'X-Render-Time-Ms': String(ms) });

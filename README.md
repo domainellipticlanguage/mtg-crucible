@@ -151,13 +151,17 @@ PT Box Color: Red, White, Red, White, Red, White, Red, and White
 
 ### Split card
 ```
-Gloom {1}{G}
+Wine {G}
 Instant
-Destroy target artifact or enchantment.
---split--
-Doom {2}{B}
-Sorcery
-Each player sacrifices a creature.
+Put a +1/+1 counter on target creature.
+Art URL: /Users/nathandunn/Projects/mtg-crucible/examples/wine-art.png
+Rarity: Uncommon
+----
+Dine {2}{B}
+Instant
+Destroy target creature. Create a Food token. (It's an artifact with "{2}, {T}, Sacrifice this token: You gain 3 life.")
+Art URL: /Users/nathandunn/Projects/mtg-crucible/examples/dine-art-2.png
+Rarity: Uncommon
 ```
 
 <img src="https://raw.githubusercontent.com/domainellipticlanguage/mtg-crucible/main/examples/gloom-doom.png" alt="Gloom // Doom" width="300">
@@ -194,7 +198,8 @@ npm run dev       # start local dev server with hot reload
 ```
 
 ## TODO
-- [ ] Add full support for Rooms
+- [ ] Support Rooms
+- [ ] Support Station
 - [ ] Support all frame effects (Snow, Nyx, Devoid) for all card types
 - [ ] Support MDFC/Transform for all card types
 - [ ] Support composite artist credits
