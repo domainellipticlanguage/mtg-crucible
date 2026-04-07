@@ -183,6 +183,8 @@ The component supports:
 - Invisible searchable text overlay for Ctrl+F
 - CSS 3D transforms for card flipping
 
+![React Component Demo](https://raw.githubusercontent.com/domainellipticlanguage/mtg-crucible/main/examples/react-component.gif)
+
 ## Development
 
 ```bash

@@ -101,7 +101,7 @@ function App() {
     switch (activeTab) {
       case 'card':
         return (
-          <div style={{ height: 500, display: 'flex', justifyContent: 'center' }}>
+          <div style={{ height: 800, width: 800, display: 'flex', justifyContent: 'center', margin: '100px' }}>
             <MtgCard card={result.display} cardText={result.display.scryfallText} />
           </div>
         );
