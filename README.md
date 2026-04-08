@@ -24,7 +24,7 @@ Legendary Artifact
 Whenever a legendary creature you control dies, return it to your hand at the beginning of your next upkeep.
 Flavor Text: Every great story begins with fire.
 Rarity: Mythic Rare
-Art URL: https://example.com/art.png
+Art URL: https://raw.githubusercontent.com/domainellipticlanguage/mtg-crucible/refs/heads/main/examples/crucible-art.png
 `);
 
 writeFileSync('crucible-of-legends.png', result.frontFace);
@@ -42,7 +42,7 @@ const result = await renderCard({
   abilities: 'Whenever a legendary creature you control dies, return it to your hand at the beginning of your next upkeep.',
   flavorText: 'Every great story begins with fire.',
   rarity: 'mythic',
-  artUrl: 'https://example.com/art.png',
+  artUrl: 'https://raw.githubusercontent.com/domainellipticlanguage/mtg-crucible/refs/heads/main/examples/crucible-art.png',
 });
 
 writeFileSync('crucible-of-legends.png', result.frontFace);
@@ -128,7 +128,7 @@ Artifact
 Whenever you cast an instant or sorcery spell, choose one —
 - Fire — Conduit of Fire and Ice deals 1 damage to each opponent.
 - Ice — Scry 1.
-Art URL: https://example.com/art.png
+Art URL: https://raw.githubusercontent.com/domainellipticlanguage/mtg-crucible/refs/heads/main/examples/conduit-art.png
 Frame Effect: Nyx, Snow
 Frame Color: Red, Blue
 ```
@@ -142,7 +142,7 @@ Legendary Creature — Nightmare Spirit
 Haste, lifelink
 Whenever the Candy Striper attacks, each opponent loses 1 life and you gain 1 life for each enchantment you control.
 3/3
-Art URL: https://example.com/art.png
+Art URL: https://raw.githubusercontent.com/domainellipticlanguage/mtg-crucible/refs/heads/main/examples/candy-striper-art.png
 Frame Color: Red, White, Red, White, Red, White, Red, and White
 Accent: Red, White, Red, White, Red, White, Red, and White
 Name Line Color: Red, White, Red, White, Red, White, Red, and White
@@ -156,17 +156,16 @@ PT Box Color: Red, White, Red, White, Red, White, Red, and White
 To define a composite card (split, modal double-faced, etc.) use the `----` separator between card parts.
 
 ```
-Wine {G}
+Wine {1}{G}
 Instant
-Put a +1/+1 counter on target creature.
-Art URL: /Users/nathandunn/Projects/mtg-crucible/examples/wine-art.png
+Put a +1/+1 counter on each of up to two target creatures.
+Art URL: https://raw.githubusercontent.com/domainellipticlanguage/mtg-crucible/refs/heads/main/examples/wine-art.png
 Rarity: Uncommon
 ----
-Dine {2}{B}
+Dine {3}{B}
 Instant
 Destroy target creature. Create a Food token. (It's an artifact with "{2}, {T}, Sacrifice this token: You gain 3 life.")
-Art URL: /Users/nathandunn/Projects/mtg-crucible/examples/dine-art-2.png
-Rarity: Uncommon
+Art URL: https://raw.githubusercontent.com/domainellipticlanguage/mtg-crucible/refs/heads/main/examples/dine-art.png
 ```
 
 <img src="examples/wine-dine.png" alt="Wine // Dine" height="300">

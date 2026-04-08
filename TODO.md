@@ -45,10 +45,6 @@
 - [ ] Better text auto-sizing for edge cases (very long names, many abilities)
 - [ ] Flavor text divider bar (the small line between rules and flavor)
 
-## Normalize
-
-- [ ] `normalizeCard` should copy the primary card's `rarity` to the linked card so transforms/MDFCs render with the correct rarity if the back face doesn't specify one
-
 ## Parser
 
 - [ ] Adventure card parsing from text format (currently only works from structured JSON)

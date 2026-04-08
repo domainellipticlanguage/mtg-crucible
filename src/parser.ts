@@ -1282,7 +1282,7 @@ function toArray<T>(v: T | T[] | undefined): T[] {
   return Array.isArray(v) ? v : [v];
 }
 
-export function normalizeCard(card: CardData): NormalizedCardData {
+export function normalizeCard(card: CardData, parent?: CardData): NormalizedCardData {
   const typeLine = resolveTypeLine(card);
 
   let abilities: ParsedAbilities;
@@ -1340,7 +1340,7 @@ export function normalizeCard(card: CardData): NormalizedCardData {
     name: card.name ?? '',
     manaCost: card.manaCost ?? '',
     typeLine,
-    rarity: card.rarity ?? 'rare',
+    rarity: card.rarity ?? parent?.rarity ?? 'rare',
 
     colorIndicator: card.colorIndicator ?? [],
 
@@ -1359,7 +1359,7 @@ export function normalizeCard(card: CardData): NormalizedCardData {
 
     legendCrown: card.legendCrown ?? typeLine.supertypes.includes('legendary'),
 
-    linkedCard: card.linkedCard ? normalizeCard(card.linkedCard) : undefined,
+    linkedCard: card.linkedCard ? normalizeCard(card.linkedCard, card) : undefined,
     linkType,
 
     collectorNumber: card.collectorNumber ?? '1/1',
