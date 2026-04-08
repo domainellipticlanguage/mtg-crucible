@@ -191,18 +191,18 @@ export const MDFC_BACK_LAYOUT = {
 // Right half (first spell) — card y ~ 0.44
 export const SPLIT_RIGHT_LAYOUT = {
   art:       { x: 237/1500, y: 112/2100, w: 560/1500, h: 816/2100 },
-  name:      { x: 0.072, y: 0.4381, w: 0.39, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
+  name:      { x: 0.082, y: 0.4381, w: 0.39, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
   mana:      { y: 0.0855, w: 0.39, size: 85/1500, shadowX: -0.001, shadowY: 0.0029 },
-  type:      { x: 0.55, y: 0.4381, w: 0.39, h: 0.0286, size: 0.0286, font: 'Beleren Bold' },
+  type:      { x: 0.555, y: 0.4381, w: 0.39, h: 0.0286, size: 0.0286, font: 'Beleren Bold' },
   rules:     { x: 0.6087, y: 0.44, w: 0.36, h: 0.2443, size: 0.0355, font: 'MPlantin' },
   setSymbol: { x: 0.40, y: 0.565, w: 0.12, h: 0.08 },
 };
 // Left half (second spell / linkedCard) — card y ~ 0.89
 export const SPLIT_LEFT_LAYOUT = {
   art:       { x: 237/1500, y: 1070/2100, w: 560/1500, h: 816/2100 },
-  name:      { x: 0.072, y: 0.8943, w: 0.39, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
+  name:      { x: 0.082, y: 0.8943, w: 0.39, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
   mana:      { y: 0.0855, w: 0.39, size: 85/1500, shadowX: -0.001, shadowY: 0.0029 },
-  type:      { x: 0.55, y: 0.8943, w: 0.39, h: 0.0286, size: 0.0286, font: 'Beleren Bold' },
+  type:      { x: 0.555, y: 0.8943, w: 0.39, h: 0.0286, size: 0.0286, font: 'Beleren Bold' },
   rules:     { x: 0.6087, y: 0.90, w: 0.36, h: 0.2443, size: 0.0355, font: 'MPlantin' },
   setSymbol: { x: 0.40, y: 0.565, w: 0.12, h: 0.08 },
 };

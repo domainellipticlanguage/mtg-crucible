@@ -149,7 +149,9 @@ PT Box Color: Red, White, Red, White, Red, White, Red, and White
 
 <img src="https://raw.githubusercontent.com/domainellipticlanguage/mtg-crucible/main/examples/the-candy-striper.png" alt="The Candy Striper" width="300">
 
-### Split card
+### Composite cards
+To define a composite card (split, modal double-faced, etc.) use the `----` separator between card parts.
+
 ```
 Wine {G}
 Instant
@@ -164,11 +166,14 @@ Art URL: /Users/nathandunn/Projects/mtg-crucible/examples/dine-art-2.png
 Rarity: Uncommon
 ```
 
-<img src="https://raw.githubusercontent.com/domainellipticlanguage/mtg-crucible/main/examples/gloom-doom.png" alt="Gloom // Doom" width="300">
+<img src="examples/wine-dine.png" alt="Wine // Dine" height="300">
 
-Supported link types: `--transform--`, `--mdfc--`, `--split--`, `--fuse--`, `--flip--`, `--adventure--`, `--aftermath--`
+Crucible will infer the link type from the card parts, but if you want to be explicit, you can use the link type in the card definition:
+
+Instead of `----`, you can use one of `--transform--`, `--mdfc--`, `--split--`, `--fuse--`, `--flip--`, `--adventure--`, or `--aftermath--`.
 
 ## React Component
+Crucible provides a React component for rendering cards.
 
 ```tsx
 import { MtgCard } from 'mtg-crucible/react';
@@ -181,11 +186,9 @@ import { MtgCard } from 'mtg-crucible/react';
 ```
 
 The component supports:
-- Click to cycle through rotations (transform, flip, split, etc.)
-- Rotation arrow widget (Scryfall-style) with hover/click animation
+- Rotations for non-standard cards (battles, flip, aftermath, etc.)
 - Right-click context menu: download, copy image, copy text formats
 - Invisible searchable text overlay for Ctrl+F
-- CSS 3D transforms for card flipping
 
 ![React Component Demo](https://raw.githubusercontent.com/domainellipticlanguage/mtg-crucible/main/examples/react-component.gif)
 
