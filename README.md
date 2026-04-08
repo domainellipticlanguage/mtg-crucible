@@ -203,6 +203,7 @@ npm run dev       # start local dev server with hot reload
 ```
 
 ## TODO
+- [ ] Fix bug where getArtDimensions does not normalize first
 - [ ] Support Rooms
 - [ ] Support Station
 - [ ] Support all frame effects (Snow, Nyx, Devoid) for all card types
