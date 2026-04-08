@@ -64,16 +64,17 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle }:
 
   useEffect(ensureKeyframes, []);
 
-  const hasMultipleStates = card.rotations.length > 1;
-  const currentRotation = card.rotations[rotationIndex] ?? { x: 0, y: 0, z: 0 };
+  const rotations = card.rotations ?? [];
+  const hasMultipleStates = rotations.length > 1;
+  const currentRotation = rotations[rotationIndex] ?? { x: 0, y: 0, z: 0 };
   // Back face is visible when Y rotation puts it face-forward
   const showingFront = !card.backFaceImageUrl || (Math.round(currentRotation.y / 180) % 2 === 0);
 
   const handleClick = useCallback(() => {
     if (!hasMultipleStates) return;
-    setRotationIndex(i => (i + 1) % card.rotations.length);
+    setRotationIndex(i => (i + 1) % rotations.length);
     setWidgetSpin(s => s + 1);
-  }, [hasMultipleStates, card.rotations.length]);
+  }, [hasMultipleStates, rotations.length]);
 
   // Close context menu on click outside or escape
   useEffect(() => {

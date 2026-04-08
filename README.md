@@ -20,11 +20,11 @@ import { writeFileSync } from 'fs';
 
 const result = await renderCard(`
 Crucible of Legends {3}
-Art URL: https://example.com/art.png
-Rarity: Mythic Rare
 Legendary Artifact
-Whenever a legendary creature you control dies, return it to your hand at the beginning of the next end step.
+Whenever a legendary creature you control dies, return it to your hand at the beginning of your next upkeep.
 Flavor Text: Every great story begins with fire.
+Rarity: Mythic Rare
+Art URL: https://example.com/art.png
 `);
 
 writeFileSync('crucible-of-legends.png', result.frontFace);
@@ -39,10 +39,13 @@ const result = await renderCard({
   name: 'Crucible of Legends',
   manaCost: '{3}',
   typeLine: 'Legendary Artifact',
-  rarity: 'mythic',
-  abilities: 'Whenever a legendary creature you control dies, return it to your hand at the beginning of the next end step.',
+  abilities: 'Whenever a legendary creature you control dies, return it to your hand at the beginning of your next upkeep.',
   flavorText: 'Every great story begins with fire.',
+  rarity: 'mythic',
+  artUrl: 'https://example.com/art.png',
 });
+
+writeFileSync('crucible-of-legends.png', result.frontFace);
 ```
 
 <img src="https://raw.githubusercontent.com/domainellipticlanguage/mtg-crucible/main/examples/crucible-of-legends.png" alt="Crucible of Legends" width="300">
