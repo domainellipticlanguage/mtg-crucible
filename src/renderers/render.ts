@@ -92,6 +92,10 @@ const QUALITY_SCALE: Record<RenderQuality, number> = {
   low: 350 / STD_W,
 };
 
+function isDebug(): boolean {
+  return !!process.env.MTG_CRUCIBLE_DEBUG;
+}
+
 export async function renderCardImage(card: NormalizedCardData, templateOverride?: string, quality: RenderQuality = 'high', format: RenderFormat = 'png', allowUnsafeArtUrls = false): Promise<Buffer> {
   const templateKey = templateOverride ?? card.cardTemplate;
   const config = TEMPLATES[templateKey] ?? TEMPLATES.standard;
@@ -230,6 +234,8 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
   L._allowUnsafeArtUrls = allowUnsafeArtUrls;
   if (hooks?.body) await hooks.body(ctx, card, L, cw, ch);
 
+  const debugRects: { color: string; x: number; y: number; w: number; h: number }[] = [];
+
   if (!hooks?.skipStandardText) {
     // Set symbol — modern convention: back faces of transform/mdfc cards don't show
     // a rarity indicator (the front face's set symbol represents the whole card).
@@ -272,12 +278,25 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
       if (L.backPt && card.linkedCard?.power && card.linkedCard?.toughness) {
         exclusionRects.push({ x: L.backPt.x * cw - hPad, y: L.backPt.y * ch, w: L.backPt.w * cw + hPad, h: L.backPt.h * ch });
       }
+      if (L.ptBox && card.power && card.toughness) {
+        exclusionRects.push({ x: L.ptBox.x * cw - hPad, y: L.ptBox.y * ch, w: L.ptBox.w * cw + hPad, h: L.ptBox.h * ch });
+      }
+      if (L.loyalty && card.startingLoyalty) {
+        exclusionRects.push({ x: L.loyalty.x * cw - hPad, y: L.loyalty.y * ch, w: L.loyalty.w * cw + hPad, h: L.loyalty.h * ch });
+      }
       // MDFC flipside hint box: shrink rules area so text doesn't overlap
       if (L.flipside && card.linkedCard) {
         const flipsideTop = L.flipside.y * ch;
         const rulesBottom = ry + rh;
         if (flipsideTop < rulesBottom) {
           rh = flipsideTop - ry;
+        }
+      }
+
+      if (isDebug()) {
+        debugRects.push({ color: 'blue', x: rx, y: ry, w: rw, h: rh });
+        for (const r of exclusionRects) {
+          debugRects.push({ color: 'red', ...r });
         }
       }
 
@@ -306,6 +325,18 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
 
   // Corners
   drawCorners(ctx, cw, ch);
+
+  // Debug overlays (drawn last so they're always visible)
+  if (isDebug() && debugRects.length > 0) {
+    ctx.save();
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    for (const r of debugRects) {
+      ctx.strokeStyle = r.color;
+      ctx.strokeRect(r.x, r.y, r.w, r.h);
+    }
+    ctx.restore();
+  }
 
   // Battles are rendered landscape; rotate to portrait for output
   if (frame === 'battle') {

@@ -203,16 +203,27 @@ npm run dev       # start local dev server with hot reload
 ```
 
 ## TODO
+- [ ] Fix Snow not automatically getting Snow frame effect
+- [ ] Fix Enchantment creatures/artifacts, etc. not automatically getting Nyx frame effect
 - [ ] Fix bug where getArtDimensions does not normalize first
+- [ ] Fix bug when inferring ability word vs. ability keyword with duplicated ability
 - [ ] Support Rooms
 - [ ] Fix Fuse
 - [ ] Support Station
 - [ ] Support Prepare
+- [ ] Support Omen
 - [ ] Support all frame effects (Snow, Nyx, Devoid) for all card types
 - [ ] Support MDFC/Transform for all card types
 - [ ] Support composite artist credits
 - [ ] Support custom set symbol image via `setSymbolUrl`
 - [ ] Optimize asset size
+- [ ] Refactor colorless as a frame effect
+- [ ] Add copy card URL to the right-click context menu
+- [ ] Fix context menu not stopPropagation
+- [ ] Fix edge case with text placement
+- [ ] Add debug mode to show exclusion zones
+- [ ] Fix copy image not working on the component
+- [ ] Refactor exclusion zone architecture
 
 ## Security
 
