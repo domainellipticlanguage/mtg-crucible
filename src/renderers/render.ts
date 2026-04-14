@@ -279,7 +279,7 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
         exclusionRects.push({ x: L.backPt.x * cw - hPad, y: L.backPt.y * ch, w: L.backPt.w * cw + hPad, h: L.backPt.h * ch });
       }
       if (L.ptBox && card.power && card.toughness) {
-        exclusionRects.push({ x: L.ptBox.x * cw - hPad, y: L.ptBox.y * ch, w: L.ptBox.w * cw + hPad, h: L.ptBox.h * ch });
+        exclusionRects.push({ x: L.ptBox.x * cw - hPad + 50, y: L.ptBox.y * ch, w: L.ptBox.w * cw + hPad, h: L.ptBox.h * ch });
       }
       if (L.loyalty && card.startingLoyalty) {
         exclusionRects.push({ x: L.loyalty.x * cw - hPad, y: L.loyalty.y * ch, w: L.loyalty.w * cw + hPad, h: L.loyalty.h * ch });
