@@ -218,10 +218,6 @@ npm run dev       # start local dev server with hot reload
 - [ ] Support custom set symbol image via `setSymbolUrl`
 - [ ] Optimize asset size
 - [ ] Refactor colorless as a frame effect
-- [ ] Add copy card URL to the right-click context menu
-- [ ] Fix context menu not stopPropagation
-- [ ] Fix edge case with text placement
-- [ ] Add debug mode to show exclusion zones
 - [ ] Refactor exclusion zone architecture
 - [ ] Fix border radius on component
 

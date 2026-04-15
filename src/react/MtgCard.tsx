@@ -2,6 +2,11 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import type { MtgCardDisplayData } from '../types';
 
+export interface MtgCardMenuItem {
+  label: string;
+  action: () => void;
+}
+
 export interface MtgCardProps {
   card: MtgCardDisplayData;
   cardText?: string;
@@ -9,9 +14,14 @@ export interface MtgCardProps {
   style?: React.CSSProperties;
   /** Style override for the rotation arrow widget. Set `display: 'none'` to hide it. */
   rotateWidgetStyle?: React.CSSProperties;
+  /** Hide built-in context menu items by id. Pass `'all'` to hide all built-in items. */
+  hideMenuItems?: string[] | 'all';
+  /** Additional context menu items appended after the built-in ones. */
+  extraMenuItems?: MtgCardMenuItem[];
 }
 
 interface ContextMenuItem {
+  id?: string;
   label: string;
   action: () => void;
 }
@@ -57,7 +67,7 @@ function ensureKeyframes() {
   keyframesInjected = true;
 }
 
-export function MtgCard({ card, cardText, className, style, rotateWidgetStyle }: MtgCardProps) {
+export function MtgCard({ card, cardText, className, style, rotateWidgetStyle, hideMenuItems, extraMenuItems }: MtgCardProps) {
   const [rotationIndex, setRotationIndex] = useState(0);
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [widgetSpin, setWidgetSpin] = useState(0);
@@ -92,9 +102,10 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle }:
   }, [menuPos]);
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    if (hideMenuItems === 'all' && !extraMenuItems?.length) return;
     e.preventDefault();
     setMenuPos({ x: e.clientX, y: e.clientY });
-  }, []);
+  }, [hideMenuItems, extraMenuItems]);
 
   const copyText = useCallback((text: string) => {
     navigator.clipboard.writeText(text);
@@ -143,13 +154,26 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle }:
     }
   }, [card.frontFaceImageUrl, card.backFaceImageUrl, card.name, card.backFaceName]);
 
+  const copyImageUrl = useCallback(() => {
+    const src = showingFront ? card.frontFaceImageUrl : card.backFaceImageUrl;
+    if (src) navigator.clipboard.writeText(src);
+    setMenuPos(null);
+  }, [showingFront, card.frontFaceImageUrl, card.backFaceImageUrl]);
+
+  const hideAll = hideMenuItems === 'all';
+  const hiddenSet = !hideAll && hideMenuItems ? new Set(hideMenuItems) : null;
+  const builtinItems: ContextMenuItem[] = [
+    { id: 'download', label: 'Download Image', action: downloadImage },
+    { id: 'copy-image', label: 'Copy Card Image', action: copyImage },
+    { id: 'copy-image-url', label: 'Copy Image URL', action: copyImageUrl },
+    { id: 'copy-scryfall-text', label: 'Copy Scryfall Text', action: () => copyText(card.scryfallText) },
+    { id: 'copy-crucible-text', label: 'Copy Crucible Text', action: () => copyText(card.crucibleText) },
+    { id: 'copy-scryfall-json', label: 'Copy Scryfall JSON', action: () => copyText(card.scryfallJson) },
+    { id: 'copy-card-json', label: 'Copy Card Data JSON', action: () => copyText(card.scryfallJson) },
+  ];
   const menuItems: ContextMenuItem[] = [
-    { label: 'Download Image', action: downloadImage },
-    { label: 'Copy Card Image', action: copyImage },
-    { label: 'Copy Scryfall Text', action: () => copyText(card.scryfallText) },
-    { label: 'Copy Crucible Text', action: () => copyText(card.crucibleText) },
-    { label: 'Copy Scryfall JSON', action: () => copyText(card.scryfallJson) },
-    { label: 'Copy Card Data JSON', action: () => copyText(card.scryfallJson) },
+    ...(hideAll ? [] : builtinItems.filter(item => !hiddenSet || !hiddenSet.has(item.id!))),
+    ...(extraMenuItems ?? []),
   ];
 
   const transforms: string[] = [];
@@ -287,7 +311,7 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle }:
           {menuItems.map((item) => (
             <div
               key={item.label}
-              onClick={item.action}
+              onClick={(e) => { e.stopPropagation(); e.preventDefault(); item.action(); }}
               style={{
                 padding: '6px 14px',
                 cursor: 'pointer',
