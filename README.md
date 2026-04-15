@@ -222,8 +222,8 @@ npm run dev       # start local dev server with hot reload
 - [ ] Fix context menu not stopPropagation
 - [ ] Fix edge case with text placement
 - [ ] Add debug mode to show exclusion zones
-- [ ] Fix copy image not working on the component
 - [ ] Refactor exclusion zone architecture
+- [ ] Fix border radius on component
 
 ## Security
 

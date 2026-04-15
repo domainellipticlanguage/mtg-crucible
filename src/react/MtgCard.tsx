@@ -106,9 +106,17 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle }:
     const src = showingFront ? card.frontFaceImageUrl : card.backFaceImageUrl;
     if (!src) return;
     try {
-      const res = await fetch(src);
-      const blob = await res.blob();
-      await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+      // Clipboard API requires image/png — convert via canvas if needed
+      const img = new Image();
+      img.src = src;
+      await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      canvas.getContext('2d')!.drawImage(img, 0, 0);
+      const blob = await new Promise<Blob>((resolve, reject) =>
+        canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob failed')), 'image/png'));
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
     } catch {
       // Fallback: some browsers don't support clipboard.write for images
     }
