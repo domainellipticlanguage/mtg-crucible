@@ -7,7 +7,8 @@ export interface ExclusionRect {
   x: number; y: number; w: number; h: number; // absolute pixel coords
 }
 
-/** Given a line's absolute Y and height, compute effective text width accounting for exclusion rects. */
+/** Given a line's absolute Y, height, and rendered text width, compute effective max width.
+ *  Only shortens the available width when the text actually collides with an exclusion rect. */
 function getEffectiveWidth(
   lineY: number, lineH: number,
   boxX: number, boxW: number,
@@ -21,6 +22,34 @@ function getEffectiveWidth(
     }
   }
   return Math.max(effectiveW, boxW * 0.5);
+}
+
+/** Wrap paragraphs at full width, then re-wrap any lines that actually collide with exclusion rects. */
+function wrapWithExclusions(
+  ctx: SKRSContext2D, paragraphs: string[], boxW: number, textSize: number,
+  boxX: number, boxY: number, exclusionRects: ExclusionRect[],
+  paraSpacing: number,
+): { text: string; paraStart: boolean; insideParens: boolean }[] {
+  // First: wrap at full width
+  const fullLines = wrapParagraphs(ctx, paragraphs, boxW, textSize);
+
+  // Check if any line actually collides — if not, skip re-wrap entirely
+  let needsRewrap = false;
+  let curY = 0;
+  for (let i = 0; i < fullLines.length; i++) {
+    if (i > 0) { curY += textSize; if (fullLines[i].paraStart) curY += paraSpacing; }
+    const lineY = boxY + curY;
+    const lineW = measureRichText(ctx, fullLines[i].text, textSize, fullLines[i].insideParens);
+    const effectiveW = getEffectiveWidth(lineY, textSize, boxX, boxW, exclusionRects);
+    if (lineW > effectiveW) { needsRewrap = true; break; }
+  }
+
+  if (!needsRewrap) return fullLines;
+
+  // Re-wrap with exclusion-aware widths using yOffset-based callback
+  return wrapParagraphs(ctx, paragraphs, (yOffset: number) => {
+    return getEffectiveWidth(boxY + yOffset, textSize, boxX, boxW, exclusionRects);
+  }, textSize, paraSpacing);
 }
 
 export function fillTextHeavy(ctx: SKRSContext2D, text: string, x: number, y: number, strokeWidth = 0.4): void {
@@ -151,11 +180,13 @@ export function drawSingleLineText(
 }
 
 export function wrapParagraphs(
-  ctx: SKRSContext2D, paragraphs: string[], maxWidth: number | ((lineIndex: number) => number), textSize: number,
+  ctx: SKRSContext2D, paragraphs: string[], maxWidth: number | ((yOffset: number) => number), textSize: number,
+  paraSpacing = 0,
 ): { text: string; paraStart: boolean; insideParens: boolean }[] {
   const getWidth = typeof maxWidth === 'function' ? maxWidth : () => maxWidth;
   const lines: { text: string; paraStart: boolean; insideParens: boolean }[] = [];
   let inParens = false;
+  let curY = 0;
   for (let p = 0; p < paragraphs.length; p++) {
     const words = paragraphs[p].split(' ');
     let cur = '';
@@ -163,9 +194,10 @@ export function wrapParagraphs(
     let lineStartParens = inParens;
     for (const word of words) {
       const test = cur ? `${cur} ${word}` : word;
-      const w = getWidth(lines.length);
+      const w = getWidth(curY);
       if (measureRichText(ctx, test, textSize, lineStartParens) > w && cur) {
-        lines.push({ text: cur, paraStart: first && p > 0, insideParens: lineStartParens });
+        const isParagraphStart = first && p > 0;
+        lines.push({ text: cur, paraStart: isParagraphStart, insideParens: lineStartParens });
         // Track paren state: count unmatched parens in the emitted line
         for (const ch of cur) {
           if (ch === '(') inParens = true;
@@ -174,16 +206,23 @@ export function wrapParagraphs(
         lineStartParens = inParens;
         cur = word;
         first = false;
+        // Advance curY for the next line
+        curY += textSize;
+        if (isParagraphStart) curY += paraSpacing;
       } else {
         cur = test;
       }
     }
     if (cur) {
-      lines.push({ text: cur, paraStart: first && p > 0, insideParens: lineStartParens });
+      const isParagraphStart = first && p > 0;
+      lines.push({ text: cur, paraStart: isParagraphStart, insideParens: lineStartParens });
       for (const ch of cur) {
         if (ch === '(') inParens = true;
         else if (ch === ')') inParens = false;
       }
+      // Advance curY for the next line
+      curY += textSize;
+      if (isParagraphStart) curY += paraSpacing;
     }
   }
   return lines;
@@ -229,23 +268,12 @@ export function drawWrappedText(
     let totalH: number;
     let vertAdj: number;
 
+    lines = wrapParagraphs(ctx, paragraphs, boxW, textSize);
+    totalH = computeHeight(lines, textSize, paraSpacing);
+    vertAdj = (boxH - totalH + textSize * 0.15) / 2;
+
     if (exclusions.length > 0) {
-      // First pass: estimate height without vertAdj
-      lines = wrapParagraphs(ctx, paragraphs, (lineIdx: number) => {
-        const lineY = boxY + lineIdx * textSize;
-        return getEffectiveWidth(lineY, textSize, boxX, boxW, exclusions);
-      }, textSize);
-      totalH = computeHeight(lines, textSize, paraSpacing);
-      vertAdj = (boxH - totalH + textSize * 0.15) / 2;
-      // Second pass: re-wrap with correct vertAdj
-      lines = wrapParagraphs(ctx, paragraphs, (lineIdx: number) => {
-        const lineY = boxY + vertAdj + lineIdx * textSize;
-        return getEffectiveWidth(lineY, textSize, boxX, boxW, exclusions);
-      }, textSize);
-      totalH = computeHeight(lines, textSize, paraSpacing);
-      vertAdj = (boxH - totalH + textSize * 0.15) / 2;
-    } else {
-      lines = wrapParagraphs(ctx, paragraphs, boxW, textSize);
+      lines = wrapWithExclusions(ctx, paragraphs, boxW, textSize, boxX, boxY + vertAdj, exclusions, paraSpacing);
       totalH = computeHeight(lines, textSize, paraSpacing);
       vertAdj = (boxH - totalH + textSize * 0.15) / 2;
     }
@@ -286,42 +314,26 @@ export function drawRulesAndFlavor(
     let totalH: number;
     let vertAdj: number;
 
+    // Gap between bottom of rules and top of flavor: textSize*0.5 + barHeight + textSize*0.5
+    const ruleFlavorGap = textSize + barHeight;
+
+    // Wrap at full width first
+    ctx.font = `${textSize}px "${font}"`;
+    rulesLines = wrapParagraphs(ctx, ruleParas, boxW, textSize);
+    ctx.font = `${flavorSize}px "MPlantin Italic"`;
+    flavorLines = wrapParagraphs(ctx, flavorParas, boxW, flavorSize);
+    totalH = computeHeight(rulesLines, textSize, paraSpacing) + ruleFlavorGap + computeHeight(flavorLines, flavorSize, flavorSize * 0.35);
+    vertAdj = (boxH - totalH + textSize * 0.15) / 2;
+
+    // Re-wrap only if any line actually collides with exclusion rects
     if (exclusionRects.length > 0) {
-      // First pass: wrap without vertAdj to estimate total height
       ctx.font = `${textSize}px "${font}"`;
-      rulesLines = wrapParagraphs(ctx, ruleParas, (lineIdx: number) => {
-        const lineY = boxY + lineIdx * textSize;
-        return getEffectiveWidth(lineY, textSize, boxX, boxW, exclusionRects);
-      }, textSize);
+      rulesLines = wrapWithExclusions(ctx, ruleParas, boxW, textSize, boxX, boxY + vertAdj, exclusionRects, paraSpacing);
+      const rulesH = computeHeight(rulesLines, textSize, paraSpacing);
+      const flavorStartY = boxY + vertAdj + rulesH + ruleFlavorGap;
       ctx.font = `${flavorSize}px "MPlantin Italic"`;
-      let rulesH = computeHeight(rulesLines, textSize, paraSpacing);
-      let flavorStartY = boxY + rulesH + textSize + barHeight + textSize;
-      flavorLines = wrapParagraphs(ctx, flavorParas, (lineIdx: number) => {
-        const lineY = flavorStartY + lineIdx * flavorSize;
-        return getEffectiveWidth(lineY, flavorSize, boxX, boxW, exclusionRects);
-      }, flavorSize);
-      totalH = rulesH + textSize + barHeight + textSize + computeHeight(flavorLines, flavorSize, flavorSize * 0.35);
-      vertAdj = (boxH - totalH + textSize * 0.15) / 2;
-      // Second pass: re-wrap with correct vertAdj so exclusion zones align with actual draw positions
-      ctx.font = `${textSize}px "${font}"`;
-      rulesLines = wrapParagraphs(ctx, ruleParas, (lineIdx: number) => {
-        const lineY = boxY + vertAdj + lineIdx * textSize;
-        return getEffectiveWidth(lineY, textSize, boxX, boxW, exclusionRects);
-      }, textSize);
-      ctx.font = `${flavorSize}px "MPlantin Italic"`;
-      rulesH = computeHeight(rulesLines, textSize, paraSpacing);
-      flavorStartY = boxY + vertAdj + rulesH + textSize + barHeight + textSize;
-      flavorLines = wrapParagraphs(ctx, flavorParas, (lineIdx: number) => {
-        const lineY = flavorStartY + lineIdx * flavorSize;
-        return getEffectiveWidth(lineY, flavorSize, boxX, boxW, exclusionRects);
-      }, flavorSize);
-      totalH = rulesH + textSize + barHeight + textSize + computeHeight(flavorLines, flavorSize, flavorSize * 0.35);
-      vertAdj = (boxH - totalH + textSize * 0.15) / 2;
-    } else {
-      rulesLines = wrapParagraphs(ctx, ruleParas, boxW, textSize);
-      ctx.font = `${flavorSize}px "MPlantin Italic"`;
-      flavorLines = wrapParagraphs(ctx, flavorParas, boxW, flavorSize);
-      totalH = computeHeight(rulesLines, textSize, paraSpacing) + textSize + barHeight + textSize + computeHeight(flavorLines, flavorSize, flavorSize * 0.35);
+      flavorLines = wrapWithExclusions(ctx, flavorParas, boxW, flavorSize, boxX, flavorStartY, exclusionRects, flavorSize * 0.35);
+      totalH = rulesH + ruleFlavorGap + computeHeight(flavorLines, flavorSize, flavorSize * 0.35);
       vertAdj = (boxH - totalH + textSize * 0.15) / 2;
     }
 
