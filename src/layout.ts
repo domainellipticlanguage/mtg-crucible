@@ -140,8 +140,9 @@ export const PREPARE_LAYOUT = {
   setSymbol: { x: 0.9213, y: 0.5910, w: 0.12, h: 0.0700 },
   crown:     { x: 44/2010, y: 53/2814, w: 1922/2010, h: 493/2814 },
   // Prepare-specific areas (RIGHT side)
-  prepName:  { x: 0.5186, y: 0.6391, w: 0.4, h: 0.0296, size: 0.0296, font: 'Beleren Bold' },
-  prepMana:  { x: 0.5186, y: 0.6391, w: 0.4, size: 60/1638, shadowX: -0.001, shadowY: 0.0029 },
+  prepName:  { x: 0.5186, y: 0.6391, w: 0.3186, h: 0.0296, size: 0.0296, font: 'Beleren Bold' },
+  // Note: drawManaCost treats `w` as the absolute right-edge x (not a width); no `x` field.
+  prepMana:  { y: 0.6391, w: 0.935, size: 60/1638, shadowX: -0.001, shadowY: 0.0029 },
   prepType:  { x: 0.5186, y: 0.6839, w: 0.4, h: 0.0296, size: 0.0296, font: 'Beleren Bold' },
   prepRules: { x: 0.5199, y: 0.7358, w: 0.3947, h: 0.15, size: 0.0353, font: 'MPlantin' },
 };

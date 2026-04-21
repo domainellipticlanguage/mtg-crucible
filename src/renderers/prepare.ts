@@ -36,6 +36,7 @@ async function body(ctx: SKRSContext2D, card: NormalizedCardData, L: Record<stri
 
   const prepManaW = prep.manaCost ? measureManaCostWidth(prep.manaCost, ch, L.prepMana.size) : 0;
   const prepNameW = L.prepName.w * cw - prepManaW;
+  console.log('[prepare] name.x=', L.prepName.x * cw, 'name.w=', L.prepName.w * cw, 'manaW=', prepManaW, 'nameW=', prepNameW, 'name_end_max=', L.prepName.x * cw + prepNameW, 'mana_right=', L.prepMana.w * cw, 'mana_start=', L.prepMana.w * cw - prepManaW);
   drawSingleLineText(ctx, prep.name ?? '', L.prepName.x * cw, L.prepName.y * ch, prepNameW, L.prepName.h * ch, L.prepName.font, L.prepName.size * ch, 'left', 'white');
 
   if (prep.manaCost) {
