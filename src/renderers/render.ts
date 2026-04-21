@@ -179,7 +179,13 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
     }
   }
 
-  // P/T box image
+  // Template-specific body (abilities, chapters, levels, etc.)
+  // Expose frame dir to hooks via layout (e.g. split needs it for second-half coloring)
+  L._frame = frame;
+  L._allowUnsafeArtUrls = allowUnsafeArtUrls;
+  if (hooks?.body) await hooks.body(ctx, card, L, cw, ch);
+
+  // P/T box image — drawn after body hook so it sits above any body overlays (e.g. prepare panel)
   if (L.ptBox && card.power && card.toughness) {
     const ptBase = ptDir ? path.join(ASSETS_DIR, 'pt', ptDir) : path.join(ASSETS_DIR, 'pt');
     const bx = L.ptBox.x * cw, by = L.ptBox.y * ch, bw = L.ptBox.w * cw, bh = L.ptBox.h * ch;
@@ -230,12 +236,6 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
       }
     }
   }
-
-  // Template-specific body (abilities, chapters, levels, etc.)
-  // Expose frame dir to hooks via layout (e.g. split needs it for second-half coloring)
-  L._frame = frame;
-  L._allowUnsafeArtUrls = allowUnsafeArtUrls;
-  if (hooks?.body) await hooks.body(ctx, card, L, cw, ch);
 
   const debugRects: { color: string; x: number; y: number; w: number; h: number }[] = [];
 

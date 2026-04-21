@@ -7,19 +7,17 @@ import { drawManaCost, measureManaCostWidth, frameColorCode, drawGradientFrames 
 import { formatTypeLine } from '../parser';
 import { ASSETS_DIR } from '../assets-dir';
 
-/** Overlay the prepare spell's frame color(s) in the prepare region defined by prepare-mask.png. */
-async function overlayPrepareFrame(ctx: SKRSContext2D, prep: NormalizedCardData, cw: number, ch: number): Promise<void> {
-  const maskPath = path.join(ASSETS_DIR, 'masks', 'prepare-mask.png');
+/** Draw a prepare-dir frame in the given colors, clipped through a mask file, onto ctx. */
+async function drawMaskedPrepareFrame(
+  ctx: SKRSContext2D, colorCodes: string[], maskFilename: string, cw: number, ch: number,
+): Promise<void> {
+  if (colorCodes.length === 0) return;
+  const maskPath = path.join(ASSETS_DIR, 'masks', maskFilename);
   if (!fs.existsSync(maskPath)) return;
 
-  const prepCodes = prep.frameColor.map(c => frameColorCode(c));
-  if (prepCodes.length === 0) return;
-
-  // Render the prepare spell's frame onto an offscreen canvas
   const frameCanvas = createCanvas(cw, ch);
-  await drawGradientFrames(frameCanvas.getContext('2d'), 'prepare', prepCodes, cw, ch);
+  await drawGradientFrames(frameCanvas.getContext('2d'), 'prepare', colorCodes, cw, ch);
 
-  // Clip through the prepare-mask so only the prepare region is kept
   const clipped = createCanvas(cw, ch);
   const clipCtx = clipped.getContext('2d');
   clipCtx.drawImage(await loadImage(maskPath), 0, 0, cw, ch);
@@ -32,11 +30,18 @@ async function body(ctx: SKRSContext2D, card: NormalizedCardData, L: Record<stri
   const prep = card.linkedCard;
   if (!prep) return;
 
-  await overlayPrepareFrame(ctx, prep, cw, ch);
+  // Main card's accent color through the standard pinline mask
+  if (card.accentColor.length > 0) {
+    const accentCodes = card.accentColor.map(c => frameColorCode(c));
+    await drawMaskedPrepareFrame(ctx, accentCodes, 'standard-pinline.png', cw, ch);
+  }
+
+  // Prepare spell's frame color(s) in the prepare region
+  const prepCodes = prep.frameColor.map(c => frameColorCode(c));
+  await drawMaskedPrepareFrame(ctx, prepCodes, 'prepare-mask.png', cw, ch);
 
   const prepManaW = prep.manaCost ? measureManaCostWidth(prep.manaCost, ch, L.prepMana.size) : 0;
   const prepNameW = L.prepName.w * cw - prepManaW;
-  console.log('[prepare] name.x=', L.prepName.x * cw, 'name.w=', L.prepName.w * cw, 'manaW=', prepManaW, 'nameW=', prepNameW, 'name_end_max=', L.prepName.x * cw + prepNameW, 'mana_right=', L.prepMana.w * cw, 'mana_start=', L.prepMana.w * cw - prepManaW);
   drawSingleLineText(ctx, prep.name ?? '', L.prepName.x * cw, L.prepName.y * ch, prepNameW, L.prepName.h * ch, L.prepName.font, L.prepName.size * ch, 'left', 'white');
 
   if (prep.manaCost) {

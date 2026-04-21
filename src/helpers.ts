@@ -146,15 +146,9 @@ export async function drawFrame(
   const gradientRange = options?.gradientRange;
   // Mask paths always use the base template name (e.g. 'standard'), not effect dirs
   // TODO: modal pinline mask is white instead of transparent like others — works but should be made consistent
-  const MASK_TEMPLATES = new Set(['standard', 'planeswalker', 'planeswalker_tall', 'saga', 'class', 'battle', 'transformFront', 'transformBack', 'modal', 'prepare']);
-  // Frames that borrow another template's masks
-  const MASK_ALIASES: Record<string, string> = {
-    modalFront: 'modal',
-    modalBack: 'modal',
-    prepare: 'standard',
-  };
-  const rawMaskTemplate = Array.isArray(template) ? template.find(t => MASK_TEMPLATES.has(t) || t in MASK_ALIASES) : (MASK_TEMPLATES.has(template) || template in MASK_ALIASES ? template : undefined);
-  const maskTemplate = rawMaskTemplate ? (MASK_ALIASES[rawMaskTemplate] ?? rawMaskTemplate) : undefined;
+  const MASK_TEMPLATES = new Set(['standard', 'planeswalker', 'planeswalker_tall', 'saga', 'class', 'battle', 'transformFront', 'transformBack', 'modal']);
+  const rawMaskTemplate = Array.isArray(template) ? template.find(t => MASK_TEMPLATES.has(t) || t === 'modalFront' || t === 'modalBack') : (MASK_TEMPLATES.has(template) ? template : undefined);
+  const maskTemplate = rawMaskTemplate === 'modalFront' || rawMaskTemplate === 'modalBack' ? 'modal' : rawMaskTemplate;
 
   if (accentCodes) {
     // Draw base frame fully (gold/artifact/land fills name box, type box, PT, etc.)
