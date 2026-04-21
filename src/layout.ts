@@ -161,10 +161,10 @@ export const OMEN_LAYOUT = {
   setSymbol: { x: 0.9213, y: 0.5910, w: 0.12, h: 0.0700 },
   crown:     { x: 44/2010, y: 53/2814, w: 1922/2010, h: 493/2814 },
   // Omen-specific areas (LEFT side)
-  omenName:  { x: 0.0814, y: 0.6391, w: 0.3186, h: 0.0296, size: 0.0296, font: 'Beleren Bold' },
+  omenName:  { x: 0.0814, y: 0.6379, w: 0.3186, h: 0.0296, size: 0.0296, font: 'Beleren Bold' },
   // Note: drawManaCost treats `w` as the absolute right-edge x (not a width); no `x` field.
-  omenMana:  { y: 0.6391, w: 0.4, size: 60/1638, shadowX: -0.001, shadowY: 0.0029 },
-  omenType:  { x: 0.0814, y: 0.6839, w: 0.4, h: 0.0296, size: 0.0296, font: 'Beleren Bold' },
+  omenMana:  { y: 0.6403, w: 0.49, size: 60/1638, shadowX: -0.001, shadowY: 0.0029 },
+  omenType:  { x: 0.0814, y: 0.6863, w: 0.4, h: 0.0296, size: 0.0296, font: 'Beleren Bold' },
   omenRules: { x: 0.0854, y: 0.7358, w: 0.3947, h: 0.15, size: 0.0353, font: 'MPlantin' },
 };
 
