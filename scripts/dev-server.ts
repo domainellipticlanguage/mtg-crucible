@@ -3,6 +3,7 @@ import * as http from 'http';
 import * as path from 'path';
 import * as esbuild from 'esbuild';
 import { renderCard, toDisplayCard, formatCard } from '../src';
+import { TEMPLATES } from '../src/renderers/render';
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 
@@ -144,6 +145,77 @@ const server = http.createServer(async (req, res) => {
     } catch {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
       res.end('Not found');
+    }
+    return;
+  }
+
+  // Return the current layout JSON for a template
+  if (req.method === 'GET' && req.url?.startsWith('/layout/')) {
+    const name = decodeURIComponent(req.url.slice('/layout/'.length));
+    const tmpl = TEMPLATES[name];
+    if (!tmpl) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end(`Unknown template: ${name}`);
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ layout: tmpl.layout, w: tmpl.w, h: tmpl.h }));
+    return;
+  }
+
+  // List known templates
+  if (req.method === 'GET' && req.url === '/layout-templates') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ templates: Object.keys(TEMPLATES) }));
+    return;
+  }
+
+  // Render a card with a temporarily-patched layout for a specific template
+  if (req.method === 'POST' && req.url === '/render-with-layout') {
+    const chunks: Buffer[] = [];
+    for await (const chunk of req) chunks.push(chunk as Buffer);
+    const body = JSON.parse(Buffer.concat(chunks).toString());
+    const { text, templateName, layoutOverride, quality, format } = body as {
+      text: string;
+      templateName: string;
+      layoutOverride: Record<string, any>;
+      quality?: 'low' | 'medium' | 'high';
+      format?: 'png' | 'jpeg';
+    };
+
+    const tmpl = TEMPLATES[templateName];
+    if (!tmpl) {
+      res.writeHead(400, { 'Content-Type': 'text/plain' });
+      res.end(`Unknown template: ${templateName}`);
+      return;
+    }
+
+    const originalLayout = tmpl.layout;
+    // Merge override on top of original so missing keys fall back to defaults
+    tmpl.layout = { ...originalLayout, ...layoutOverride };
+
+    try {
+      let input: any = text;
+      try { input = JSON.parse(text); } catch {}
+      const t0 = performance.now();
+      const rendered = await renderCard(input, {
+        format: format ?? 'jpeg',
+        quality: quality ?? 'high',
+        allowUnsafeArtUrls: true,
+      });
+      const display = toDisplayCard(rendered);
+      const ms = Math.round(performance.now() - t0);
+      res.writeHead(200, { 'Content-Type': 'application/json', 'X-Render-Time-Ms': String(ms) });
+      res.end(JSON.stringify({
+        display,
+        cardData: rendered.normalizedCardData,
+        effectiveLayout: tmpl.layout,
+      }));
+    } catch (err: any) {
+      res.writeHead(500, { 'Content-Type': 'text/plain' });
+      res.end(err.message || 'Internal server error');
+    } finally {
+      tmpl.layout = originalLayout;
     }
     return;
   }

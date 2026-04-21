@@ -18,6 +18,7 @@ import {
   LEVELER_LAYOUT,
   AFTERMATH_TOP_LAYOUT,
   PREPARE_LAYOUT,
+  OMEN_LAYOUT,
 } from '../layout';
 import { ASSETS_DIR } from '../assets-dir';
 import { getParsedAbilities, formatTypeLine } from '../parser';
@@ -41,6 +42,7 @@ import { prototypeHooks } from './prototype';
 import { levelerHooks } from './leveler';
 import { aftermathHooks } from './aftermath';
 import { prepareHooks } from './prepare';
+import { omenHooks } from './omen';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyLayout = Record<string, any>;
@@ -66,7 +68,7 @@ interface TemplateConfig {
   ptDir?: string;
 }
 
-const TEMPLATES: Record<string, TemplateConfig> = {
+export const TEMPLATES: Record<string, TemplateConfig> = {
   standard:           { layout: STD_LAYOUT, w: STD_W, h: STD_H, frame: 'standard' },
   planeswalker:       { layout: PW_LAYOUT, w: PW_W, h: PW_H, frame: 'planeswalker', hooks: planeswalkerHooks },
   'planeswalker_tall': { layout: PW_TALL_LAYOUT, w: PW_W, h: PW_H, frame: 'planeswalker_tall', hooks: planeswalkerHooks },
@@ -86,6 +88,7 @@ const TEMPLATES: Record<string, TemplateConfig> = {
   leveler:            { layout: LEVELER_LAYOUT, w: PW_W, h: PW_H, frame: 'leveler', hooks: levelerHooks },
   aftermath:          { layout: AFTERMATH_TOP_LAYOUT, w: PW_W, h: PW_H, frame: 'aftermath', hooks: aftermathHooks },
   prepare:            { layout: PREPARE_LAYOUT, w: PW_W, h: PW_H, frame: 'prepare', hooks: prepareHooks },
+  omen:               { layout: OMEN_LAYOUT, w: PW_W, h: PW_H, frame: 'omen', hooks: omenHooks },
 };
 
 // Quality scale factors relative to standard 2010x2814

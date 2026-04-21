@@ -805,6 +805,22 @@ async function main() {
     },
   });
 
+  // 55. Omen — Bloomvine Regent // Claim Territory
+  await render('bloomvine-claim-territory', {
+    name: 'Bloomvine Regent', manaCost: '{3}{G}{G}',
+    typeLine: { supertypes: [], types: ['creature'], subtypes: ['Dragon'] },
+    frameColor: 'green',
+    rarity: 'rare',
+    abilities: 'Flying\nWhenever this creature or another Dragon you control enters, you gain 3 life.',
+    power: '4', toughness: '4',
+    linkType: 'omen',
+    linkedCard: {
+      name: 'Claim Territory', manaCost: '{2}{G}',
+      typeLine: { supertypes: [], types: ['sorcery'], subtypes: ['Omen'] },
+      abilities: 'Search your library for up to two basic Forest cards, reveal them, put one onto the battlefield tapped and the other into your hand, then shuffle.',
+    },
+  });
+
   console.log(`\nDone! ${idx} cards total, rendered to ${OUT}`);
 }
 

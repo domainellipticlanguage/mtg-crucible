@@ -5,7 +5,7 @@ export const TEMPLATE_NAMES = [
   'standard', 'planeswalker', 'planeswalker_tall', 'saga', 'class', 'battle',
   'adventure', 'transform_front', 'transform_back', 'mdfc_front', 'mdfc_back',
   'split', 'flip', 'mutate', 'prototype', 'leveler', 'fuse', 'aftermath',
-  'prepare',
+  'prepare', 'omen',
 ] as const;
 export type TemplateName = (typeof TEMPLATE_NAMES)[number];
 

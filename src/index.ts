@@ -50,6 +50,8 @@ export async function renderCard(input: CardData | string, options?: RenderOptio
     frontTemplateOverride = 'aftermath';
   } else if (normalized.linkType === 'prepare') {
     frontTemplateOverride = 'prepare';
+  } else if (normalized.linkType === 'omen') {
+    frontTemplateOverride = 'omen';
   }
 
   const frontFace = await renderCardImage(normalized, frontTemplateOverride, quality, format, allowUnsafeArtUrls);
@@ -59,7 +61,7 @@ export async function renderCard(input: CardData | string, options?: RenderOptio
   let backFace: Buffer | undefined;
   let backFaceOrientation: 'horizontal' | 'vertical' | undefined;
   // Adventure, split, fuse, and flip cards render both faces on one image — no separate back face
-  const singleImageTypes = new Set(['adventure', 'split', 'fuse', 'flip', 'aftermath', 'prepare']);
+  const singleImageTypes = new Set(['adventure', 'split', 'fuse', 'flip', 'aftermath', 'prepare', 'omen']);
   if (normalized.linkedCard && !singleImageTypes.has(normalized.linkType ?? '')) {
     // Already normalized via recursive normalizeCard — shallow copy to avoid mutating shared object
     const normalizedBack = { ...normalized.linkedCard };

@@ -147,6 +147,27 @@ export const PREPARE_LAYOUT = {
   prepRules: { x: 0.5199, y: 0.7358, w: 0.3947, h: 0.15, size: 0.0353, font: 'MPlantin' },
 };
 
+// Omen layout — adventure-style: creature on top, omen spell panel on the LEFT (bottom-left book).
+// Main creature rules go on the right; omen spell (name/mana/type/rules) on the left.
+export const OMEN_LAYOUT = {
+  art:       { x: 115/1500, y: 237/2100, w: 1271/1500, h: 930/2100 },
+  name:      { x: 0.0854, y: 0.0522, w: 0.8292, h: 0.0543, size: 0.0381, font: 'Beleren Bold' },
+  mana:      { y: 0.0613, w: 0.9292, size: 71/1638, shadowX: -0.001, shadowY: 0.0029 },
+  type:      { x: 0.0854, y: 0.5664, w: 0.8292, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
+  // Main creature rules (RIGHT side of the "book")
+  rules:     { x: 0.5267, y: 0.65, w: 0.3867, h: 0.2358, size: 0.0353, font: 'MPlantin' },
+  pt:        { x: 0.7928, y: 0.902, w: 0.1367, h: 0.0372, size: 0.0372, font: 'Beleren Bold SmCaps' },
+  ptBox:     { x: 0.7573, y: 0.8848, w: 0.188, h: 0.0733 },
+  setSymbol: { x: 0.9213, y: 0.5910, w: 0.12, h: 0.0700 },
+  crown:     { x: 44/2010, y: 53/2814, w: 1922/2010, h: 493/2814 },
+  // Omen-specific areas (LEFT side)
+  omenName:  { x: 0.0814, y: 0.6391, w: 0.3186, h: 0.0296, size: 0.0296, font: 'Beleren Bold' },
+  // Note: drawManaCost treats `w` as the absolute right-edge x (not a width); no `x` field.
+  omenMana:  { y: 0.6391, w: 0.4, size: 60/1638, shadowX: -0.001, shadowY: 0.0029 },
+  omenType:  { x: 0.0814, y: 0.6839, w: 0.4, h: 0.0296, size: 0.0296, font: 'Beleren Bold' },
+  omenRules: { x: 0.0854, y: 0.7358, w: 0.3947, h: 0.15, size: 0.0353, font: 'MPlantin' },
+};
+
 // Transform front layout (packM15TransformFront.js)
 // 1500x2100. Title shifted right for transform icon. Reverse PT hint at bottom.
 export const TF_FRONT_LAYOUT = {
