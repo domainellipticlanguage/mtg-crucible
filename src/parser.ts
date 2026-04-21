@@ -390,6 +390,13 @@ export function parseAbilities(text: string, kind?: StructuredAbilities['kind'])
     return result;
   }
 
+  if (kind === 'room') {
+    return {
+      structuredAbilities: { kind: 'room' },
+      unstructuredAbilities: lines,
+    };
+  }
+
   if (kind === 'case') {
     let toSolve = '';
     let solved = '';
@@ -437,6 +444,19 @@ export function parseAbilities(text: string, kind?: StructuredAbilities['kind'])
       const unstructured = lines.filter((_, idx) => idx !== i);
       const result: ParsedAbilities = {
         structuredAbilities: { kind: 'mutate', mutateCost: m[1] },
+      };
+      if (unstructured.length > 0) result.unstructuredAbilities = unstructured;
+      return result;
+    }
+  }
+
+  // Detect fuse from body text: a line starting with "Fuse" (optionally with reminder text)
+  const FUSE_REGEX = /^Fuse\b/i;
+  for (let i = 0; i < lines.length; i++) {
+    if (FUSE_REGEX.test(lines[i])) {
+      const unstructured = lines.filter((_, idx) => idx !== i);
+      const result: ParsedAbilities = {
+        structuredAbilities: { kind: 'fuse' },
       };
       if (unstructured.length > 0) result.unstructuredAbilities = unstructured;
       return result;
@@ -526,6 +546,12 @@ export function formatAbilities(abilities: ParsedAbilities): string {
       case 'prototype':
         parts.push(`Prototype ${sa.prototype.manaCost} — ${sa.prototype.power}/${sa.prototype.toughness}`);
         break;
+      case 'fuse':
+        parts.push('Fuse (You may cast one or both halves of this card from your hand.)');
+        break;
+      case 'room':
+        // Oracle text is kept in unstructuredAbilities; no extra formatting.
+        break;
     }
   }
 
@@ -544,6 +570,8 @@ const LINK_TYPE_ALIASES: Record<string, CardData['linkType']> = {
   fuse: 'fuse',
   adventure: 'adventure',
   aftermath: 'aftermath',
+  prepare: 'prepare',
+  omen: 'omen',
 };
 
 
@@ -684,6 +712,7 @@ function parseSingleFace(text: string): CardData {
   else if (lowerType.includes('class')) kind = 'class';
   else if (lowerType.includes('saga')) kind = 'saga';
   else if (lowerType.includes('case')) kind = 'case';
+  else if (subtypes.some(s => s.toLowerCase() === 'room')) kind = 'room';
 
   // Extract stats from body lines before parsing abilities
   let startingLoyalty: string | undefined;
@@ -991,8 +1020,9 @@ function scryfallLayout(card: NormalizedCardData): string {
       case 'modal_dfc': return 'modal_dfc';
       case 'flip': return 'flip';
       case 'split': case 'fuse': return 'split';
-      case 'adventure': return 'adventure';
+      case 'adventure': case 'omen': return 'adventure';
       case 'aftermath': return 'aftermath';
+      case 'prepare': return 'prepare';
     }
   }
   return 'normal';
@@ -1170,7 +1200,16 @@ function getArtDimensionsForFace(card: CardData, templateKey: TemplateName, link
   return { width: artW, height: artH };
 }
 
+function isRoomCard(card: CardData): boolean {
+  const tl = typeof card.typeLine === 'string' ? parseTypeLine(card.typeLine) : card.typeLine;
+  return !!tl?.subtypes.some(s => s.toLowerCase() === 'room');
+}
+
 export function getArtDimensions(card: CardData): { primaryArtDimensions: { width: number; height: number }; secondaryArtDimensions?: { width: number; height: number } } {
+  // Rooms have a single landscape art covering the two-door panel, no secondary
+  if (isRoomCard(card)) {
+    return { primaryArtDimensions: { width: 1226, height: 561 } };
+  }
   const templateKey = resolveTemplate(card);
   const primary = getArtDimensionsForFace(card, templateKey, false);
   let secondary: { width: number; height: number } | undefined;
@@ -1194,6 +1233,13 @@ export function inferLinkType(card: CardData, frontTypeLine: ParsedTypeLine, bac
     const fullText = frontText + '\n' + backText;
     if (/\bFuse\b/.test(fullText)) return 'fuse';
     if (/\bAftermath\b/.test(fullText)) return 'aftermath';
+    // Omen: back face has Omen subtype (always on Instant/Sorcery)
+    if (backTypeLine.subtypes.some(s => s.toLowerCase() === 'omen')) return 'omen';
+    // Prepare: presence of "prepare" / "prepared" in card text
+    if (/\bprepared?\b/i.test(fullText)) return 'prepare';
+    // Rooms are split enchantments — both faces have "Room" subtype
+    const hasRoom = (tl: ParsedTypeLine) => tl.subtypes.some(s => s.toLowerCase() === 'room');
+    if (hasRoom(frontTypeLine) && hasRoom(backTypeLine)) return 'split';
     if (isSpell(frontTypeLine) && isSpell(backTypeLine)) return 'split';
     return 'modal_dfc';
   }
@@ -1268,6 +1314,7 @@ function inferAbilityKind(tl: ParsedTypeLine): ParsedAbilities['structuredAbilit
   if (tl.subtypes.some(s => s.toLowerCase() === 'saga')) return 'saga' as any;
   if (tl.subtypes.some(s => s.toLowerCase() === 'class')) return 'class' as any;
   if (tl.subtypes.some(s => s.toLowerCase() === 'case')) return 'case' as any;
+  if (tl.subtypes.some(s => s.toLowerCase() === 'room')) return 'room' as any;
   return undefined as any;
 }
 

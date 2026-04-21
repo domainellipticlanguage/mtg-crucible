@@ -209,6 +209,32 @@ async function compareLocal(refImagePath: string, cardDataJsonPath: string): Pro
   return compPath;
 }
 
+async function dumpInfo(nameOrQuery: string, isSearch: boolean): Promise<void> {
+  const url = isSearch
+    ? `https://api.scryfall.com/cards/search?q=${encodeURIComponent(nameOrQuery)}&unique=cards`
+    : `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(nameOrQuery)}`;
+  const data = await fetchJSON(url);
+  const cards: any[] = isSearch ? (data.data ?? []).slice(0, 5) : [data];
+  for (const c of cards) {
+    console.log('---');
+    console.log('name:', c.name);
+    console.log('layout:', c.layout);
+    console.log('type_line:', c.type_line);
+    console.log('mana_cost:', c.mana_cost);
+    console.log('keywords:', c.keywords);
+    if (c.oracle_text) console.log('oracle_text:', c.oracle_text);
+    if (c.card_faces) {
+      for (const f of c.card_faces) {
+        console.log('  face.name:', f.name);
+        console.log('  face.type_line:', f.type_line);
+        console.log('  face.mana_cost:', f.mana_cost);
+        console.log('  face.oracle_text:', f.oracle_text);
+      }
+    }
+    await sleep(100);
+  }
+}
+
 async function main() {
   fs.mkdirSync(OUT, { recursive: true });
 
@@ -220,7 +246,18 @@ async function main() {
     console.error('Usage:');
     console.error('  npx tsx scripts/compare.ts "Card Name" [set] [--open]');
     console.error('  npx tsx scripts/compare.ts --local ref.png card.json [--open]');
+    console.error('  npx tsx scripts/compare.ts --info "Card Name"');
+    console.error('  npx tsx scripts/compare.ts --search "query"');
     process.exit(1);
+  }
+
+  if (filtered[0] === '--info') {
+    await dumpInfo(filtered[1], false);
+    return;
+  }
+  if (filtered[0] === '--search') {
+    await dumpInfo(filtered[1], true);
+    return;
   }
 
   let compPath: string;

@@ -29,7 +29,7 @@ export type {
   Supertype, Type, Subtype, LinkType,
   ParsedTypeLine,
   PlaneswalkerAbilities, SagaAbilities, ClassAbilities, LevelerAbilities,
-  CaseAbilities, PrototypeAbilities, MutateAbilities, NoneAbilities,
+  CaseAbilities, PrototypeAbilities, MutateAbilities, FuseAbilities, RoomAbilities, NoneAbilities,
   StructuredAbilities, ParsedAbilities,
   CardData, NormalizedCardData, Rotation, RenderedCard,
   MtgCardDisplayData,

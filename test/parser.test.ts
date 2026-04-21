@@ -1175,6 +1175,79 @@ describe('parseCard — multi-face inference', () => {
     expect(card.linkedCard?.name).toBe('Burn');
   });
 
+  it('parses Fuse lines into structured FuseAbilities and strips from oracle text', () => {
+    const card = parseCard(`
+      Wear {1}{R}
+      Instant
+      Destroy target artifact.
+      Fuse (You may cast one or both halves of this card from your hand.)
+      ----
+      Tear {W}
+      Instant
+      Destroy target enchantment.
+      Fuse (You may cast one or both halves of this card from your hand.)
+    `);
+    expect(card.abilities).toEqual({
+      structuredAbilities: { kind: 'fuse' },
+      unstructuredAbilities: ['Destroy target artifact.'],
+    });
+    expect(card.linkedCard?.abilities).toEqual({
+      structuredAbilities: { kind: 'fuse' },
+      unstructuredAbilities: ['Destroy target enchantment.'],
+    });
+  });
+
+  it('parses Room cards with RoomAbilities marker', () => {
+    const card = parseCard(`
+      Bottomless Pool {U}
+      Enchantment — Room
+      When you unlock this door, return up to one target creature to its owner's hand.
+      ----
+      Locker Room {4}{U}
+      Enchantment — Room
+      Whenever one or more creatures you control deal combat damage to a player, draw a card.
+    `);
+    expect(card.abilities).toMatchObject({
+      structuredAbilities: { kind: 'room' },
+    });
+    expect(card.linkedCard?.abilities).toMatchObject({
+      structuredAbilities: { kind: 'room' },
+    });
+    const normalized = normalizeCard(card);
+    expect(normalized.linkType).toBe('split');
+  });
+
+  it('infers prepare linkType when "prepare" text appears with mana costs on both faces', () => {
+    const card = normalizeCard(parseCard(`
+      Abigale, Poet Laureate {1}{W}{B}
+      Legendary Creature — Bird Bard
+      Flying
+      Whenever you cast a creature spell, Abigale becomes prepared.
+      2/2
+      ----
+      Heroic Stanza {1}{W/B}
+      Sorcery
+      Put a +1/+1 counter on target creature.
+    `));
+    expect(card.linkType).toBe('prepare');
+    expect(card.linkedCard?.name).toBe('Heroic Stanza');
+  });
+
+  it('infers omen linkType when back face has Omen subtype', () => {
+    const card = normalizeCard(parseCard(`
+      Bloomvine Regent {3}{G}{G}
+      Creature — Dragon
+      Flying
+      4/4
+      ----
+      Claim Territory {2}{G}
+      Sorcery — Omen
+      Search your library for up to two basic Forest cards.
+    `));
+    expect(card.linkType).toBe('omen');
+    expect(card.linkedCard?.name).toBe('Claim Territory');
+  });
+
   it('infers aftermath linkType with Aftermath keyword', () => {
     const card = normalizeCard(parseCard(`
       Appeal {G}

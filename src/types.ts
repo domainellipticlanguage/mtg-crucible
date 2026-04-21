@@ -37,7 +37,7 @@ export interface ParsedTypeLine {
   subtypes: string[];
 }
 
-export const LINK_TYPES = ['transform', 'modal_dfc', 'flip', 'fuse', 'split', 'adventure', 'aftermath'] as const;
+export const LINK_TYPES = ['transform', 'modal_dfc', 'flip', 'fuse', 'split', 'adventure', 'aftermath', 'prepare', 'omen'] as const;
 export type LinkType = (typeof LINK_TYPES)[number];
 
 // transform, modal_dfc, and arguably split do not affect the rendering of the linked card (and linker card)
@@ -121,6 +121,14 @@ export interface MutateAbilities {
   mutateCost: string;
 }
 
+export interface FuseAbilities {
+  kind: 'fuse';
+}
+
+export interface RoomAbilities {
+  kind: 'room';
+}
+
 export interface NoneAbilities {
   kind: 'none';
 }
@@ -133,6 +141,8 @@ export type StructuredAbilities =
   | CaseAbilities
   | PrototypeAbilities
   | MutateAbilities
+  | FuseAbilities
+  | RoomAbilities
   | NoneAbilities;
 
 export interface ParsedAbilities {

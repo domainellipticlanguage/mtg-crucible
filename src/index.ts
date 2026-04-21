@@ -7,6 +7,7 @@ import { parseCard, normalizeCard, formatCard, computeRotations, resolveTemplate
 export type {
   Rarity, TemplateName, Color, AccentColor, FrameColor, FrameEffect, Supertype, Type, Subtype, LinkType,
   PlaneswalkerAbilities, SagaAbilities, ClassAbilities, LevelerAbilities, CaseAbilities, PrototypeAbilities,
+  MutateAbilities, FuseAbilities, RoomAbilities, NoneAbilities,
   StructuredAbilities, ParsedAbilities, ParsedTypeLine,
   CardData, Rotation, RenderedCard, RenderQuality, RenderFormat, RenderOptions,
 } from './types';
