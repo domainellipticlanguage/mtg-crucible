@@ -210,7 +210,6 @@ npm run dev       # start local dev server with hot reload
 - [ ] Support d20 rows
 - [ ] Fix Fuse
 - [ ] Support Rooms
-- [ ] Support Prepare
 - [ ] Support Omen
 - [ ] Support Station
 - [ ] Support all frame effects (Snow, Nyx, Devoid) for all card types

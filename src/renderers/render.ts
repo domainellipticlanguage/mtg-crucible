@@ -166,7 +166,14 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
     await drawFrame(ctx, frameDirs, expandedFrameColor, accentCodes, cw, ch, nameLineCodes, typeLineCodes);
   }
 
+  // Template-specific body (abilities, chapters, levels, etc.)
+  // Expose frame dir to hooks via layout (e.g. split needs it for second-half coloring)
+  L._frame = frame;
+  L._allowUnsafeArtUrls = allowUnsafeArtUrls;
+  if (hooks?.body) await hooks.body(ctx, card, L, cw, ch);
+
   // Legend crown (planeswalkers use their own frame treatment)
+  // Drawn after body hook so it sits above any body overlays (e.g. prepare pinline).
   if (L.crown && card.typeLine.supertypes.includes('legendary') && !templateKey.startsWith('planeswalker')) {
     const crownBase = crownDir ? path.join(ASSETS_DIR, 'crowns', crownDir) : path.join(ASSETS_DIR, 'crowns');
     const crownPath = path.join(crownBase, `${crownCodes[0]}.png`);
@@ -178,12 +185,6 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
       await drawGradientCrowns(ctx, crownCodes, L.crown.x * cw, L.crown.y * ch, L.crown.w * cw, L.crown.h * ch, maskImg, cw, ch, crownBase);
     }
   }
-
-  // Template-specific body (abilities, chapters, levels, etc.)
-  // Expose frame dir to hooks via layout (e.g. split needs it for second-half coloring)
-  L._frame = frame;
-  L._allowUnsafeArtUrls = allowUnsafeArtUrls;
-  if (hooks?.body) await hooks.body(ctx, card, L, cw, ch);
 
   // P/T box image — drawn after body hook so it sits above any body overlays (e.g. prepare panel)
   if (L.ptBox && card.power && card.toughness) {

@@ -30,10 +30,10 @@ async function body(ctx: SKRSContext2D, card: NormalizedCardData, L: Record<stri
   const prep = card.linkedCard;
   if (!prep) return;
 
-  // Main card's accent color through the standard pinline mask
+  // Main card's accent color through the prepare-main pinline mask
   if (card.accentColor.length > 0) {
     const accentCodes = card.accentColor.map(c => frameColorCode(c));
-    await drawMaskedPrepareFrame(ctx, accentCodes, 'standard-pinline.png', cw, ch);
+    await drawMaskedPrepareFrame(ctx, accentCodes, 'prepare-main-pinline.png', cw, ch);
   }
 
   // Prepare spell's frame color(s) in the prepare region
