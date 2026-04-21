@@ -207,12 +207,12 @@ npm run dev       # start local dev server with hot reload
 - [ ] Fix Enchantment creatures/artifacts, etc. not automatically getting Nyx frame effect
 - [ ] Fix bug where getArtDimensions does not normalize first
 - [ ] Fix bug when inferring ability word vs. ability keyword with duplicated ability
-- [ ] Support Rooms
 - [ ] Support d20 rows
 - [ ] Fix Fuse
-- [ ] Support Station
+- [ ] Support Rooms
 - [ ] Support Prepare
 - [ ] Support Omen
+- [ ] Support Station
 - [ ] Support all frame effects (Snow, Nyx, Devoid) for all card types
 - [ ] Support MDFC/Transform for all card types
 - [ ] Support composite artist credits
