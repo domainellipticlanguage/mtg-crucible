@@ -787,6 +787,24 @@ async function main() {
     abilities: 'Choose one -\n* Destroy target creature.\n* Draw two cards.\n* Deal 3 damage to any target.',
   });
 
+  // 54. Prepare — Abigale, Poet Laureate // Heroic Stanza
+  await render('abigale-heroic-stanza', {
+    name: 'Abigale, Poet Laureate', manaCost: '{1}{W}{B}',
+    typeLine: { supertypes: ['legendary'], types: ['creature'], subtypes: ['Bird', 'Bard'] },
+    frameColor: 'multicolor',
+    accentColor: ['white', 'black'],
+    rarity: 'mythic',
+    abilities: "Flying\nWhenever you cast a creature spell, Abigale becomes prepared. (While it's prepared, you may cast a copy of its spell. Doing so unprepares it.)",
+    power: '2', toughness: '2',
+    artUrl: 'https://cards.scryfall.io/art_crop/front/5/a/5a4c9d05-6d88-418d-9fc9-a7e0b2a3d9cf.jpg',
+    linkType: 'prepare',
+    linkedCard: {
+      name: 'Heroic Stanza', manaCost: '{1}{W/B}',
+      typeLine: { supertypes: [], types: ['sorcery'], subtypes: [] },
+      abilities: 'Put a +1/+1 counter on target creature.',
+    },
+  });
+
   console.log(`\nDone! ${idx} cards total, rendered to ${OUT}`);
 }
 

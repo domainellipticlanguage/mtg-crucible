@@ -17,6 +17,7 @@ import {
   PROTO_LAYOUT,
   LEVELER_LAYOUT,
   AFTERMATH_TOP_LAYOUT,
+  PREPARE_LAYOUT,
 } from '../layout';
 import { ASSETS_DIR } from '../assets-dir';
 import { getParsedAbilities, formatTypeLine } from '../parser';
@@ -39,6 +40,7 @@ import { mutateHooks } from './mutate';
 import { prototypeHooks } from './prototype';
 import { levelerHooks } from './leveler';
 import { aftermathHooks } from './aftermath';
+import { prepareHooks } from './prepare';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyLayout = Record<string, any>;
@@ -83,6 +85,7 @@ const TEMPLATES: Record<string, TemplateConfig> = {
   prototype:          { layout: PROTO_LAYOUT, w: PW_W, h: PW_H, frame: 'standard', hooks: prototypeHooks },
   leveler:            { layout: LEVELER_LAYOUT, w: PW_W, h: PW_H, frame: 'leveler', hooks: levelerHooks },
   aftermath:          { layout: AFTERMATH_TOP_LAYOUT, w: PW_W, h: PW_H, frame: 'aftermath', hooks: aftermathHooks },
+  prepare:            { layout: PREPARE_LAYOUT, w: PW_W, h: PW_H, frame: 'prepare', hooks: prepareHooks },
 };
 
 // Quality scale factors relative to standard 2010x2814

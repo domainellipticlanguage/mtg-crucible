@@ -90,7 +90,7 @@ function resolveFramePath(dir: string, code: string): string | undefined {
   return undefined;
 }
 
-async function drawGradientFrames(
+export async function drawGradientFrames(
   ctx: SKRSContext2D,
   template: string | string[],
   colorCodes: string[],
@@ -146,7 +146,7 @@ export async function drawFrame(
   const gradientRange = options?.gradientRange;
   // Mask paths always use the base template name (e.g. 'standard'), not effect dirs
   // TODO: modal pinline mask is white instead of transparent like others — works but should be made consistent
-  const MASK_TEMPLATES = new Set(['standard', 'planeswalker', 'planeswalker_tall', 'saga', 'class', 'battle', 'transformFront', 'transformBack', 'modal']);
+  const MASK_TEMPLATES = new Set(['standard', 'planeswalker', 'planeswalker_tall', 'saga', 'class', 'battle', 'transformFront', 'transformBack', 'modal', 'prepare']);
   const rawMaskTemplate = Array.isArray(template) ? template.find(t => MASK_TEMPLATES.has(t) || t === 'modalFront' || t === 'modalBack') : (MASK_TEMPLATES.has(template) ? template : undefined);
   const maskTemplate = rawMaskTemplate === 'modalFront' || rawMaskTemplate === 'modalBack' ? 'modal' : rawMaskTemplate;
 
