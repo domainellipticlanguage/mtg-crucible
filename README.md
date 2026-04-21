@@ -208,6 +208,7 @@ npm run dev       # start local dev server with hot reload
 - [ ] Fix bug where getArtDimensions does not normalize first
 - [ ] Fix bug when inferring ability word vs. ability keyword with duplicated ability
 - [ ] Support Rooms
+- [ ] Support d20 rows
 - [ ] Fix Fuse
 - [ ] Support Station
 - [ ] Support Prepare
