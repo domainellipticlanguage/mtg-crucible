@@ -821,6 +821,21 @@ async function main() {
     },
   });
 
+  // 56. Room — Bottomless Pool // Locker Room
+  await render('bottomless-pool-locker-room', {
+    name: 'Bottomless Pool', manaCost: '{U}',
+    typeLine: { supertypes: [], types: ['enchantment'], subtypes: ['Room'] },
+    frameColor: 'blue',
+    rarity: 'uncommon',
+    abilities: "When you unlock this door, return up to one target creature to its owner's hand.",
+    linkedCard: {
+      name: 'Locker Room', manaCost: '{4}{U}',
+      typeLine: { supertypes: [], types: ['enchantment'], subtypes: ['Room'] },
+      frameColor: 'blue',
+      abilities: 'Whenever one or more creatures you control deal combat damage to a player, draw a card.',
+    },
+  });
+
   console.log(`\nDone! ${idx} cards total, rendered to ${OUT}`);
 }
 

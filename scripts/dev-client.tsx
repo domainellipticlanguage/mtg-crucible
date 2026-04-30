@@ -395,6 +395,123 @@ function ManaBox({ layoutKey, entry, displayW, displayH, selected, onSelect, onC
   );
 }
 
+interface SetSymbolBoxProps {
+  layoutKey: string;
+  entry: Rect & Record<string, any>;
+  displayW: number;
+  displayH: number;
+  selected: boolean;
+  onSelect: () => void;
+  onChange: (next: Record<string, any>) => void;
+}
+
+/**
+ * Set symbol box — special coordinates: `x` is the right-edge, `y` is the vertical center.
+ * See drawSetSymbol in helpers.ts. `w` is stored but ignored by the renderer (actual width
+ * is derived from the SVG aspect ratio at draw time); we use it here as a visual proxy.
+ */
+function SetSymbolBox({ layoutKey, entry, displayW, displayH, selected, onSelect, onChange }: SetSymbolBoxProps) {
+  const pxW = entry.w * displayW;
+  const pxH = entry.h * displayH;
+  const pxX = entry.x * displayW - pxW;         // x is right-edge
+  const pxY = entry.y * displayH - pxH / 2;     // y is center
+
+  const dragRef = useRef<{ startX: number; startY: number; orig: Rect; handle: Handle } | null>(null);
+
+  const startDrag = (e: React.MouseEvent, handle: Handle) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onSelect();
+    dragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      orig: { x: entry.x, y: entry.y, w: entry.w, h: entry.h },
+      handle,
+    };
+    const onMove = (ev: MouseEvent) => {
+      const state = dragRef.current;
+      if (!state) return;
+      const dx = (ev.clientX - state.startX) / displayW;
+      const dy = (ev.clientY - state.startY) / displayH;
+      const next = { ...state.orig };
+      const { handle: h } = state;
+      // 'move' shifts the anchor (right-edge x, center y) directly
+      if (h === 'move') { next.x += dx; next.y += dy; }
+      // Width: left edge moves (w handle) or right edge moves (e handle).
+      // x = right edge, so w handle keeps x fixed; e handle shifts x by dx.
+      if (h.includes('w')) { next.w -= dx; }
+      if (h.includes('e')) { next.w += dx; next.x += dx; }
+      // Height: y = center. Dragging an edge moves just that edge, so the center
+      // shifts by dy/2 and height changes by ±dy.
+      if (h.includes('n')) { next.h -= dy; next.y += dy / 2; }
+      if (h.includes('s')) { next.h += dy; next.y += dy / 2; }
+      if (next.w < 0.005) next.w = 0.005;
+      if (next.h < 0.005) next.h = 0.005;
+      onChange({ ...entry, ...next });
+    };
+    const onUp = () => {
+      dragRef.current = null;
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
+  const handleSize = 10;
+  const handles: { handle: Handle; style: React.CSSProperties; cursor: string }[] = [
+    { handle: 'nw', style: { left: -handleSize/2, top: -handleSize/2 }, cursor: 'nwse-resize' },
+    { handle: 'n',  style: { left: '50%', top: -handleSize/2, transform: 'translateX(-50%)' }, cursor: 'ns-resize' },
+    { handle: 'ne', style: { right: -handleSize/2, top: -handleSize/2 }, cursor: 'nesw-resize' },
+    { handle: 'e',  style: { right: -handleSize/2, top: '50%', transform: 'translateY(-50%)' }, cursor: 'ew-resize' },
+    { handle: 'se', style: { right: -handleSize/2, bottom: -handleSize/2 }, cursor: 'nwse-resize' },
+    { handle: 's',  style: { left: '50%', bottom: -handleSize/2, transform: 'translateX(-50%)' }, cursor: 'ns-resize' },
+    { handle: 'sw', style: { left: -handleSize/2, bottom: -handleSize/2 }, cursor: 'nesw-resize' },
+    { handle: 'w',  style: { left: -handleSize/2, top: '50%', transform: 'translateY(-50%)' }, cursor: 'ew-resize' },
+  ];
+
+  return (
+    <div
+      onMouseDown={(e) => startDrag(e, 'move')}
+      style={{
+        position: 'absolute',
+        left: pxX,
+        top: pxY,
+        width: pxW,
+        height: pxH,
+        border: selected ? '2px solid #00ffff' : '1px dashed rgba(180, 120, 255, 0.8)',
+        background: selected ? 'rgba(0, 255, 255, 0.08)' : 'transparent',
+        cursor: 'move',
+        boxSizing: 'border-box',
+      }}
+    >
+      <span style={{
+        position: 'absolute', top: -18, right: 0,
+        fontSize: 10, color: selected ? '#00ffff' : '#b478ff',
+        background: 'rgba(0,0,0,0.7)', padding: '1px 4px', borderRadius: 2,
+        whiteSpace: 'nowrap', pointerEvents: 'none',
+      }}>
+        {layoutKey} (right-anchored, y-centered)
+      </span>
+      {selected && handles.map((h) => (
+        <div
+          key={h.handle}
+          onMouseDown={(e) => startDrag(e, h.handle)}
+          style={{
+            position: 'absolute',
+            width: handleSize,
+            height: handleSize,
+            background: '#00ffff',
+            border: '1px solid #000',
+            cursor: h.cursor,
+            ...h.style,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 /** Crucible text samples per template — picked to hit the main layout regions. */
 const TEMPLATE_SAMPLES: Record<string, string> = {
   standard: `Lightning Bolt {R}
@@ -549,8 +666,12 @@ function EditorApp() {
   const rectKeys = useMemo(() => {
     if (!effectiveLayout) return [];
     return Object.entries(effectiveLayout)
-      .filter(([, v]) => isRect(v))
+      .filter(([k, v]) => isRect(v) && k !== 'setSymbol')
       .map(([k]) => k);
+  }, [effectiveLayout]);
+
+  const hasSetSymbol = useMemo(() => {
+    return effectiveLayout && isRect(effectiveLayout.setSymbol);
   }, [effectiveLayout]);
 
   const manaKeys = useMemo(() => {
@@ -661,6 +782,17 @@ function EditorApp() {
             onChange={(next) => updateEntry(key, next)}
           />
         ))}
+        {effectiveLayout && hasSetSymbol && (
+          <SetSymbolBox
+            layoutKey="setSymbol"
+            entry={effectiveLayout.setSymbol}
+            displayW={displayW}
+            displayH={displayH}
+            selected={selectedKey === 'setSymbol'}
+            onSelect={() => setSelectedKey('setSymbol')}
+            onChange={(next) => updateEntry('setSymbol', next)}
+          />
+        )}
       </div>
     </div>
   );

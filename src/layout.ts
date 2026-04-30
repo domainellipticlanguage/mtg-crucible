@@ -134,7 +134,7 @@ export const PREPARE_LAYOUT = {
   mana:      { y: 0.0613, w: 0.9292, size: 71/1638, shadowX: -0.001, shadowY: 0.0029 },
   type:      { x: 0.0854, y: 0.5664, w: 0.8292, h: 0.0543, size: 0.0324, font: 'Beleren Bold' },
   // Main creature rules (LEFT side of the "book")
-  rules:     { x: 0.0866, y: 0.65, w: 0.3867, h: 0.2358, size: 0.0353, font: 'MPlantin' },
+  rules:     { x: 0.07826666666666666, y: 0.6345238095238095, w: 0.41003333333333336, h: 0.27984761904761907, size: 0.0353, font: 'MPlantin' },
   pt:        { x: 0.7928, y: 0.902, w: 0.1367, h: 0.0372, size: 0.0372, font: 'Beleren Bold SmCaps' },
   ptBox:     { x: 0.7573, y: 0.8848, w: 0.188, h: 0.0733 },
   setSymbol: { x: 0.9213, y: 0.5910, w: 0.12, h: 0.0700 },
@@ -144,7 +144,27 @@ export const PREPARE_LAYOUT = {
   // Note: drawManaCost treats `w` as the absolute right-edge x (not a width); no `x` field.
   prepMana:  { y: 0.6391, w: 0.935, size: 60/1638, shadowX: -0.001, shadowY: 0.0029 },
   prepType:  { x: 0.5186, y: 0.6839, w: 0.4, h: 0.0296, size: 0.0296, font: 'Beleren Bold' },
-  prepRules: { x: 0.5199, y: 0.7358, w: 0.3947, h: 0.15, size: 0.0353, font: 'MPlantin' },
+  prepRules: { x: 0.5082333333333333, y: 0.7334190476190476, w: 0.40636666666666665, h: 0.15, size: 0.0353, font: 'MPlantin' },
+};
+
+// Room layout — portrait card with a single landscape art at top and two "door" panels
+// stacked below. Door 1 uses the standard text fields; door 2 uses door2* fields.
+// Initial values are best-guess — tune via the editor.
+export const ROOM_LAYOUT = {
+  // Shared landscape art at top (aspect ~2.18, fits a ~1226×561 image scaled up)
+  art:       { x: 77/1500, y: 148/2100, w: 1346/1500, h: 617/2100 },
+  // Door 1 = primary card (drawn by the standard text pipeline)
+  name:      { x: 0.083, y: 0.40, w: 0.828, h: 0.040, size: 0.032, font: 'Beleren Bold' },
+  mana:      { y: 0.405, w: 0.915, size: 65/1638, shadowX: -0.001, shadowY: 0.0029 },
+  type:      { x: 0.083, y: 0.455, w: 0.828, h: 0.030, size: 0.024, font: 'Beleren Bold' },
+  rules:     { x: 0.086, y: 0.49, w: 0.828, h: 0.16, size: 0.028, font: 'MPlantin' },
+  setSymbol: { x: 0.9213, y: 0.475, w: 0.10, h: 0.04 },
+  // Door 2 = linked card (drawn by the room body hook)
+  door2Name:  { x: 0.083, y: 0.67, w: 0.828, h: 0.040, size: 0.032, font: 'Beleren Bold' },
+  door2Mana:  { y: 0.675, w: 0.915, size: 65/1638, shadowX: -0.001, shadowY: 0.0029 },
+  door2Type:  { x: 0.083, y: 0.725, w: 0.828, h: 0.030, size: 0.024, font: 'Beleren Bold' },
+  door2Rules: { x: 0.086, y: 0.76, w: 0.828, h: 0.17, size: 0.028, font: 'MPlantin' },
+  crown:     { x: 44/2010, y: 53/2814, w: 1922/2010, h: 493/2814 },
 };
 
 // Omen layout — adventure-style: creature on top, omen spell panel on the LEFT (bottom-left book).

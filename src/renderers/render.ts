@@ -19,6 +19,7 @@ import {
   AFTERMATH_TOP_LAYOUT,
   PREPARE_LAYOUT,
   OMEN_LAYOUT,
+  ROOM_LAYOUT,
 } from '../layout';
 import { ASSETS_DIR } from '../assets-dir';
 import { getParsedAbilities, formatTypeLine } from '../parser';
@@ -43,6 +44,7 @@ import { levelerHooks } from './leveler';
 import { aftermathHooks } from './aftermath';
 import { prepareHooks } from './prepare';
 import { omenHooks } from './omen';
+import { roomHooks } from './room';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyLayout = Record<string, any>;
@@ -89,6 +91,7 @@ export const TEMPLATES: Record<string, TemplateConfig> = {
   aftermath:          { layout: AFTERMATH_TOP_LAYOUT, w: PW_W, h: PW_H, frame: 'aftermath', hooks: aftermathHooks },
   prepare:            { layout: PREPARE_LAYOUT, w: PW_W, h: PW_H, frame: 'prepare', hooks: prepareHooks },
   omen:               { layout: OMEN_LAYOUT, w: PW_W, h: PW_H, frame: 'omen', hooks: omenHooks },
+  room:               { layout: ROOM_LAYOUT, w: PW_W, h: PW_H, frame: 'room', hooks: roomHooks },
 };
 
 // Quality scale factors relative to standard 2010x2814

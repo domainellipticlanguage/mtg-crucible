@@ -29,6 +29,7 @@ const LAYOUT_CONST_NAMES: Record<string, string> = {
   aftermath: 'AFTERMATH_TOP_LAYOUT',
   prepare: 'PREPARE_LAYOUT',
   omen: 'OMEN_LAYOUT',
+  room: 'ROOM_LAYOUT',
 };
 
 function deepEqual(a: any, b: any): boolean {

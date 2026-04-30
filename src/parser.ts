@@ -16,6 +16,7 @@ import {
   LEVELER_LAYOUT,
   PREPARE_LAYOUT,
   OMEN_LAYOUT,
+  ROOM_LAYOUT,
 } from './layout';
 
 const MANA_COST_REGEX = /^(.+?)\s+((?:\{[^}]+\})+)$/;
@@ -1149,6 +1150,7 @@ const TEMPLATE_CONFIGS: Record<TemplateName, { layout: Record<string, any>; w: n
   leveler:            { layout: LEVELER_LAYOUT, w: PW_W, h: PW_H },
   prepare:            { layout: PREPARE_LAYOUT, w: PW_W, h: PW_H },
   omen:               { layout: OMEN_LAYOUT, w: PW_W, h: PW_H },
+  room:               { layout: ROOM_LAYOUT, w: PW_W, h: PW_H },
 };
 
 export function getParsedAbilities(card: CardData): ParsedAbilities {
@@ -1166,6 +1168,7 @@ export function resolveTemplate(card: CardData): TemplateName {
   }
   if (pa.structuredAbilities?.kind === 'saga') return 'saga';
   if (pa.structuredAbilities?.kind === 'class') return 'class';
+  if (pa.structuredAbilities?.kind === 'room') return 'room';
   if (card.battleDefense) return 'battle';
   if (card.linkType === 'adventure') return 'adventure';
   if (card.linkType === 'prepare') return 'prepare';

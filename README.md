@@ -219,7 +219,20 @@ npm run dev       # start local dev server with hot reload
 - [ ] Optimize asset size
 - [ ] Refactor colorless as a frame effect
 - [ ] Refactor exclusion zone architecture
+- [ ] Fix exclusion zone on P/T box
 - [ ] Fix border radius on component
+- [ ] When rendering jpeg, fill in round corners with white
+- [ ] Render double quotes as smart quotes
+- [ ] Render artist credit in small caps
+- [ ] Fix various rendering bugs around exclusion zones (P/T, Planeswalker loyalty, etc.)
+- [ ] Fix split card text sizing
+- [ ] Additional bleed zone
+- [ ] Download for DFC should be concatenated images
+- [ ] Support buffer for art
+- [ ] Rename artUrl to just art
+- [ ] Improve masking for split cards (mask area invalid).
+- [ ] Elongate hyphen for keyword abilities (`Equip - {2}`) and modals (`Choose one -`).
+
 
 ## Security
 
