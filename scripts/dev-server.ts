@@ -7,107 +7,43 @@ import { TEMPLATES } from '../src/renderers/render';
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 
-/** Map from template name to the `export const X_LAYOUT` identifier in src/layout.ts. */
-const LAYOUT_CONST_NAMES: Record<string, string> = {
-  standard: 'STD_LAYOUT',
-  planeswalker: 'PW_LAYOUT',
-  planeswalker_tall: 'PW_TALL_LAYOUT',
-  saga: 'SAGA_LAYOUT',
-  class: 'CLASS_LAYOUT',
-  battle: 'BTL_LAYOUT',
-  adventure: 'ADV_LAYOUT',
-  transform_front: 'TF_FRONT_LAYOUT',
-  transform_back: 'TF_BACK_LAYOUT',
-  mdfc_front: 'MDFC_FRONT_LAYOUT',
-  mdfc_back: 'MDFC_BACK_LAYOUT',
-  split: 'SPLIT_RIGHT_LAYOUT',
-  fuse: 'SPLIT_RIGHT_LAYOUT',
-  flip: 'FLIP_LAYOUT',
-  mutate: 'MUTATE_LAYOUT',
-  prototype: 'PROTO_LAYOUT',
-  leveler: 'LEVELER_LAYOUT',
-  aftermath: 'AFTERMATH_TOP_LAYOUT',
-  prepare: 'PREPARE_LAYOUT',
-  omen: 'OMEN_LAYOUT',
-  room: 'ROOM_LAYOUT',
+/** Map from template name to the JSON file holding its layout (relative to src/layouts/). */
+const LAYOUT_JSON_FILES: Record<string, string> = {
+  standard: 'standard.json',
+  planeswalker: 'planeswalker.json',
+  planeswalker_tall: 'planeswalker_tall.json',
+  saga: 'saga.json',
+  class: 'class.json',
+  battle: 'battle.json',
+  adventure: 'adventure.json',
+  transform_front: 'transform_front.json',
+  transform_back: 'transform_back.json',
+  mdfc_front: 'mdfc_front.json',
+  mdfc_back: 'mdfc_back.json',
+  split: 'split_right.json',
+  fuse: 'split_right.json',
+  flip: 'flip.json',
+  mutate: 'mutate.json',
+  prototype: 'prototype.json',
+  leveler: 'leveler.json',
+  aftermath: 'aftermath_top.json',
+  prepare: 'prepare.json',
+  omen: 'omen.json',
+  room: 'room.json',
 };
 
-function deepEqual(a: any, b: any): boolean {
-  if (a === b) return true;
-  if (typeof a !== 'object' || typeof b !== 'object' || a == null || b == null) return false;
-  const ak = Object.keys(a), bk = Object.keys(b);
-  if (ak.length !== bk.length) return false;
-  return ak.every(k => deepEqual(a[k], b[k]));
-}
-
-/** Serialize a flat object literal back to TS source syntax, e.g. `{ x: 0.5, font: 'Beleren' }`. */
-function serializeLayoutValue(obj: Record<string, any>): string {
-  const parts: string[] = [];
-  for (const [k, v] of Object.entries(obj)) {
-    if (typeof v === 'string') parts.push(`${k}: '${v.replace(/'/g, "\\'")}'`);
-    else parts.push(`${k}: ${v}`);
-  }
-  return `{ ${parts.join(', ')} }`;
-}
-
-/**
- * Rewrite `src/layout.ts`, replacing property values in the named `export const` block
- * for every key whose value differs from the current in-memory layout.
- * Preserves original formatting for unchanged keys (fractions like `71/1638` stay intact).
- */
+/** Write the merged layout to its JSON file. Returns the keys that ended up changing. */
 async function saveLayoutToFile(
-  constName: string,
+  jsonFile: string,
   currentLayout: Record<string, any>,
   override: Record<string, any>,
-): Promise<{ written: string[]; skipped: string[] }> {
-  const filePath = path.resolve(__dirname, '..', 'src', 'layout.ts');
-  const source = await fs.promises.readFile(filePath, 'utf-8');
-
-  // Find `export const CONST_NAME = {`
-  const header = `export const ${constName} =`;
-  const headerIdx = source.indexOf(header);
-  if (headerIdx === -1) throw new Error(`${constName} not found in layout.ts`);
-  const braceOpenIdx = source.indexOf('{', headerIdx + header.length);
-  if (braceOpenIdx === -1) throw new Error(`no opening brace found for ${constName}`);
-
-  // Scan for matching closing brace at depth 0
-  let depth = 1;
-  let pos = braceOpenIdx + 1;
-  while (depth > 0 && pos < source.length) {
-    const ch = source[pos];
-    if (ch === '{') depth++;
-    else if (ch === '}') depth--;
-    pos++;
-  }
-  if (depth !== 0) throw new Error(`unterminated object literal for ${constName}`);
-  const blockEnd = pos; // position AFTER the closing }
-
-  const before = source.slice(0, braceOpenIdx);
-  let block = source.slice(braceOpenIdx, blockEnd);
-  const after = source.slice(blockEnd);
-
-  const written: string[] = [];
-  const skipped: string[] = [];
-
-  for (const [key, newVal] of Object.entries(override)) {
-    if (deepEqual(currentLayout[key], newVal)) {
-      skipped.push(key);
-      continue;
-    }
-    // Match `  keyName: { ... }` at a single-brace depth within the block
-    const keyPattern = new RegExp(`(\\b${key}\\s*:\\s*)\\{[^{}]*\\}`);
-    const match = block.match(keyPattern);
-    if (!match) {
-      skipped.push(`${key} (not found)`);
-      continue;
-    }
-    const newValueStr = serializeLayoutValue(newVal);
-    block = block.replace(keyPattern, `$1${newValueStr}`);
-    written.push(key);
-  }
-
-  await fs.promises.writeFile(filePath, before + block + after, 'utf-8');
-  return { written, skipped };
+): Promise<{ written: string[] }> {
+  const filePath = path.resolve(__dirname, '..', 'src', 'layouts', jsonFile);
+  const merged = { ...currentLayout, ...override };
+  await fs.promises.writeFile(filePath, JSON.stringify(merged, null, 2) + '\n', 'utf-8');
+  // Report which top-level keys actually differ from the previous layout
+  const written = Object.keys(override).filter(k => JSON.stringify(currentLayout[k]) !== JSON.stringify(override[k]));
+  return { written };
 }
 
 // --- Client bundling with watch mode ---
@@ -281,17 +217,19 @@ const server = http.createServer(async (req, res) => {
     const { templateName, layoutOverride } = body as { templateName: string; layoutOverride: Record<string, any> };
 
     const tmpl = TEMPLATES[templateName];
-    const constName = LAYOUT_CONST_NAMES[templateName];
-    if (!tmpl || !constName) {
+    const jsonFile = LAYOUT_JSON_FILES[templateName];
+    if (!tmpl || !jsonFile) {
       res.writeHead(400, { 'Content-Type': 'text/plain' });
       res.end(`Unknown template: ${templateName}`);
       return;
     }
 
     try {
-      const result = await saveLayoutToFile(constName, tmpl.layout, layoutOverride);
-      // Update in-memory TEMPLATES so subsequent renders use the new values
-      tmpl.layout = { ...tmpl.layout, ...layoutOverride };
+      const result = await saveLayoutToFile(jsonFile, tmpl.layout, layoutOverride);
+      // Mutate the existing layout object in place so other templates that share
+      // the same JSON-imported object (e.g. split & fuse both use split_right.json)
+      // see the updated values without needing a server restart.
+      Object.assign(tmpl.layout, layoutOverride);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(result));
     } catch (err: any) {
