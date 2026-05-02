@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as esbuild from 'esbuild';
 import { renderCard, toDisplayCard, formatCard } from '../src';
 import { TEMPLATES } from '../src/renderers/render';
+import { createCanvas, loadImage } from '@napi-rs/canvas';
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 
@@ -206,6 +207,75 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && req.url === '/layout-templates') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ templates: Object.keys(TEMPLATES) }));
+    return;
+  }
+
+  // List existing mask SVGs in assets/masks/originals/
+  if (req.method === 'GET' && req.url === '/masks') {
+    const dir = path.resolve(__dirname, '..', 'assets', 'masks', 'originals');
+    try {
+      const files = (await fs.promises.readdir(dir)).filter(f => f.endsWith('.svg'));
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ masks: files }));
+    } catch {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ masks: [] }));
+    }
+    return;
+  }
+
+  // Load an existing mask SVG by filename (from assets/masks/originals/)
+  if (req.method === 'GET' && req.url?.startsWith('/mask/')) {
+    const name = decodeURIComponent(req.url.slice('/mask/'.length));
+    const filePath = path.resolve(__dirname, '..', 'assets', 'masks', 'originals', name);
+    const dir = path.resolve(__dirname, '..', 'assets', 'masks', 'originals');
+    if (!filePath.startsWith(dir + path.sep)) {
+      res.writeHead(403, { 'Content-Type': 'text/plain' });
+      res.end('Access denied');
+      return;
+    }
+    try {
+      const data = await fs.promises.readFile(filePath, 'utf-8');
+      res.writeHead(200, { 'Content-Type': 'image/svg+xml' });
+      res.end(data);
+    } catch {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('Not found');
+    }
+    return;
+  }
+
+  // Save a mask: writes SVG to assets/masks/originals/{name}.svg AND rasterizes to assets/masks/{name}.png
+  if (req.method === 'POST' && req.url === '/save-mask') {
+    const chunks: Buffer[] = [];
+    for await (const chunk of req) chunks.push(chunk as Buffer);
+    const body = JSON.parse(Buffer.concat(chunks).toString());
+    const { name, svg, width, height } = body as { name: string; svg: string; width: number; height: number };
+
+    if (!name || !/^[a-z0-9_-]+$/i.test(name)) {
+      res.writeHead(400, { 'Content-Type': 'text/plain' });
+      res.end('name must match [a-z0-9_-]+');
+      return;
+    }
+    try {
+      const svgPath = path.resolve(__dirname, '..', 'assets', 'masks', 'originals', `${name}.svg`);
+      const pngPath = path.resolve(__dirname, '..', 'assets', 'masks', `${name}.png`);
+      await fs.promises.writeFile(svgPath, svg, 'utf-8');
+
+      // Rasterize SVG to PNG. @napi-rs/canvas's loadImage handles SVG via librsvg.
+      const img = await loadImage(Buffer.from(svg, 'utf-8'));
+      const canvas = createCanvas(width, height);
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      const png = canvas.toBuffer('image/png');
+      await fs.promises.writeFile(pngPath, png);
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ svgPath, pngPath }));
+    } catch (err: any) {
+      res.writeHead(500, { 'Content-Type': 'text/plain' });
+      res.end(err.message || 'Internal server error');
+    }
     return;
   }
 

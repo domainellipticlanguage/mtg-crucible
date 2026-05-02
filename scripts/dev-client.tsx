@@ -224,11 +224,14 @@ function LayoutBox({ layoutKey, entry, displayW, displayH, selected, onSelect, o
       const dy = (ev.clientY - state.startY) / displayH;
       const next = { ...state.orig };
       const { handle: h } = state;
-      if (h === 'move') { next.x += dx; next.y += dy; }
-      if (h.includes('w')) { next.x += dx; next.w -= dx; }
-      if (h.includes('e')) { next.w += dx; }
-      if (h.includes('n')) { next.y += dy; next.h -= dy; }
-      if (h.includes('s')) { next.h += dy; }
+      if (h === 'move') {
+        next.x += dx; next.y += dy;
+      } else {
+        if (h.includes('w')) { next.x += dx; next.w -= dx; }
+        if (h.includes('e')) { next.w += dx; }
+        if (h.includes('n')) { next.y += dy; next.h -= dy; }
+        if (h.includes('s')) { next.h += dy; }
+      }
       // Don't allow negative width/height
       if (next.w < 0.005) next.w = 0.005;
       if (next.h < 0.005) next.h = 0.005;
@@ -436,15 +439,18 @@ function SetSymbolBox({ layoutKey, entry, displayW, displayH, selected, onSelect
       const next = { ...state.orig };
       const { handle: h } = state;
       // 'move' shifts the anchor (right-edge x, center y) directly
-      if (h === 'move') { next.x += dx; next.y += dy; }
-      // Width: left edge moves (w handle) or right edge moves (e handle).
-      // x = right edge, so w handle keeps x fixed; e handle shifts x by dx.
-      if (h.includes('w')) { next.w -= dx; }
-      if (h.includes('e')) { next.w += dx; next.x += dx; }
-      // Height: y = center. Dragging an edge moves just that edge, so the center
-      // shifts by dy/2 and height changes by ±dy.
-      if (h.includes('n')) { next.h -= dy; next.y += dy / 2; }
-      if (h.includes('s')) { next.h += dy; next.y += dy / 2; }
+      if (h === 'move') {
+        next.x += dx; next.y += dy;
+      } else {
+        // Width: left edge moves (w handle) or right edge moves (e handle).
+        // x = right edge, so w handle keeps x fixed; e handle shifts x by dx.
+        if (h.includes('w')) { next.w -= dx; }
+        if (h.includes('e')) { next.w += dx; next.x += dx; }
+        // Height: y = center. Dragging an edge moves just that edge, so the center
+        // shifts by dy/2 and height changes by ±dy.
+        if (h.includes('n')) { next.h -= dy; next.y += dy / 2; }
+        if (h.includes('s')) { next.h += dy; next.y += dy / 2; }
+      }
       if (next.w < 0.005) next.w = 0.005;
       if (next.h < 0.005) next.h = 0.005;
       onChange({ ...entry, ...next });
@@ -578,6 +584,14 @@ Rarity: Rare
 Claim Territory {2}{G}
 Sorcery — Omen
 Search your library for up to two basic Forest cards.`,
+  room: `Bottomless Pool {U}
+Enchantment — Room
+When you unlock this door, return up to one target creature to its owner's hand.
+Rarity: Uncommon
+----
+Locker Room {4}{U}
+Enchantment — Room
+Whenever one or more creatures you control deal combat damage to a player, draw a card.`,
 };
 
 function EditorApp() {
@@ -693,7 +707,7 @@ function EditorApp() {
 
   return (
     <div style={{ display: 'flex', gap: '1rem', width: '100%', flexWrap: 'wrap' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', minWidth: 360, flex: 1 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1, minWidth: 360, maxWidth: 600 }}>
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           <label>Template:&nbsp;
             <select value={templateName} onChange={(e) => setTemplateName(e.target.value)}>
@@ -714,6 +728,7 @@ function EditorApp() {
           <pre style={{
             background: '#16213e', padding: 8, borderRadius: 4, fontSize: 11,
             maxHeight: 300, overflow: 'auto',
+            width: '100%', boxSizing: 'border-box',
           }}>
             {JSON.stringify(effectiveLayout, null, 2)}
           </pre>
@@ -749,7 +764,7 @@ function EditorApp() {
         </div>
         {error && <pre className="error">{error}</pre>}
       </div>
-      <div style={{ position: 'relative', width: displayW, height: displayH, flexShrink: 0, background: '#000' }}
+      <div style={{ position: 'relative', width: displayW, height: displayH, flexShrink: 0, background: '#000', overflow: 'hidden' }}
            onMouseDown={() => setSelectedKey(null)}>
         {rendered && (
           <img
@@ -799,27 +814,398 @@ function EditorApp() {
 }
 
 // =========================================================================
-// Top-level app w/ Preview|Editor mode toggle
+// Mask Editor — compose SVG masks from rectangle primitives.
+// Each shape is a rect with optional rx/ry corner radii.
+//   - Straight pinline: rx=0, ry=0
+//   - Name banner: rx=cap_depth, ry=h/2
 // =========================================================================
 
-type Mode = 'preview' | 'editor';
+interface MaskShape {
+  id: string;
+  x: number;      // canvas-space (e.g. 1500x2100)
+  y: number;
+  w: number;
+  h: number;
+  rx: number;
+  ry: number;
+  strokeWidth: number;  // 0 = filled solid; >0 = outline only (for pinlines)
+}
+
+function shapesToSvg(shapes: MaskShape[], width: number, height: number): string {
+  const rects = shapes.map(s => {
+    const stroked = s.strokeWidth > 0;
+    const fill = stroked ? 'none' : 'black';
+    const strokeAttrs = stroked ? ` stroke="black" stroke-width="${s.strokeWidth}"` : '';
+    return `  <rect x="${s.x}" y="${s.y}" width="${s.w}" height="${s.h}" rx="${s.rx}" ry="${s.ry}" fill="${fill}"${strokeAttrs}/>`;
+  }).join('\n');
+  return `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+${rects}
+</svg>
+`;
+}
+
+interface MaskShapeBoxProps {
+  shape: MaskShape;
+  scaleX: number;
+  scaleY: number;
+  selected: boolean;
+  onSelect: () => void;
+  onChange: (next: MaskShape) => void;
+}
+
+function MaskShapeBox({ shape, scaleX, scaleY, selected, onSelect, onChange }: MaskShapeBoxProps) {
+  const pxX = shape.x * scaleX;
+  const pxY = shape.y * scaleY;
+  const pxW = shape.w * scaleX;
+  const pxH = shape.h * scaleY;
+
+  const dragRef = useRef<{ startX: number; startY: number; orig: MaskShape; handle: Handle } | null>(null);
+
+  const startDrag = (e: React.MouseEvent, handle: Handle) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onSelect();
+    dragRef.current = { startX: e.clientX, startY: e.clientY, orig: { ...shape }, handle };
+    const onMove = (ev: MouseEvent) => {
+      const state = dragRef.current;
+      if (!state) return;
+      const dx = (ev.clientX - state.startX) / scaleX;
+      const dy = (ev.clientY - state.startY) / scaleY;
+      const next = { ...state.orig };
+      const { handle: h } = state;
+      if (h === 'move') {
+        next.x += dx; next.y += dy;
+      } else {
+        if (h.includes('w')) { next.x += dx; next.w -= dx; }
+        if (h.includes('e')) { next.w += dx; }
+        if (h.includes('n')) { next.y += dy; next.h -= dy; }
+        if (h.includes('s')) { next.h += dy; }
+      }
+      if (next.w < 1) next.w = 1;
+      if (next.h < 1) next.h = 1;
+      onChange(next);
+    };
+    const onUp = () => {
+      dragRef.current = null;
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
+  const handleSize = 10;
+  const handles: { handle: Handle; style: React.CSSProperties; cursor: string }[] = [
+    { handle: 'nw', style: { left: -handleSize/2, top: -handleSize/2 }, cursor: 'nwse-resize' },
+    { handle: 'n',  style: { left: '50%', top: -handleSize/2, transform: 'translateX(-50%)' }, cursor: 'ns-resize' },
+    { handle: 'ne', style: { right: -handleSize/2, top: -handleSize/2 }, cursor: 'nesw-resize' },
+    { handle: 'e',  style: { right: -handleSize/2, top: '50%', transform: 'translateY(-50%)' }, cursor: 'ew-resize' },
+    { handle: 'se', style: { right: -handleSize/2, bottom: -handleSize/2 }, cursor: 'nwse-resize' },
+    { handle: 's',  style: { left: '50%', bottom: -handleSize/2, transform: 'translateX(-50%)' }, cursor: 'ns-resize' },
+    { handle: 'sw', style: { left: -handleSize/2, bottom: -handleSize/2 }, cursor: 'nesw-resize' },
+    { handle: 'w',  style: { left: -handleSize/2, top: '50%', transform: 'translateY(-50%)' }, cursor: 'ew-resize' },
+  ];
+
+  const stroked = shape.strokeWidth > 0;
+  // Approximate SVG stroke (centered on path) with CSS border (inside box). Close enough visually.
+  const strokePxX = shape.strokeWidth * scaleX;
+  return (
+    <div
+      onMouseDown={(e) => startDrag(e, 'move')}
+      style={{
+        position: 'absolute',
+        left: pxX,
+        top: pxY,
+        width: pxW,
+        height: pxH,
+        background: stroked ? 'transparent' : 'rgba(0,0,0,0.7)',
+        border: stroked ? `${Math.max(strokePxX, 1)}px solid rgba(0,0,0,0.7)` : 'none',
+        borderRadius: `${shape.rx * scaleX}px / ${shape.ry * scaleY}px`,
+        outline: selected ? '2px solid #00ffff' : '1px solid rgba(0, 255, 255, 0.4)',
+        cursor: 'move',
+        boxSizing: 'border-box',
+      }}
+    >
+      {selected && handles.map((h) => (
+        <div
+          key={h.handle}
+          onMouseDown={(e) => startDrag(e, h.handle)}
+          style={{
+            position: 'absolute',
+            width: handleSize,
+            height: handleSize,
+            background: '#00ffff',
+            border: '1px solid #000',
+            cursor: h.cursor,
+            ...h.style,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function MaskEditorApp() {
+  const [templateName, setTemplateName] = useState<string>('standard');
+  const [templates, setTemplates] = useState<string[]>([]);
+  const [canvasSize, setCanvasSize] = useState<{ w: number; h: number }>({ w: 1500, h: 2100 });
+  const [shapes, setShapes] = useState<MaskShape[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [maskName, setMaskName] = useState('my-mask');
+  const [maskList, setMaskList] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [bgImageUrl, setBgImageUrl] = useState<string | null>(null);
+
+  // Fetch template list and mask list once
+  useEffect(() => {
+    fetch('/layout-templates').then(r => r.json()).then(j => setTemplates(j.templates));
+    fetch('/masks').then(r => r.json()).then(j => setMaskList(j.masks));
+  }, []);
+
+  // When template changes, fetch its canvas size and render a sample card as the background reference
+  useEffect(() => {
+    fetch(`/layout/${templateName}`).then(r => r.json()).then(j => {
+      setCanvasSize({ w: j.w, h: j.h });
+    });
+    const sample = TEMPLATE_SAMPLES[templateName] ?? TEMPLATE_SAMPLES.standard;
+    fetch('/render', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: sample, format: 'jpeg', quality: 'medium' }),
+    }).then(r => r.ok ? r.json() : null).then(j => {
+      if (j?.display?.frontFaceImageUrl) setBgImageUrl(j.display.frontFaceImageUrl);
+    });
+  }, [templateName]);
+
+  const DISPLAY_H = 840;
+  const aspect = canvasSize.w / canvasSize.h;
+  const displayW = DISPLAY_H * aspect;
+  const displayH = DISPLAY_H;
+  const scaleX = displayW / canvasSize.w;
+  const scaleY = displayH / canvasSize.h;
+
+  const newId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+  const addRect = () => {
+    setShapes([...shapes, {
+      id: newId(),
+      x: canvasSize.w * 0.1, y: canvasSize.h * 0.1,
+      w: canvasSize.w * 0.8, h: canvasSize.h * 0.05,
+      rx: 0, ry: 0, strokeWidth: 0,
+    }]);
+  };
+
+  const addBanner = () => {
+    // Default banner ratios derived from class-pinline.svg's name banner
+    const w = canvasSize.w * 0.85;
+    const h = canvasSize.h * 0.06;
+    setShapes([...shapes, {
+      id: newId(),
+      x: (canvasSize.w - w) / 2, y: canvasSize.h * 0.05,
+      w, h,
+      rx: h * 0.18, ry: h / 2, strokeWidth: 0,
+    }]);
+  };
+
+  const addPinline = () => {
+    // Outline-only rectangle for art-box pinlines etc.
+    setShapes([...shapes, {
+      id: newId(),
+      x: canvasSize.w * 0.08, y: canvasSize.h * 0.10,
+      w: canvasSize.w * 0.84, h: canvasSize.h * 0.45,
+      rx: 0, ry: 0, strokeWidth: 6,
+    }]);
+  };
+
+  const updateShape = (id: string, next: MaskShape) => {
+    setShapes(shapes.map(s => s.id === id ? next : s));
+  };
+
+  const deleteSelected = () => {
+    if (!selectedId) return;
+    setShapes(shapes.filter(s => s.id !== selectedId));
+    setSelectedId(null);
+  };
+
+  const loadMask = async (filename: string) => {
+    try {
+      const text = await fetch(`/mask/${filename}`).then(r => r.text());
+      const parsed = parseSvgRects(text);
+      setShapes(parsed.map(r => ({ id: newId(), ...r })));
+      setMaskName(filename.replace(/\.svg$/i, ''));
+      setError(null);
+    } catch (e: any) {
+      setError(`Failed to load: ${e.message}`);
+    }
+  };
+
+  const save = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const svg = shapesToSvg(shapes, canvasSize.w, canvasSize.h);
+      const res = await fetch('/save-mask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: maskName, svg, width: canvasSize.w, height: canvasSize.h }),
+      });
+      if (!res.ok) {
+        setError(await res.text());
+        return;
+      }
+      // Refresh mask list
+      const j = await fetch('/masks').then(r => r.json());
+      setMaskList(j.masks);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const selectedShape = shapes.find(s => s.id === selectedId) ?? null;
+  const updateSelectedField = (field: keyof MaskShape, value: number) => {
+    if (!selectedShape) return;
+    updateShape(selectedShape.id, { ...selectedShape, [field]: value });
+  };
+
+  return (
+    <div style={{ display: 'flex', gap: '1rem', width: '100%', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1, minWidth: 320, maxWidth: 600 }}>
+        <label>Template (background reference):&nbsp;
+          <select value={templateName} onChange={(e) => setTemplateName(e.target.value)}>
+            {templates.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </label>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button onClick={addRect}>+ Rectangle</button>
+          <button onClick={addBanner}>+ Banner (rounded)</button>
+          <button onClick={addPinline}>+ Pinline (outline)</button>
+          <button onClick={deleteSelected} disabled={!selectedShape}>Delete</button>
+        </div>
+        <div style={{ marginTop: 12 }}>
+          <strong>Mask name:</strong>
+          <input
+            value={maskName}
+            onChange={(e) => setMaskName(e.target.value)}
+            style={{ marginLeft: 8, padding: 4 }}
+          />
+          <button onClick={save} disabled={saving || shapes.length === 0} style={{ marginLeft: 8 }}>
+            {saving ? 'Saving…' : 'Save SVG + PNG'}
+          </button>
+        </div>
+        <div>
+          <strong>Existing masks:</strong>
+          <select onChange={(e) => e.target.value && loadMask(e.target.value)} value="" style={{ marginLeft: 8 }}>
+            <option value="">— load existing —</option>
+            {maskList.map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </div>
+        {selectedShape && (
+          <div style={{ marginTop: 12, padding: 8, background: '#16213e', borderRadius: 4 }}>
+            <strong>Selected shape:</strong>
+            <table style={{ marginTop: 4, fontSize: 12 }}>
+              <tbody>
+                {(['x','y','w','h','rx','ry','strokeWidth'] as const).map(field => (
+                  <tr key={field}>
+                    <td style={{ paddingRight: 8 }}>{field}:</td>
+                    <td>
+                      <input
+                        type="number"
+                        value={Math.round(selectedShape[field])}
+                        onChange={(e) => updateSelectedField(field, parseFloat(e.target.value) || 0)}
+                        style={{ width: 80 }}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <div style={{ marginTop: 12 }}>
+          <strong>SVG output:</strong>
+          <pre style={{
+            background: '#16213e', padding: 8, borderRadius: 4, fontSize: 11,
+            maxHeight: 200, overflow: 'auto',
+            width: '100%', boxSizing: 'border-box',
+          }}>
+            {shapesToSvg(shapes, canvasSize.w, canvasSize.h)}
+          </pre>
+        </div>
+        {error && <pre className="error">{error}</pre>}
+      </div>
+      <div
+        style={{ position: 'relative', width: displayW, height: displayH, flexShrink: 0, background: '#000', overflow: 'hidden' }}
+        onMouseDown={() => setSelectedId(null)}
+      >
+        {bgImageUrl && (
+          <img
+            src={bgImageUrl}
+            alt="reference"
+            style={{ position: 'absolute', left: 0, top: 0, width: displayW, height: displayH, opacity: 0.4, pointerEvents: 'none' }}
+          />
+        )}
+        {shapes.map(s => (
+          <MaskShapeBox
+            key={s.id}
+            shape={s}
+            scaleX={scaleX}
+            scaleY={scaleY}
+            selected={selectedId === s.id}
+            onSelect={() => setSelectedId(s.id)}
+            onChange={(next) => updateShape(s.id, next)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Naive SVG <rect> parser — works for masks produced by this editor (and most simple SVGs). */
+function parseSvgRects(svg: string): Omit<MaskShape, 'id'>[] {
+  const out: Omit<MaskShape, 'id'>[] = [];
+  const re = /<rect\b([^>]*)\/?>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(svg))) {
+    const attrs = m[1];
+    const get = (name: string) => {
+      const a = new RegExp(`\\b${name}\\s*=\\s*"([^"]*)"`, 'i').exec(attrs);
+      return a ? parseFloat(a[1]) : 0;
+    };
+    out.push({
+      x: get('x'), y: get('y'), w: get('width'), h: get('height'),
+      rx: get('rx'), ry: get('ry'),
+      strokeWidth: get('stroke-width'),
+    });
+  }
+  return out;
+}
+
+// =========================================================================
+// Top-level app w/ Preview|Editor|Mask mode toggle
+// =========================================================================
+
+type Mode = 'preview' | 'editor' | 'mask';
 
 function Root() {
   const [mode, setMode] = useState<Mode>('preview');
+  const tabStyle = (m: Mode) => mode === m
+    ? { background: '#c4a35a', color: '#1a1a2e' }
+    : { background: '#16213e', color: '#e0e0e0' };
   return (
     <>
       <h1>MTG Crucible</h1>
       <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem' }}>
-        <button className={mode === 'preview' ? 'active' : ''} onClick={() => setMode('preview')}
-          style={mode === 'preview' ? { background: '#c4a35a', color: '#1a1a2e' } : { background: '#16213e', color: '#e0e0e0' }}>
-          Preview
-        </button>
-        <button className={mode === 'editor' ? 'active' : ''} onClick={() => setMode('editor')}
-          style={mode === 'editor' ? { background: '#c4a35a', color: '#1a1a2e' } : { background: '#16213e', color: '#e0e0e0' }}>
-          Editor
-        </button>
+        <button onClick={() => setMode('preview')} style={tabStyle('preview')}>Preview</button>
+        <button onClick={() => setMode('editor')} style={tabStyle('editor')}>Editor</button>
+        <button onClick={() => setMode('mask')} style={tabStyle('mask')}>Mask</button>
       </div>
-      {mode === 'preview' ? <PreviewApp /> : <EditorApp />}
+      {mode === 'preview' && <PreviewApp />}
+      {mode === 'editor' && <EditorApp />}
+      {mode === 'mask' && <MaskEditorApp />}
     </>
   );
 }
