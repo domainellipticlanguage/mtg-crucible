@@ -334,7 +334,7 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
   }
 
   // Corners
-  drawCorners(ctx, cw, ch);
+  drawCorners(ctx, cw, ch, format);
 
   // Debug overlays (drawn last so they're always visible)
   if (isDebug() && debugRects.length > 0) {

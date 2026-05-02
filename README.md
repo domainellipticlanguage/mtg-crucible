@@ -221,9 +221,9 @@ npm run dev       # start local dev server with hot reload
 - [ ] Refactor exclusion zone architecture
 - [ ] Fix exclusion zone on P/T box
 - [ ] Fix border radius on component
-- [ ] When rendering jpeg, fill in round corners with white
-- [ ] Render double quotes as smart quotes
-- [ ] Render artist credit in small caps
+- [X] When rendering jpeg, fill in round corners with white
+- [X] Render double quotes as smart quotes
+- [X] Render artist credit in small caps
 - [ ] Fix various rendering bugs around exclusion zones (P/T, Planeswalker loyalty, etc.)
 - [ ] Fix split card text sizing
 - [ ] Additional bleed zone
@@ -231,7 +231,7 @@ npm run dev       # start local dev server with hot reload
 - [X] Support buffer for art
 - [ ] Rename artUrl to just art
 - [ ] Improve masking for split cards (mask area invalid).
-- [ ] Elongate hyphen for keyword abilities (`Equip - {2}`) and modals (`Choose one -`).
+- [X] Elongate hyphen for keyword abilities (`Equip - {2}`) and modals (`Choose one -`).
 
 
 ## Security

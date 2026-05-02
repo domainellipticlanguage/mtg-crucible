@@ -557,10 +557,25 @@ export async function drawArt(
   }
 }
 
-export function drawCorners(ctx: SKRSContext2D, cw: number, ch: number): void {
+function drawSmallCaps(ctx: SKRSContext2D, text: string, x: number, y: number, fontSize: number, font: string): number {
+  const smallSize = fontSize * 0.82;
+  let cx = x;
+  for (const ch of text) {
+    const isLower = ch >= 'a' && ch <= 'z';
+    const sz = isLower ? smallSize : fontSize;
+    const glyph = isLower ? ch.toUpperCase() : ch;
+    ctx.font = `${sz}px "${font}"`;
+    ctx.fillText(glyph, cx, y);
+    cx += ctx.measureText(glyph).width;
+  }
+  return cx - x;
+}
+
+export function drawCorners(ctx: SKRSContext2D, cw: number, ch: number, format: 'png' | 'jpeg' = 'png'): void {
   const r = 0.048 * cw;
-  ctx.globalCompositeOperation = 'destination-out';
-  ctx.fillStyle = 'black';
+  const isJpeg = format === 'jpeg';
+  ctx.globalCompositeOperation = isJpeg ? 'source-over' : 'destination-out';
+  ctx.fillStyle = isJpeg ? 'white' : 'black';
   ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(r, 0); ctx.arc(r, r, r, -Math.PI/2, Math.PI, true); ctx.lineTo(0, 0); ctx.fill();
   ctx.beginPath(); ctx.moveTo(cw, 0); ctx.lineTo(cw-r, 0); ctx.arc(cw-r, r, r, -Math.PI/2, 0, false); ctx.lineTo(cw, 0); ctx.fill();
   ctx.beginPath(); ctx.moveTo(cw, ch); ctx.lineTo(cw, ch-r); ctx.arc(cw-r, ch-r, r, 0, Math.PI/2, false); ctx.lineTo(cw, ch); ctx.fill();
@@ -621,8 +636,7 @@ export async function drawBottomInfo(ctx: SKRSContext2D, card: Pick<NormalizedCa
       const brushImg = await loadImage(brushPath);
       ctx.drawImage(brushImg, leftX + setWidth + brushPad, y2 - brushHeight * 0.85, brushWidth, brushHeight);
     } catch { /* skip icon if load fails */ }
-    ctx.font = `${fontSize}px "Beleren Bold"`;
-    ctx.fillText(artist, artistX, y2);
+    drawSmallCaps(ctx, artist, artistX, y2, fontSize, 'Beleren Bold');
     ctx.font = `${fontSize}px "MPlantin"`;
   }
   if (card.designer) {

@@ -7,6 +7,17 @@ export interface ExclusionRect {
   x: number; y: number; w: number; h: number; // absolute pixel coords
 }
 
+/** Replace ASCII straight quotes with curly quotes and " - " with em dash. */
+export function prettify(s: string): string {
+  if (!s) return s;
+  return s
+    .replace(/(^|[\s(\[{])"/g, '$1“')
+    .replace(/"/g, '”')
+    .replace(/(^|[\s(\[{])'/g, '$1‘')
+    .replace(/'/g, '’')
+    .replace(/ -(?=\s|$)/g, ' —');
+}
+
 /** Given a line's absolute Y, height, and rendered text width, compute effective max width.
  *  Only shortens the available width when the text actually collides with an exclusion rect. */
 function getEffectiveWidth(
@@ -162,6 +173,7 @@ export function drawSingleLineText(
   align: 'left' | 'center' | 'right' = 'left',
   color: string = 'black',
 ): void {
+  text = prettify(text);
   let textSize = size;
   while (textSize > 1) {
     ctx.font = `${textSize}px "${font}"`;
@@ -254,6 +266,7 @@ export function drawWrappedText(
   font: string, startingSize: number,
   options: { fontFamily?: string; color?: string; exclusionRects?: ExclusionRect[] } = {},
 ): { usedSize: number; usedHeight: number } {
+  text = prettify(text);
   const color = options.color || 'black';
   const fontFamily = options.fontFamily || font;
   const exclusions = options.exclusionRects || [];
@@ -299,6 +312,8 @@ export function drawRulesAndFlavor(
   font: string, startingSize: number,
   exclusionRects: ExclusionRect[] = [],
 ): void {
+  rulesText = prettify(rulesText);
+  flavorText = prettify(flavorText);
   let textSize = startingSize;
   const ruleParas = rulesText.split('\n').filter(p => p.trim());
   const flavorParas = flavorText.split('\n').filter(p => p.trim());
