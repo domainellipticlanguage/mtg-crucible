@@ -521,13 +521,13 @@ export async function fetchBuffer(url: string, allowUnsafe = false): Promise<Buf
 }
 
 export async function drawArt(
-  ctx: SKRSContext2D, artUrl: string,
+  ctx: SKRSContext2D, artUrl: string | Buffer,
   bounds: { x: number; y: number; w: number; h: number },
   cw: number, ch: number,
   options?: { rotate?: number; allowUnsafe?: boolean },
 ): Promise<void> {
   try {
-    const buf = await fetchBuffer(artUrl, options?.allowUnsafe);
+    const buf = Buffer.isBuffer(artUrl) ? artUrl : await fetchBuffer(artUrl, options?.allowUnsafe);
     let img = await loadImage(buf);
     // Rotate the image if requested (90 = CW, -90 = CCW)
     if (options?.rotate) {
@@ -552,7 +552,8 @@ export async function drawArt(
     ctx.drawImage(img, sx, sy, sw, sh, ax, ay, aw, ah);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    console.warn(`  Failed to load art from ${artUrl}: ${msg}`);
+    const src = Buffer.isBuffer(artUrl) ? `<Buffer ${artUrl.length}b>` : artUrl;
+    console.warn(`  Failed to load art from ${src}: ${msg}`);
   }
 }
 

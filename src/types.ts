@@ -184,7 +184,7 @@ export interface CardData {
   power?: string;
   toughness?: string;
 
-  artUrl?: string;
+  artUrl?: string | Buffer;
   artDescription?: string;
 
   flavorText?: string;
@@ -227,7 +227,7 @@ export interface NormalizedCardData {
   power: string;
   toughness: string;
 
-  artUrl: string;
+  artUrl: string | Buffer;
   artDescription: string;
 
   flavorText: string;

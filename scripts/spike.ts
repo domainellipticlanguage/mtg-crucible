@@ -836,6 +836,18 @@ async function main() {
     },
   });
 
+  // artUrl as Buffer — fetched here, passed in as bytes
+  const artUrl = 'https://cards.scryfall.io/art_crop/front/7/f/7f4893ef-f983-418b-b7a4-5f073c844545.jpg?1673149345';
+  const artBuffer = Buffer.from(await (await fetch(artUrl)).arrayBuffer());
+  await render('avacyn-buffer', {
+    name: 'Archangel Avacyn', manaCost: '{3}{W}{W}',
+    supertypes: ['legendary'], types: ['creature'], subtypes: ['Angel'],
+    abilities: 'Flash\nFlying, vigilance\nWhen Archangel Avacyn enters the battlefield, creatures you control gain indestructible until end of turn.',
+    power: '4', toughness: '4', frameColor: 'white', rarity: 'mythic',
+    artist: 'James Ryman', collectorNumber: '005',
+    artUrl: artBuffer,
+  });
+
   console.log(`\nDone! ${idx} cards total, rendered to ${OUT}`);
 }
 

@@ -228,7 +228,7 @@ npm run dev       # start local dev server with hot reload
 - [ ] Fix split card text sizing
 - [ ] Additional bleed zone
 - [ ] Download for DFC should be concatenated images
-- [ ] Support buffer for art
+- [X] Support buffer for art
 - [ ] Rename artUrl to just art
 - [ ] Improve masking for split cards (mask area invalid).
 - [ ] Elongate hyphen for keyword abilities (`Equip - {2}`) and modals (`Choose one -`).

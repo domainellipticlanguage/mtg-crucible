@@ -900,7 +900,7 @@ export function formatCard(card: CardData): string {
   }
 
   // Metadata lines
-  if (card.artUrl) lines.push(`Art URL: ${card.artUrl}`);
+  if (typeof card.artUrl === 'string' && card.artUrl) lines.push(`Art URL: ${card.artUrl}`);
   if (card.artDescription) lines.push(`Art Description: ${card.artDescription}`);
   if (card.artist) lines.push(`Artist: ${card.artist}`);
   if (card.setCode) lines.push(`Set: ${card.setCode}`);
@@ -1050,7 +1050,7 @@ function buildScryfallFace(card: NormalizedCardData): Record<string, any> {
   if (card.colorIndicator) {
     face.color_indicator = card.colorIndicator.map(c => COLOR_TO_LETTER[c]);
   }
-  if (card.artUrl) {
+  if (typeof card.artUrl === 'string' && card.artUrl) {
     face.image_uris = { art_crop: card.artUrl };
   }
 
