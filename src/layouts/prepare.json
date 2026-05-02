@@ -71,9 +71,9 @@
     "font": "Beleren Bold"
   },
   "prepMana": {
-    "y": 0.6391,
-    "w": 0.935,
-    "size": 0.03663003663003663,
+    "y": 0.64,
+    "w": 0.93,
+    "size": 0.03563003663003663,
     "shadowX": -0.001,
     "shadowY": 0.0029
   },
@@ -92,5 +92,7 @@
     "h": 0.15,
     "size": 0.0353,
     "font": "MPlantin"
-  }
+  },
+  "_frame": "prepare",
+  "_allowUnsafeArtUrls": true
 }
