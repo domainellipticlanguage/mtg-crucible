@@ -254,7 +254,7 @@ export interface Rotation {
 
 export type RenderQuality = 'low' | 'medium' | 'high';
 
-export type RenderFormat = 'png' | 'jpeg';
+export type RenderFormat = 'png' | 'jpeg' | 'webp';
 
 export interface RenderOptions {
   quality?: RenderQuality;

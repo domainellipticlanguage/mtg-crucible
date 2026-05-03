@@ -362,7 +362,9 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
 }
 
 function encodeCanvas(canvas: Canvas, format: RenderFormat): Buffer {
-  return format === 'jpeg' ? canvas.toBuffer('image/jpeg') : canvas.toBuffer('image/png');
+  if (format === 'jpeg') return canvas.toBuffer('image/jpeg');
+  if (format === 'webp') return canvas.toBuffer('image/webp');
+  return canvas.toBuffer('image/png');
 }
 
 function scaleOutput(source: Canvas, targetW: number, targetH: number, quality: RenderQuality, format: RenderFormat): Buffer {

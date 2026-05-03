@@ -571,7 +571,7 @@ function drawSmallCaps(ctx: SKRSContext2D, text: string, x: number, y: number, f
   return cx - x;
 }
 
-export function drawCorners(ctx: SKRSContext2D, cw: number, ch: number, format: 'png' | 'jpeg' = 'png'): void {
+export function drawCorners(ctx: SKRSContext2D, cw: number, ch: number, format: 'png' | 'jpeg' | 'webp' = 'png'): void {
   const r = 0.048 * cw;
   const isJpeg = format === 'jpeg';
   ctx.globalCompositeOperation = isJpeg ? 'source-over' : 'destination-out';
