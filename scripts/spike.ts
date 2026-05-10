@@ -848,6 +848,23 @@ async function main() {
     artUrl: artBuffer,
   });
 
+  // Hybrid colorless — Ulalek, Fused Atrocity (5-color hybrid colorless Eldrazi)
+  await render('ulalek-fused-atrocity', {
+    name: 'Ulalek, Fused Atrocity', manaCost: '{6}{C/W}{C/U}{C/B}{C/R}{C/G}',
+    supertypes: ['legendary'], types: ['creature'], subtypes: ['Eldrazi'],
+    abilities: 'When you cast this spell, copy each other Eldrazi spell you\'ve cast this turn. You may choose new targets for the copies.\nMenace, ward {2}',
+    power: '8', toughness: '8', rarity: 'mythic',
+    artist: 'Andrey Kuzinskiy', collectorNumber: '003',
+  });
+
+  // Hybrid colorless single-color — Phelia-style (C/W)
+  await render('hc-single-cw', {
+    name: 'Cradleguard', manaCost: '{C/W}',
+    types: ['creature'], subtypes: ['Eldrazi', 'Cleric'],
+    abilities: 'Lifelink',
+    power: '1', toughness: '2', rarity: 'rare',
+  });
+
   console.log(`\nDone! ${idx} cards total, rendered to ${OUT}`);
 }
 

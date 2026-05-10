@@ -176,15 +176,20 @@ export function parseTypeLine(typeLine: string | undefined): ParsedTypeLine {
   return { supertypes, types, subtypes };
 }
 
-const MANA_COLOR_MAP: Record<string, Color> = { W: 'white', U: 'blue', B: 'black', R: 'red', G: 'green' };
+const MANA_COLOR_MAP: Record<string, Color | 'colorless'> = { W: 'white', U: 'blue', B: 'black', R: 'red', G: 'green', C: 'colorless' };
 const WUBRG = ['W', 'U', 'B', 'R', 'G'];
+const WUBRGC = ['W', 'U', 'B', 'R', 'G', 'C'];
 
 function extractManaColors(manaCost: string | undefined): Set<string> {
   const colors = new Set<string>();
   const symbols = manaCost?.match(/\{([^}]+)\}/g) || [];
   for (const sym of symbols) {
     const inner = sym.slice(1, -1).toUpperCase();
-    for (const c of WUBRG) {
+    const isHybrid = inner.includes('/');
+    // 'C' only counts as a color when it's part of a hybrid symbol (e.g. {C/W}).
+    // Pure {C} is colorless and shouldn't push the card into a colored/dual frame.
+    const letters = isHybrid ? WUBRGC : WUBRG;
+    for (const c of letters) {
       if (inner.includes(c)) colors.add(c);
     }
   }
@@ -203,10 +208,10 @@ function hasHybridMana(manaCost: string | undefined, colors: Set<string>): boole
   return false;
 }
 
-/** Return colors sorted in WUBRG order as Color[]. */
-function colorsInOrder(colors: Set<string>): Color[] {
+/** Return colors sorted in WUBRGC order. */
+function colorsInOrder(colors: Set<string>): (Color | 'colorless')[] {
   return [...colors]
-    .sort((a, b) => WUBRG.indexOf(a) - WUBRG.indexOf(b))
+    .sort((a, b) => WUBRGC.indexOf(a) - WUBRGC.indexOf(b))
     .map(c => MANA_COLOR_MAP[c]);
 }
 
@@ -255,11 +260,11 @@ export function deriveFrameColor(typeLine: ParsedTypeLine, card: Pick<CardData, 
   const fromIndicator = colors.size === 0 && card.colorIndicator && card.colorIndicator.length > 0;
   if (fromIndicator) {
     for (const [letter, name] of Object.entries(MANA_COLOR_MAP)) {
-      if (card.colorIndicator!.includes(name)) colors.add(letter);
+      if (name !== 'colorless' && card.colorIndicator!.includes(name as Color)) colors.add(letter);
     }
   }
 
-  const twoColors: Color[] | undefined = colors.size === 2 ? colorsInOrder(colors) : undefined;
+  const twoColors: (Color | 'colorless')[] | undefined = colors.size === 2 ? colorsInOrder(colors) : undefined;
   // Dual frames for hybrid mana only
   const isDualFrame = twoColors !== undefined && hasHybridMana(card.manaCost, colors);
   const accent = colorsToAccent(colors);
