@@ -361,9 +361,11 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
   return scaleOutput(canvas, STD_W, STD_H, quality, format);
 }
 
-function encodeCanvas(canvas: Canvas, format: RenderFormat): Buffer {
+const WEBP_QUALITY: Record<RenderQuality, number> = { low: 60, medium: 70, high: 80 };
+
+function encodeCanvas(canvas: Canvas, format: RenderFormat, quality: RenderQuality): Buffer {
   if (format === 'jpeg') return canvas.toBuffer('image/jpeg');
-  if (format === 'webp') return canvas.toBuffer('image/webp');
+  if (format === 'webp') return (canvas.toBuffer as any)('image/webp', WEBP_QUALITY[quality]);
   return canvas.toBuffer('image/png');
 }
 
@@ -372,7 +374,7 @@ function scaleOutput(source: Canvas, targetW: number, targetH: number, quality: 
   const outW = Math.round(targetW * scale);
   const outH = Math.round(targetH * scale);
   if (source.width === outW && source.height === outH) {
-    return encodeCanvas(source, format);
+    return encodeCanvas(source, format, quality);
   }
   // Step-down scaling: halve dimensions iteratively for much better resampling
   let current: Canvas = source;
@@ -392,5 +394,5 @@ function scaleOutput(source: Canvas, targetW: number, targetH: number, quality: 
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(current, 0, 0, outW, outH);
-  return encodeCanvas(out, format);
+  return encodeCanvas(out, format, quality);
 }

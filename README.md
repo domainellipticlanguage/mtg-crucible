@@ -88,19 +88,19 @@ Front-face buffer size for a typical card with art (Archangel Avacyn):
 
 | quality | png | jpeg | webp |
 |---------|-----|------|------|
-| low (350×490) | 308 KB | 72 KB | 58 KB |
-| medium (745×1040) | 1167 KB | 233 KB | 184 KB |
-| high (2010×2814) | 5529 KB | 1013 KB | 638 KB |
+| low (350×490) | 308 KB | 72 KB | 28 KB |
+| medium (745×1040) | 1167 KB | 233 KB | 86 KB |
+| high (2010×2814) | 5529 KB | 1013 KB | 355 KB |
 
 For a card with no fetched art (Lightning Bolt):
 
 | quality | png | jpeg | webp |
 |---------|-----|------|------|
-| low | 154 KB | 42 KB | 30 KB |
-| medium | 570 KB | 137 KB | 91 KB |
-| high | 2818 KB | 599 KB | 341 KB |
+| low | 154 KB | 42 KB | 13 KB |
+| medium | 570 KB | 137 KB | 41 KB |
+| high | 2818 KB | 599 KB | 188 KB |
 
-Generate fresh numbers with `npx tsx scripts/sizes.ts`.
+WebP uses lossy quality 60/70/80 for low/medium/high. Generate fresh numbers with `npx tsx scripts/sizes.ts`.
 
 ### `parseCard(text: string): CardData`
 
@@ -252,6 +252,7 @@ npm run dev       # start local dev server with hot reload
 - [ ] Rename artUrl to just art
 - [ ] Improve masking for split cards (mask area invalid).
 - [X] Elongate hyphen for keyword abilities (`Equip - {2}`) and modals (`Choose one -`).
+- [ ] Add hybrid colorless
 
 
 ## Security
