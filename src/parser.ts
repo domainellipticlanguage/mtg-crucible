@@ -20,6 +20,11 @@ import {
 } from './layout';
 
 const MANA_COST_REGEX = /^(.+?)\s+((?:\{[^}]+\})+)$/;
+
+// Canonical Room reminder text — appears verbatim on every printed Room card.
+// The room frame asset has this baked into the central divider, so we strip it
+// from rules text to avoid rendering it twice.
+const ROOM_REMINDER_RE = /^\(You may cast either half\. That door unlocks on the battlefield\. As a sorcery, you may pay the mana cost of a locked door to unlock it\.\)$/;
 const ART_REGEX = /^Art URL:\s*(.+)$/i;
 const ART_DESCRIPTION_REGEX = /^Art Description:\s*(.+)$/i;
 const RARITY_REGEX = /^Rarity:\s*(common|uncommon|rare|mythic(?:\s+rare)?)$/i;
@@ -399,9 +404,12 @@ export function parseAbilities(text: string, kind?: StructuredAbilities['kind'])
   }
 
   if (kind === 'room') {
+    // Strip the standard Room reminder text — the room frame has it baked in,
+    // so leaving it in unstructuredAbilities would render it twice.
+    const stripped = lines.filter(line => !ROOM_REMINDER_RE.test(line.trim()));
     return {
       structuredAbilities: { kind: 'room' },
-      unstructuredAbilities: lines,
+      unstructuredAbilities: stripped,
     };
   }
 
