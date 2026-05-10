@@ -189,6 +189,132 @@ function isManaLayout(entry: any): entry is { y: number; w: number; size: number
     && !('h' in entry);
 }
 
+/** Dotted-path read. */
+function getAtPath(obj: any, path: string): any {
+  return path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj);
+}
+
+/** Immutable dotted-path write — clones containers along the path. */
+function setAtPath(obj: any, path: string, value: any): any {
+  const parts = path.split('.');
+  if (parts.length === 1) return { ...obj, [path]: value };
+  const [head, ...rest] = parts;
+  return { ...obj, [head]: setAtPath(obj?.[head] ?? {}, rest.join('.'), value) };
+}
+
+/**
+ * Walk a layout object and return dotted paths for every leaf rect/mana entry.
+ * Stops descending into anything that already looks like a Rect or Mana layout
+ * (so x/y/w/h numbers don't get mistaken for further keys to recurse into).
+ */
+function findEditablePaths(obj: any, prefix = ''): string[] {
+  if (!obj || typeof obj !== 'object') return [];
+  if (isRect(obj) || isManaLayout(obj)) return prefix ? [prefix] : [];
+  const out: string[] = [];
+  for (const [k, v] of Object.entries(obj)) {
+    const path = prefix ? `${prefix}.${k}` : k;
+    out.push(...findEditablePaths(v, path));
+  }
+  return out;
+}
+
+/**
+ * If `path` lives inside a container marked `_rotated: true`, return the
+ * fractional canvas-y of the rotation origin (the container's name.y).
+ *
+ * Convention: layout entries inside rotated containers describe rects in the
+ * rotated reading frame (sideways). The renderer's renderSplitText / renderDoorText
+ * does `translate(0, name.y * ch); rotate(-90°)`, so:
+ *   local (lx, ly) → canvas (ly, originY - lx)  where originY = container.name.y * ch
+ *
+ * Exception: keys named "art" are always canvas-space (drawArt rotates the
+ * IMAGE, not the canvas — bounds stay canvas-space).
+ */
+function getRotationOriginY(layout: any, path: string): number | null {
+  const parts = path.split('.');
+  const lastKey = parts[parts.length - 1];
+  if (lastKey === 'art') return null;
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const containerPath = parts.slice(0, i).join('.');
+    const container = containerPath ? getAtPath(layout, containerPath) : layout;
+    if (container?._rotated) {
+      // Prefer the explicit rotation origin (decoupled from name.y); fall back to name.y for legacy layouts.
+      const originY = container._rotationOriginY ?? container.name?.y;
+      if (typeof originY === 'number') return originY;
+    }
+  }
+  return null;
+}
+
+/** Convert a Rect entry from rotated-frame coords to canvas-space coords. */
+function rectToCanvas(entry: Rect, originY: number): Rect {
+  return {
+    x: entry.x,
+    y: 2 * originY - entry.y - entry.w,
+    w: entry.h,
+    h: entry.w,
+  };
+}
+
+/** Inverse of rectToCanvas — used when the editor reports a drag in canvas coords. */
+function rectFromCanvas(canvas: Rect, originY: number): Rect {
+  return {
+    x: canvas.x,
+    y: 2 * originY - canvas.y - canvas.h,
+    w: canvas.h,
+    h: canvas.w,
+  };
+}
+
+/**
+ * Convert a Mana-style entry {y, w, size} from rotated frame to canvas display coords.
+ * In rotated frame: w is local-x of right-edge (canvas-y, scaled by ch); y is local-y (canvas-x, scaled by cw).
+ * size is scaled by cwArg (= ch in swapped call), so visible canvas size differs by cw/ch.
+ */
+function manaToCanvas(entry: Record<string, any>, originY: number, cw: number, ch: number): Record<string, any> {
+  return {
+    ...entry,
+    y: originY - entry.w,
+    w: entry.y,
+    size: entry.size * (cw / ch),
+  };
+}
+
+function manaFromCanvas(canvas: Record<string, any>, originY: number, cw: number, ch: number): Record<string, any> {
+  return {
+    ...canvas,
+    y: canvas.w,
+    w: originY - canvas.y,
+    size: canvas.size * (ch / cw),
+  };
+}
+
+/**
+ * Convert a SetSymbol entry {x, y, w, h} from rotated frame to canvas. SetSymbol semantics:
+ *   x = right-edge (fractional along the cw-axis), y = vertical center (fractional along ch-axis).
+ * In rotated context, drawSetSymbol is called with chArg/cwArg swapped, so x scales with ch
+ * and y scales with cw locally — after the -90° rotation those swap into canvas dims.
+ */
+function setSymbolToCanvas(entry: Rect & Record<string, any>, originY: number): Rect & Record<string, any> {
+  return {
+    ...entry,
+    x: entry.y,
+    y: originY - entry.x,
+    w: entry.h,
+    h: entry.w,
+  };
+}
+
+function setSymbolFromCanvas(canvas: Rect & Record<string, any>, originY: number): Rect & Record<string, any> {
+  return {
+    ...canvas,
+    x: originY - canvas.y,
+    y: canvas.x,
+    w: canvas.h,
+    h: canvas.w,
+  };
+}
+
 interface LayoutBoxProps {
   layoutKey: string;
   entry: Record<string, any>;
@@ -592,6 +718,110 @@ Rarity: Uncommon
 Locker Room {4}{U}
 Enchantment — Room
 Whenever one or more creatures you control deal combat damage to a player, draw a card.`,
+  planeswalker_tall: `Teferi, Hero of Dominaria {3}{W}{U}
+Legendary Planeswalker — Teferi
++1: Draw a card. At the beginning of the next end step, untap two lands.
+-3: Put target nonland permanent into its owner's library third from the top.
+-8: You get an emblem with "Whenever you draw a card, exile target permanent an opponent controls."
+Loyalty: 4
+Rarity: Mythic Rare`,
+  transform_front: `Delver of Secrets {U}
+Creature — Human Wizard
+At the beginning of your upkeep, look at the top card of your library. You may reveal that card. If an instant or sorcery card is revealed this way, transform Delver of Secrets.
+1/1
+Rarity: Common
+--transform--
+Insectile Aberration
+Creature — Human Insect
+Flying
+3/2`,
+  transform_back: `Insectile Aberration
+Creature — Human Insect
+Flying
+3/2
+Rarity: Common
+--transform--
+Delver of Secrets {U}
+Creature — Human Wizard
+At the beginning of your upkeep, look at the top card of your library. You may reveal that card.
+1/1`,
+  mdfc_front: `Emeria's Call {4}{W}{W}
+Sorcery
+Create two 4/4 white Angel Warrior creature tokens with flying. Non-Angel creatures you control gain indestructible until your next turn.
+Rarity: Mythic Rare
+--modal--
+Emeria, Shattered Skyclave
+Land
+({T}: Add {W}.)
+Emeria, Shattered Skyclave enters tapped unless you pay 3 life.`,
+  mdfc_back: `Emeria, Shattered Skyclave
+Land
+({T}: Add {W}.)
+Emeria, Shattered Skyclave enters tapped unless you pay 3 life.
+Rarity: Mythic Rare
+--modal--
+Emeria's Call {4}{W}{W}
+Sorcery
+Create two 4/4 white Angel Warrior creature tokens with flying.`,
+  split: `Fire {1}{R}
+Instant
+Fire deals 2 damage divided as you choose among one or two targets.
+Rarity: Uncommon
+----
+Ice {1}{U}
+Instant
+Tap target permanent. Draw a card.`,
+  fuse: `Wear {1}{R}
+Instant
+Destroy target artifact.
+Fuse
+Rarity: Rare
+----
+Tear {W}
+Instant
+Destroy target enchantment.
+Fuse`,
+  flip: `Bushi Tenderfoot {W}
+Creature — Human Soldier
+When a creature dealt damage by Bushi Tenderfoot this turn dies, flip Bushi Tenderfoot.
+1/1
+Rarity: Uncommon
+--flip--
+Kenzo the Hardhearted
+Legendary Creature — Human Samurai
+Double strike; bushido 2
+3/4`,
+  mutate: `Gemrazer {2}{R}{G}
+Creature — Beast
+Mutate {1}{G}{W}
+Reach, trample
+Whenever this creature mutates, destroy target artifact or enchantment.
+4/4
+Rarity: Rare`,
+  prototype: `Phyrexian Fleshgorger {7}
+Artifact Creature — Phyrexian Wurm
+Prototype {1}{B}{B} — 3/3
+Menace
+Whenever Phyrexian Fleshgorger attacks, each opponent loses 2 life and you gain 2 life.
+7/5
+Rarity: Mythic Rare`,
+  leveler: `Student of Warfare {W}
+Creature — Human Soldier
+LEVEL 2-7: 1/1
+First strike
+LEVEL 8+: 4/4
+Double strike
+1/1
+Rarity: Rare`,
+  aftermath: `Appeal {G}
+Sorcery
+Target creature gets +X/+X until end of turn, where X is the number of creatures you control.
+Rarity: Uncommon
+--aftermath--
+Authority {1}{W}
+Sorcery
+Aftermath
+Tap up to two target creatures.`,
 };
 
 function EditorApp() {
@@ -631,7 +861,11 @@ function EditorApp() {
 
   const effectiveLayout = useMemo(() => {
     if (!baseLayout) return null;
-    return { ...baseLayout, ...overrides };
+    let result: any = baseLayout;
+    for (const [path, value] of Object.entries(overrides)) {
+      result = setAtPath(result, path, value);
+    }
+    return result;
   }, [baseLayout, overrides]);
 
   // Debounced re-render when text or overrides change
@@ -679,20 +913,20 @@ function EditorApp() {
 
   const rectKeys = useMemo(() => {
     if (!effectiveLayout) return [];
-    return Object.entries(effectiveLayout)
-      .filter(([k, v]) => isRect(v) && k !== 'setSymbol')
-      .map(([k]) => k);
+    return findEditablePaths(effectiveLayout)
+      .filter(p => isRect(getAtPath(effectiveLayout, p)) && !p.endsWith('setSymbol'));
   }, [effectiveLayout]);
 
-  const hasSetSymbol = useMemo(() => {
-    return effectiveLayout && isRect(effectiveLayout.setSymbol);
+  const setSymbolKeys = useMemo(() => {
+    if (!effectiveLayout) return [];
+    return findEditablePaths(effectiveLayout)
+      .filter(p => isRect(getAtPath(effectiveLayout, p)) && p.endsWith('setSymbol'));
   }, [effectiveLayout]);
 
   const manaKeys = useMemo(() => {
     if (!effectiveLayout) return [];
-    return Object.entries(effectiveLayout)
-      .filter(([, v]) => isManaLayout(v))
-      .map(([k]) => k);
+    return findEditablePaths(effectiveLayout)
+      .filter(p => isManaLayout(getAtPath(effectiveLayout, p)));
   }, [effectiveLayout]);
 
   const updateEntry = (key: string, next: Record<string, any>) => {
@@ -773,41 +1007,68 @@ function EditorApp() {
             style={{ position: 'absolute', left: 0, top: 0, width: displayW, height: displayH, pointerEvents: 'none' }}
           />
         )}
-        {effectiveLayout && rectKeys.map(key => (
-          <LayoutBox
-            key={key}
-            layoutKey={key}
-            entry={effectiveLayout[key]}
-            displayW={displayW}
-            displayH={displayH}
-            selected={selectedKey === key}
-            onSelect={() => setSelectedKey(key)}
-            onChange={(next) => updateEntry(key, next)}
-          />
-        ))}
-        {effectiveLayout && manaKeys.map(key => (
-          <ManaBox
-            key={key}
-            layoutKey={key}
-            entry={effectiveLayout[key]}
-            displayW={displayW}
-            displayH={displayH}
-            selected={selectedKey === key}
-            onSelect={() => setSelectedKey(key)}
-            onChange={(next) => updateEntry(key, next)}
-          />
-        ))}
-        {effectiveLayout && hasSetSymbol && (
-          <SetSymbolBox
-            layoutKey="setSymbol"
-            entry={effectiveLayout.setSymbol}
-            displayW={displayW}
-            displayH={displayH}
-            selected={selectedKey === 'setSymbol'}
-            onSelect={() => setSelectedKey('setSymbol')}
-            onChange={(next) => updateEntry('setSymbol', next)}
-          />
-        )}
+        {effectiveLayout && rectKeys.map(key => {
+          const entry = getAtPath(effectiveLayout, key);
+          const originY = getRotationOriginY(effectiveLayout, key);
+          // For rotated entries, show the bbox in canvas-space so it lines up with the rendered text;
+          // when the user drags, convert the canvas-space change back to rotated-frame storage.
+          const displayEntry = originY != null ? { ...entry, ...rectToCanvas(entry, originY) } : entry;
+          const handleChange = originY != null
+            ? (next: Record<string, any>) => updateEntry(key, { ...entry, ...rectFromCanvas(next as Rect, originY) })
+            : (next: Record<string, any>) => updateEntry(key, next);
+          return (
+            <LayoutBox
+              key={key}
+              layoutKey={key}
+              entry={displayEntry}
+              displayW={displayW}
+              displayH={displayH}
+              selected={selectedKey === key}
+              onSelect={() => setSelectedKey(key)}
+              onChange={handleChange}
+            />
+          );
+        })}
+        {effectiveLayout && manaKeys.map(key => {
+          const entry = getAtPath(effectiveLayout, key);
+          const originY = getRotationOriginY(effectiveLayout, key);
+          const displayEntry = originY != null ? manaToCanvas(entry, originY, canvasSize.w, canvasSize.h) : entry;
+          const handleChange = originY != null
+            ? (next: Record<string, any>) => updateEntry(key, manaFromCanvas(next, originY, canvasSize.w, canvasSize.h))
+            : (next: Record<string, any>) => updateEntry(key, next);
+          return (
+            <ManaBox
+              key={key}
+              layoutKey={key}
+              entry={displayEntry}
+              displayW={displayW}
+              displayH={displayH}
+              selected={selectedKey === key}
+              onSelect={() => setSelectedKey(key)}
+              onChange={handleChange}
+            />
+          );
+        })}
+        {effectiveLayout && setSymbolKeys.map(key => {
+          const entry = getAtPath(effectiveLayout, key);
+          const originY = getRotationOriginY(effectiveLayout, key);
+          const displayEntry = originY != null ? setSymbolToCanvas(entry, originY) : entry;
+          const handleChange = originY != null
+            ? (next: Record<string, any>) => updateEntry(key, setSymbolFromCanvas(next as Rect & Record<string, any>, originY))
+            : (next: Record<string, any>) => updateEntry(key, next);
+          return (
+            <SetSymbolBox
+              key={key}
+              layoutKey={key}
+              entry={displayEntry as Rect & Record<string, any>}
+              displayW={displayW}
+              displayH={displayH}
+              selected={selectedKey === key}
+              onSelect={() => setSelectedKey(key)}
+              onChange={handleChange}
+            />
+          );
+        })}
       </div>
     </div>
   );

@@ -1221,10 +1221,10 @@ function isRoomCard(card: CardData): boolean {
 
 export function getArtDimensions(card: CardData): { primaryArtDimensions: { width: number; height: number }; secondaryArtDimensions?: { width: number; height: number } } {
   // Rooms have a single landscape "panorama" art covering both doors, no secondary.
-  // Panorama bounds span artLeft.y → artRight.y+h (height ~0.845 of ch) and width 0.3733 of cw.
-  // After rotate=-90, source landscape dims are (canvas_h_span × canvas_w_span).
+  // After rotate=-90, source landscape dims are (canvas_h_span × canvas_w_span) — derived from L.art.
   if (isRoomCard(card)) {
-    return { primaryArtDimensions: { width: 1774, height: 560 } };
+    const a = ROOM_LAYOUT.art;
+    return { primaryArtDimensions: { width: Math.round(a.h * PW_H), height: Math.round(a.w * PW_W) } };
   }
   const templateKey = resolveTemplate(card);
   const primary = getArtDimensionsForFace(card, templateKey, false);

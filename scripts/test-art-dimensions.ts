@@ -196,7 +196,7 @@ async function main() {
       console.log(`  linked: ${linkedDims.width}x${linkedDims.height}`);
     }
 
-    const result = await renderCard(cardWithArt);
+    const result = await renderCard(cardWithArt, { allowUnsafeArtUrls: true });
 
     const outPath = path.join(OUT, `${fileKey}.png`);
     fs.writeFileSync(outPath, result.frontFace);

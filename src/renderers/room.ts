@@ -20,7 +20,10 @@ async function renderDoorText(
   cw: number, ch: number,
   clipYMin: number, clipYMax: number,
 ) {
-  const originY = L.name.y * ch;
+  // Rotation origin is decoupled from name.y so that editing name doesn't shift other entries.
+  // Falls back to name.y for layouts that haven't been migrated.
+  const origin = (L._rotationOriginY ?? L.name.y) as number;
+  const originY = origin * ch;
 
   ctx.save();
   ctx.translate(0, originY);
@@ -44,24 +47,33 @@ async function renderDoorText(
   }
 
   const nameW = L.mana.w * ch - manaW;
-  drawSingleLineText(ctx, card.name ?? '', 0, L.name.x * cw, nameW, L.name.h * cw, L.name.font, L.name.size * ch, 'left', 'black');
+  const nameLocalX = (L.name.y - origin) * ch;
+  drawSingleLineText(ctx, card.name ?? '', nameLocalX, L.name.x * cw, nameW, L.name.h * cw, L.name.font, L.name.size * ch, 'left', 'black');
 
-  drawSingleLineText(ctx, formatTypeLine(card.typeLine), 0, L.type.x * cw, L.type.w * ch, L.type.h * cw, L.type.font, L.type.size * ch, 'left', 'black');
+  if (L.type) {
+    const typeLocalX = (L.type.y - origin) * ch;
+    drawSingleLineText(ctx, formatTypeLine(card.typeLine), typeLocalX, L.type.x * cw, L.type.w * ch, L.type.h * cw, L.type.font, L.type.size * ch, 'left', 'black');
+  }
 
-  await drawSetSymbol(ctx, card.rarity || 'common', L.setSymbol, cw, ch);
+  if (L.setSymbol) {
+    await drawSetSymbol(ctx, card.rarity || 'common', L.setSymbol, cw, ch);
+  }
 
   const pa = getParsedAbilities(card);
   const rulesText = pa.unstructuredAbilities?.join('\n');
-  const rulesY = (L.rules.y - L.name.y) * ch;
+  const rulesY = (L.rules.y - origin) * ch;
   const rulesX = L.rules.x * cw;
   const rulesW = L.rules.w * ch;
   const rulesH = L.rules.h * cw;
 
-  const setH = L.setSymbol.h * cw;
-  const setW = setH;
-  const setLocalX = (L.setSymbol.x - L.name.y) * ch - setW;
-  const setLocalY = L.setSymbol.y * cw - setH / 2;
-  const exclusionRects: ExclusionRect[] = [{ x: setLocalX, y: setLocalY, w: setW, h: setH }];
+  const exclusionRects: ExclusionRect[] = [];
+  if (L.setSymbol) {
+    const setH = L.setSymbol.h * cw;
+    const setW = setH;
+    const setLocalX = (L.setSymbol.x - origin) * ch - setW;
+    const setLocalY = L.setSymbol.y * cw - setH / 2;
+    exclusionRects.push({ x: setLocalX, y: setLocalY, w: setW, h: setH });
+  }
 
   if (rulesText && card.flavorText) {
     drawRulesAndFlavor(ctx, rulesText, card.flavorText, rulesY, rulesX, rulesW, rulesH, L.rules.font, L.rules.size * ch, exclusionRects);
@@ -86,6 +98,13 @@ const roomBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
 
   const topH = Math.round(splitY);
 
+  // Single panorama art spanning both halves — drawn first so the frame's pinlines/borders sit on top.
+  // User supplies landscape; rotate -90° to fit portrait region.
+  const allowUnsafe = (L as any)._allowUnsafeArtUrls;
+  if (card.artUrl && L.art) {
+    await drawArt(ctx, card.artUrl, L.art, cw, ch, { rotate: -90, allowUnsafe });
+  }
+
   ctx.save();
   ctx.beginPath();
   ctx.rect(0, 0, cw, topH);
@@ -101,12 +120,6 @@ const roomBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
   await drawFrame(ctx, frameDir, frontCodes, frontAccent, cw, ch, undefined, undefined,
     { horizontal: true, gradientRange: { start: topH, end: ch } });
   ctx.restore();
-
-  // Single panorama art spanning both halves. User supplies landscape; rotate -90° to fit portrait region.
-  const allowUnsafe = (L as any)._allowUnsafeArtUrls;
-  if (card.artUrl && L.art) {
-    await drawArt(ctx, card.artUrl, L.art, cw, ch, { rotate: -90, allowUnsafe });
-  }
 
   await renderDoorText(ctx, card, L.door1, cw, ch, splitY, ch);
   if (door2) {

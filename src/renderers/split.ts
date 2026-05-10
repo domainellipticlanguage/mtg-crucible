@@ -24,7 +24,10 @@ async function renderSplitText(
   cw: number, ch: number,
   clipYMin: number, clipYMax: number,
 ) {
-  const originY = L.name.y * ch;
+  // Rotation origin is decoupled from name.y so editing name doesn't shift other entries.
+  // Falls back to name.y for layouts that haven't been migrated.
+  const origin = ((L as any)._rotationOriginY ?? L.name.y) as number;
+  const originY = origin * ch;
 
   ctx.save();
   ctx.translate(0, originY);
@@ -69,10 +72,12 @@ async function renderSplitText(
 
   // Name — left-aligned, shrunk to avoid mana cost overlap
   const nameW = L.mana.w * ch - manaW;
-  drawSingleLineText(ctx, card.name ?? '', 0, L.name.x * cw, nameW, L.name.h * cw, L.name.font, L.name.size * ch, 'left', 'black');
+  const nameLocalX = (L.name.y - origin) * ch;
+  drawSingleLineText(ctx, card.name ?? '', nameLocalX, L.name.x * cw, nameW, L.name.h * cw, L.name.font, L.name.size * ch, 'left', 'black');
 
   // Type line
-  drawSingleLineText(ctx, formatTypeLine(card.typeLine), 0, L.type.x * cw, L.type.w * ch, L.type.h * cw, L.type.font, L.type.size * ch, 'left', 'black');
+  const typeLocalX = (L.type.y - origin) * ch;
+  drawSingleLineText(ctx, formatTypeLine(card.typeLine), typeLocalX, L.type.x * cw, L.type.w * ch, L.type.h * cw, L.type.font, L.type.size * ch, 'left', 'black');
 
   // Set symbol (in rotated space: swap ch/cw)
   await drawSetSymbol(ctx, card.rarity || 'common', L.setSymbol, cw, ch);
@@ -80,7 +85,7 @@ async function renderSplitText(
   // Rules text
   const pa = getParsedAbilities(card);
   const rulesText = pa.unstructuredAbilities?.join('\n');
-  const rulesY = (L.rules.y - L.name.y) * ch;
+  const rulesY = (L.rules.y - origin) * ch;
   const rulesX = L.rules.x * cw;
   const rulesW = L.rules.w * ch;
   const rulesH = L.rules.h * cw;
