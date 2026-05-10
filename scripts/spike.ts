@@ -17,10 +17,12 @@ const indices = args.filter(a => a !== '--open').map(Number).filter(n => !isNaN(
 const ONLY = indices.length > 0 ? new Set(indices) : null;
 
 let idx = 0;
+let rendered = 0;
 
 async function render(name: string, card: CardData | string): Promise<RenderedCard | null> {
   idx++;
   if (ONLY && !ONLY.has(idx)) return null;
+  rendered++;
   console.log(`${idx}. ${name}`);
   const result = await renderCard(card);
   const outPath = path.join(OUT, `${String(idx).padStart(2, '0')}-${name}.png`);
@@ -865,7 +867,7 @@ async function main() {
     power: '1', toughness: '2', rarity: 'rare',
   });
 
-  console.log(`\nDone! ${idx} cards total, rendered to ${OUT}`);
+  console.log(`\nDone! ${rendered} of ${idx} cards rendered, output to ${OUT}`);
 }
 
 main().catch(console.error);

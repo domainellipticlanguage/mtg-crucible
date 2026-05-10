@@ -163,6 +163,10 @@ const TEST_CARDS: { template: TemplateName; label?: string; card: CardData }[] =
     template: 'leveler',
     card: { name: 'Test Leveler', manaCost: '{1}{U}', types: ['creature'], subtypes: ['Human', 'Wizard'], frameColor: 'blue', power: '1', toughness: '1', abilities: 'LEVEL 2-5\n2/3\nFlying\nLEVEL 6+\n4/5\nFlying, shroud' },
   },
+  {
+    template: 'room',
+    card: { name: 'Test Door 1', manaCost: '{U}', typeLine: { supertypes: [], types: ['enchantment'], subtypes: ['Room'] }, frameColor: 'blue', abilities: 'When you unlock this door, draw a card.', linkedCard: { name: 'Test Door 2', manaCost: '{3}{U}', typeLine: { supertypes: [], types: ['enchantment'], subtypes: ['Room'] }, frameColor: 'blue', abilities: 'When you unlock this door, scry 2.' } },
+  },
 ];
 
 async function main() {

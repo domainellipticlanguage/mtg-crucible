@@ -253,7 +253,7 @@ npm run dev       # start local dev server with hot reload
 - [ ] Improve masking for split cards (mask area invalid).
 - [X] Elongate hyphen for keyword abilities (`Equip - {2}`) and modals (`Choose one -`).
 - [ ] Add hybrid colorless
-
+- [ ] Fix spacing on Omen name line (too much room between name and mana cost)
 
 ## Security
 

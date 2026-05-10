@@ -15,8 +15,8 @@ import {
   PROTO_LAYOUT,
   LEVELER_LAYOUT,
   PREPARE_LAYOUT,
-  OMEN_LAYOUT,
   ROOM_LAYOUT,
+  OMEN_LAYOUT,
 } from './layout';
 
 const MANA_COST_REGEX = /^(.+?)\s+((?:\{[^}]+\})+)$/;
@@ -1220,9 +1220,11 @@ function isRoomCard(card: CardData): boolean {
 }
 
 export function getArtDimensions(card: CardData): { primaryArtDimensions: { width: number; height: number }; secondaryArtDimensions?: { width: number; height: number } } {
-  // Rooms have a single landscape art covering the two-door panel, no secondary
+  // Rooms have a single landscape "panorama" art covering both doors, no secondary.
+  // Panorama bounds span artLeft.y → artRight.y+h (height ~0.845 of ch) and width 0.3733 of cw.
+  // After rotate=-90, source landscape dims are (canvas_h_span × canvas_w_span).
   if (isRoomCard(card)) {
-    return { primaryArtDimensions: { width: 1226, height: 561 } };
+    return { primaryArtDimensions: { width: 1774, height: 560 } };
   }
   const templateKey = resolveTemplate(card);
   const primary = getArtDimensionsForFace(card, templateKey, false);
