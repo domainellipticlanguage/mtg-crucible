@@ -52,7 +52,7 @@ async function renderDoorText(
 
   if (L.type) {
     const typeLocalX = (L.type.y - origin) * ch;
-    drawSingleLineText(ctx, formatTypeLine(card.typeLine), typeLocalX, L.type.x * cw, L.type.w * ch, L.type.h * cw, L.type.font, L.type.size * ch, 'left', 'black');
+    drawSingleLineText(ctx, formatTypeLine(card.typeLine), typeLocalX, L.type.x * cw, L.type.w * ch, L.type.h * cw, L.type.font, L.type.size * ch, 'left', 'white');
   }
 
   if (L.setSymbol) {

@@ -44,7 +44,7 @@ export async function renderCard(input: CardData | string, options?: RenderOptio
   } else if (normalized.linkType === 'modal_dfc') {
     if (frontIsStandard) frontTemplateOverride = 'mdfc_front';
     backTemplateOverride = 'mdfc_back';
-  } else if (normalized.linkType === 'split' || normalized.linkType === 'fuse' || normalized.linkType === 'flip') {
+  } else if (normalized.linkType === 'split' || normalized.linkType === 'fuse' || normalized.linkType === 'flip' || normalized.linkType === 'room') {
     frontTemplateOverride = normalized.cardTemplate ?? normalized.linkType;
   } else if (normalized.linkType === 'aftermath') {
     frontTemplateOverride = 'aftermath';
@@ -61,7 +61,7 @@ export async function renderCard(input: CardData | string, options?: RenderOptio
   let backFace: Buffer | undefined;
   let backFaceOrientation: 'horizontal' | 'vertical' | undefined;
   // Adventure, split, fuse, and flip cards render both faces on one image — no separate back face
-  const singleImageTypes = new Set(['adventure', 'split', 'fuse', 'flip', 'aftermath', 'prepare', 'omen']);
+  const singleImageTypes = new Set(['adventure', 'split', 'fuse', 'flip', 'aftermath', 'prepare', 'omen', 'room']);
   if (normalized.linkedCard && !singleImageTypes.has(normalized.linkType ?? '')) {
     // Already normalized via recursive normalizeCard — shallow copy to avoid mutating shared object
     const normalizedBack = { ...normalized.linkedCard };

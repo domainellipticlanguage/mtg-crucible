@@ -38,7 +38,7 @@ export interface ParsedTypeLine {
   subtypes: string[];
 }
 
-export const LINK_TYPES = ['transform', 'modal_dfc', 'flip', 'fuse', 'split', 'adventure', 'aftermath', 'prepare', 'omen'] as const;
+export const LINK_TYPES = ['transform', 'modal_dfc', 'flip', 'fuse', 'split', 'adventure', 'aftermath', 'prepare', 'omen', 'room'] as const;
 export type LinkType = (typeof LINK_TYPES)[number];
 
 // transform, modal_dfc, and arguably split do not affect the rendering of the linked card (and linker card)

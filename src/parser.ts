@@ -1035,7 +1035,7 @@ function scryfallLayout(card: NormalizedCardData): string {
       case 'transform': return 'transform';
       case 'modal_dfc': return 'modal_dfc';
       case 'flip': return 'flip';
-      case 'split': case 'fuse': return 'split';
+      case 'split': case 'fuse': case 'room': return 'split';
       case 'adventure': case 'omen': return 'adventure';
       case 'aftermath': return 'aftermath';
       case 'prepare': return 'prepare';
@@ -1181,7 +1181,7 @@ export function resolveTemplate(card: CardData): TemplateName {
   }
   if (pa.structuredAbilities?.kind === 'saga') return 'saga';
   if (pa.structuredAbilities?.kind === 'class') return 'class';
-  if (pa.structuredAbilities?.kind === 'room') return 'room';
+  if (pa.structuredAbilities?.kind === 'room' || card.linkType === 'room') return 'room';
   if (card.battleDefense) return 'battle';
   if (card.linkType === 'adventure') return 'adventure';
   if (card.linkType === 'prepare') return 'prepare';
@@ -1253,6 +1253,12 @@ export function inferLinkType(card: CardData, frontTypeLine: ParsedTypeLine, bac
   const isSpell = (typeLine: ParsedTypeLine) =>
     typeLine.types.length > 0 && typeLine.types.some(t => t === 'instant' || t === 'sorcery');
 
+  // Room: both faces have "Room" subtype. Check before the mana-cost gate
+  // because static-ability rooms ("Creatures you control get +1/+1") have no
+  // pip on the inner door yet still need the room layout.
+  const hasRoom = (tl: ParsedTypeLine) => tl.subtypes.some(s => s.toLowerCase() === 'room');
+  if (hasRoom(frontTypeLine) && hasRoom(backTypeLine)) return 'room';
+
   if (bothHaveManaCost) {
     const fullText = frontText + '\n' + backText;
     if (/\bFuse\b/.test(fullText)) return 'fuse';
@@ -1261,9 +1267,6 @@ export function inferLinkType(card: CardData, frontTypeLine: ParsedTypeLine, bac
     if (backTypeLine.subtypes.some(s => s.toLowerCase() === 'omen')) return 'omen';
     // Prepare: presence of "prepare" / "prepared" in card text
     if (/\bprepared?\b/i.test(fullText)) return 'prepare';
-    // Rooms are split enchantments — both faces have "Room" subtype
-    const hasRoom = (tl: ParsedTypeLine) => tl.subtypes.some(s => s.toLowerCase() === 'room');
-    if (hasRoom(frontTypeLine) && hasRoom(backTypeLine)) return 'split';
     if (isSpell(frontTypeLine) && isSpell(backTypeLine)) return 'split';
     return 'modal_dfc';
   }
@@ -1296,6 +1299,7 @@ export function computeRotations(card: CardData): Rotation[] {
       return [identity, { x: 0, y: 0, z: 180 }];
     case 'split':
     case 'fuse':
+    case 'room':
       return [identity, { x: 0, y: 0, z: 90 }];
     case 'aftermath':
       return [identity, { x: 0, y: 0, z: -90 }];
