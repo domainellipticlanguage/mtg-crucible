@@ -1,6 +1,6 @@
 {
   "name": "mtg-crucible",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "description": "TypeScript library for rendering custom Magic: The Gathering card images as PNGs",
   "repository": {
     "type": "git",
