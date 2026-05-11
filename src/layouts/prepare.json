@@ -92,7 +92,5 @@
     "h": 0.15,
     "size": 0.0353,
     "font": "MPlantin"
-  },
-  "_frame": "prepare",
-  "_allowUnsafeArtUrls": true
+  }
 }

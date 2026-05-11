@@ -173,10 +173,11 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
   }
 
   // Template-specific body (abilities, chapters, levels, etc.)
-  // Expose frame dir to hooks via layout (e.g. split needs it for second-half coloring)
-  L._frame = frame;
-  L._allowUnsafeArtUrls = allowUnsafeArtUrls;
-  if (hooks?.body) await hooks.body(ctx, card, L, cw, ch);
+  // Expose frame dir + unsafe-art flag to hooks via a transient layout clone, so we don't
+  // mutate the cached/imported layout object (which would otherwise leak these fields back
+  // to disk when the dev-server saves the layout).
+  const bodyLayout = { ...L, _frame: frame, _allowUnsafeArtUrls: allowUnsafeArtUrls };
+  if (hooks?.body) await hooks.body(ctx, card, bodyLayout, cw, ch);
 
   // Legend crown (planeswalkers use their own frame treatment)
   // Drawn after body hook so it sits above any body overlays (e.g. prepare pinline).
