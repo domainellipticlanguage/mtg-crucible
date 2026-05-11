@@ -29,7 +29,8 @@
       "w": 0.39,
       "h": 0.0286,
       "size": 0.0286,
-      "font": "Beleren Bold"
+      "font": "Beleren Bold",
+      "color": "white"
     },
     "rules": {
       "x": 0.7070333333333334,
