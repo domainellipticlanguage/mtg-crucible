@@ -1310,30 +1310,63 @@ export function computeRotations(card: CardData): Rotation[] {
 
 const MANA_LETTER_TO_FRAME: Record<string, FrameColor> = { W: 'white', U: 'blue', B: 'black', R: 'red', G: 'green' };
 
-export function deriveTitleColor(manaCost: string | undefined, colorIndicator: CardData['colorIndicator']): FrameColor {
+export function deriveTitleColors(
+  typeLine: ParsedTypeLine,
+  card: Pick<CardData, 'manaCost' | 'colorIndicator'> & { abilitiesText?: string },
+): { name: FrameColor; type: FrameColor } {
+  if (typeLine.types.includes('land')) return { name: 'land', type: 'land' };
+
   const WUBRG = ['W', 'U', 'B', 'R', 'G'];
   const nonHybrid = new Set<string>();
   const hybrid = new Set<string>();
-  const symbols = manaCost?.match(/\{([^}]+)\}/g) || [];
+  const symbols = card.manaCost?.match(/\{([^}]+)\}/g) || [];
   for (const sym of symbols) {
     const inner = sym.slice(1, -1).toUpperCase();
-    const isHybrid = inner.includes('/');
+    const hasSlash = inner.includes('/');
+    const isPhyrexian = inner.includes('P');
+    // Phyrexian pips ({U/P}, {2/P}) are technically hybrid but the colored half is the
+    // card's real color — count it as non-hybrid.
+    const treatAsHybrid = hasSlash && !isPhyrexian;
     for (const c of WUBRG) {
       if (inner.includes(c)) {
-        if (isHybrid) hybrid.add(c); else nonHybrid.add(c);
+        if (treatAsHybrid) hybrid.add(c);
+        else nonHybrid.add(c);
       }
     }
   }
-  const colors = nonHybrid.size > 0
-    ? new Set([...nonHybrid, ...hybrid])
-    : new Set<string>();
-  if (colors.size === 0 && colorIndicator) {
-    const COLOR_MAP: Record<string, string> = { white: 'W', blue: 'U', black: 'B', red: 'R', green: 'G' };
-    for (const c of colorIndicator) { if (COLOR_MAP[c]) colors.add(COLOR_MAP[c]); }
+
+  let colors: Set<string>;
+  if (nonHybrid.size > 0) {
+    colors = new Set([...nonHybrid, ...hybrid]);
+  } else if (hybrid.size >= 3) {
+    // 3+ color fully-hybrid (Reaper King etc.) → use hybrid colors → 'multicolor'
+    colors = new Set(hybrid);
+  } else {
+    colors = new Set();
   }
-  if (colors.size === 0) return 'artifact';
-  if (colors.size === 1) return MANA_LETTER_TO_FRAME[[...colors][0]];
-  return 'multicolor';
+  // Small fully-hybrid (1-2 hybrid colors, no non-hybrid) → frame is already a colored
+  // gradient; render the name/type as 'artifact' (neutral silver) to match Scryfall.
+  const wasFullyHybridSmall = nonHybrid.size === 0 && hybrid.size > 0 && hybrid.size < 3;
+
+  if (colors.size === 0 && !wasFullyHybridSmall && card.colorIndicator) {
+    const COLOR_MAP: Record<string, string> = { white: 'W', blue: 'U', black: 'B', red: 'R', green: 'G' };
+    for (const c of card.colorIndicator) if (COLOR_MAP[c]) colors.add(COLOR_MAP[c]);
+  }
+
+  let result: FrameColor;
+  if (colors.size === 0) {
+    if (wasFullyHybridSmall) result = 'artifact';
+    else if (typeLine.types.includes('artifact')) result = 'artifact';
+    else result = 'colorless';
+  } else if (colors.size === 1) {
+    result = MANA_LETTER_TO_FRAME[[...colors][0]];
+  } else {
+    result = 'multicolor';
+  }
+
+  const isDevoid = card.abilitiesText?.toLowerCase().includes('devoid');
+  if (isDevoid) return { name: result, type: 'colorless' };
+  return { name: result, type: result };
 }
 
 /** Infer the ability kind from card types/subtypes. */
@@ -1387,9 +1420,14 @@ export function normalizeCard(card: CardData, parent?: CardData): NormalizedCard
   const frameColor = toArray<FrameColor>(card.frameColor ?? derived?.frameColor);
   const frameEffect = toArray<FrameEffect>(card.frameEffect ?? 'normal');
   const accentColor = toArray<AccentColor>(card.accentColor ?? derived?.accentColor);
-  const titleColor = card.nameLineColor ?? card.typeLineColor ?? deriveTitleColor(card.manaCost, card.colorIndicator);
-  const nameLineColor = toArray<FrameColor>(card.nameLineColor ?? titleColor);
-  const typeLineColor = toArray<FrameColor>(card.typeLineColor ?? titleColor);
+  const derivedTitle = (card.nameLineColor && card.typeLineColor)
+    ? undefined
+    : deriveTitleColors(typeLine, { manaCost: card.manaCost, colorIndicator: card.colorIndicator, abilitiesText });
+  // If only one of name/type is set explicitly, mirror it to the other (preserves prior behavior).
+  const nameDefault = card.typeLineColor ?? derivedTitle?.name;
+  const typeDefault = card.nameLineColor ?? derivedTitle?.type;
+  const nameLineColor = toArray<FrameColor>(card.nameLineColor ?? nameDefault);
+  const typeLineColor = toArray<FrameColor>(card.typeLineColor ?? typeDefault);
 
   const backTypeLine = card.linkedCard ? resolveTypeLine(card.linkedCard) : { supertypes: [], types: [], subtypes: [] } as ParsedTypeLine;
   const linkType = inferLinkType(card, typeLine, backTypeLine);

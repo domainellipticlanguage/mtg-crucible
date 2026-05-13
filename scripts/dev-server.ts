@@ -22,7 +22,7 @@ const LAYOUT_JSON_FILES: Record<string, string> = {
   mdfc_front: 'mdfc_front.json',
   mdfc_back: 'mdfc_back.json',
   split: 'split_right.json',
-  fuse: 'split_right.json',
+  fuse: 'fuse.json',
   flip: 'flip.json',
   mutate: 'mutate.json',
   prototype: 'prototype.json',

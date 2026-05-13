@@ -183,6 +183,7 @@ const splitBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
 
   // Fuse reminder strip — spans across both halves along the read-bottom of the card.
   // Parser strips this line from abilities, so we re-render it from the canonical text here.
+  // Uses drawWrappedText so the parenthetical reminder gets the standard italic styling.
   if (isFuse && (L as any).fuseText) {
     const ft = (L as any).fuseText;
     const fuseOrigin = ((L as any)._rotationOriginY ?? 1.0) as number;
@@ -190,11 +191,11 @@ const splitBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
     ctx.translate(0, fuseOrigin * ch);
     ctx.rotate(-Math.PI / 2);
     const localX = (ft.y - fuseOrigin) * ch;
-    drawSingleLineText(
+    drawWrappedText(
       ctx,
       'Fuse (You may cast one or both halves of this card from your hand.)',
       localX, ft.x * cw, ft.w * ch, ft.h * cw,
-      ft.font, ft.size * ch, 'left', ft.color ?? 'white',
+      ft.font, ft.size * ch,
     );
     ctx.restore();
   }

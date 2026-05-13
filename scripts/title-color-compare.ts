@@ -56,12 +56,16 @@ const CASES: TestCase[] = [
     bug: 'devoid {2}{U} — name=blue, type=colorless (renderer may show artifact tint; separate issue)',
     proposed: { nameLineColor: 'blue', typeLineColor: 'colorless' } },
 
+  { name: 'Brood Butcher', set: 'bfz',
+    bug: 'multicolor devoid {3}{B}{G} — name=multicolor, type=colorless (new case)',
+    proposed: { nameLineColor: 'multicolor', typeLineColor: 'colorless' } },
+
   { name: 'Plains',
     bug: 'basic land, no mana cost — current returns artifact',
     proposed: { nameLineColor: 'land', typeLineColor: 'land' } },
 
-  { name: 'Tundra', set: 'lea',
-    bug: 'dual land, no mana cost — current returns artifact',
+  { name: 'Hallowed Fountain', set: 'rvr',
+    bug: 'modern shockland (W/U), no mana cost — current returns artifact',
     proposed: { nameLineColor: 'land', typeLineColor: 'land' } },
 
   { name: 'Thopter Spy Network', set: 'ori',
