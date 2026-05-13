@@ -838,6 +838,21 @@ async function main() {
     },
   });
 
+  // 56b. Multicolored Room — different color per door (tests room-mask blending)
+  await render('forge-cathedral-room', {
+    name: 'Smelting Forge', manaCost: '{1}{R}',
+    typeLine: { supertypes: [], types: ['enchantment'], subtypes: ['Room'] },
+    frameColor: 'red',
+    rarity: 'rare',
+    abilities: 'When you unlock this door, Smelting Forge deals 2 damage to any target.',
+    linkedCard: {
+      name: 'Sun Cathedral', manaCost: '{3}{W}',
+      typeLine: { supertypes: [], types: ['enchantment'], subtypes: ['Room'] },
+      frameColor: 'white',
+      abilities: 'When you unlock this door, create two 1/1 white Soldier creature tokens.',
+    },
+  });
+
   // artUrl as Buffer — fetched here, passed in as bytes
   const artUrl = 'https://cards.scryfall.io/art_crop/front/7/f/7f4893ef-f983-418b-b7a4-5f073c844545.jpg?1673149345';
   const artBuffer = Buffer.from(await (await fetch(artUrl)).arrayBuffer());

@@ -1,9 +1,12 @@
-import { type SKRSContext2D } from '@napi-rs/canvas';
+import { createCanvas, loadImage, type SKRSContext2D } from '@napi-rs/canvas';
+import * as fs from 'fs';
+import * as path from 'path';
 import type { NormalizedCardData } from '../types';
 import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor, type ExclusionRect } from '../text';
 import { drawArt, drawManaCost, drawSetSymbol, measureManaCostWidth, drawFrame, frameColorCode } from '../helpers';
 import { getParsedAbilities, formatTypeLine } from '../parser';
 import { SPLIT_RIGHT_LAYOUT, SPLIT_LEFT_LAYOUT } from '../layout';
+import { ASSETS_DIR } from '../assets-dir';
 import type { TemplateHooks, AnyLayout } from './render';
 
 /**
@@ -121,27 +124,51 @@ const splitBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
   const frontAccent = card.accentColor.length > 0 ? card.accentColor.map(c => frameColorCode(c)) : undefined;
   const backAccent = other && other.accentColor.length > 0 ? other.accentColor.map(c => frameColorCode(c)) : frontAccent;
 
-  // Draw each half's frame clipped to its region. Use gradientRange so
-  // multi-color gradient zones are computed within the half, not the full card.
+  // Draw each half's frame. For fuse, use Card Conjurer's top alpha mask so the
+  // fuse strip stays attached to the correct half and the seam gets a soft fade.
+  // Bottom half is drawn first as the base; top half is layered through the mask.
+  // For non-fuse split, rect-clip is fine — the frame art has its own pinline at topH.
   const topH = Math.round(splitY);
+  const isFuse = frameDir === 'fuse';
+  const fuseTopMask = path.join(ASSETS_DIR, 'masks', 'fuse-top.png');
+  const useFuseMask = isFuse && fs.existsSync(fuseTopMask);
 
-  // Top half (other/right card)
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(0, 0, cw, topH);
-  ctx.clip();
-  await drawFrame(ctx, frameDir, backCodes, backAccent, cw, ch, undefined, undefined,
-    { horizontal: true, gradientRange: { start: 0, end: topH } });
-  ctx.restore();
+  if (useFuseMask) {
+    // Bottom half (card/left card) as full-canvas base
+    const bottomCanvas = createCanvas(cw, ch);
+    await drawFrame(bottomCanvas.getContext('2d'), frameDir, frontCodes, frontAccent, cw, ch, undefined, undefined,
+      { horizontal: true, gradientRange: { start: topH, end: ch } });
+    ctx.drawImage(bottomCanvas, 0, 0);
 
-  // Bottom half (card/left card)
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(0, topH, cw, ch - topH);
-  ctx.clip();
-  await drawFrame(ctx, frameDir, frontCodes, frontAccent, cw, ch, undefined, undefined,
-    { horizontal: true, gradientRange: { start: topH, end: ch } });
-  ctx.restore();
+    // Top half (other/right card) masked over the base
+    const topCanvas = createCanvas(cw, ch);
+    await drawFrame(topCanvas.getContext('2d'), frameDir, backCodes, backAccent, cw, ch, undefined, undefined,
+      { horizontal: true, gradientRange: { start: 0, end: topH } });
+    const masked = createCanvas(cw, ch);
+    const mCtx = masked.getContext('2d');
+    mCtx.drawImage(await loadImage(fuseTopMask), 0, 0, cw, ch);
+    mCtx.globalCompositeOperation = 'source-in';
+    mCtx.drawImage(topCanvas, 0, 0);
+    ctx.drawImage(masked, 0, 0);
+  } else {
+    // Top half (other/right card)
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, cw, topH);
+    ctx.clip();
+    await drawFrame(ctx, frameDir, backCodes, backAccent, cw, ch, undefined, undefined,
+      { horizontal: true, gradientRange: { start: 0, end: topH } });
+    ctx.restore();
+
+    // Bottom half (card/left card)
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, topH, cw, ch - topH);
+    ctx.clip();
+    await drawFrame(ctx, frameDir, frontCodes, frontAccent, cw, ch, undefined, undefined,
+      { horizontal: true, gradientRange: { start: topH, end: ch } });
+    ctx.restore();
+  }
 
   // Draw art for both halves — user supplies landscape, we rotate -90° into portrait boxes
   const allowUnsafe = (L as any)._allowUnsafeArtUrls;
@@ -152,6 +179,24 @@ const splitBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
   await renderSplitText(ctx, card, SPLIT_LEFT_LAYOUT, cw, ch, splitY, ch);
   if (other) {
     await renderSplitText(ctx, other, SPLIT_RIGHT_LAYOUT, cw, ch, 0, splitY);
+  }
+
+  // Fuse reminder strip — spans across both halves along the read-bottom of the card.
+  // Parser strips this line from abilities, so we re-render it from the canonical text here.
+  if (isFuse && (L as any).fuseText) {
+    const ft = (L as any).fuseText;
+    const fuseOrigin = ((L as any)._rotationOriginY ?? 1.0) as number;
+    ctx.save();
+    ctx.translate(0, fuseOrigin * ch);
+    ctx.rotate(-Math.PI / 2);
+    const localX = (ft.y - fuseOrigin) * ch;
+    drawSingleLineText(
+      ctx,
+      'Fuse (You may cast one or both halves of this card from your hand.)',
+      localX, ft.x * cw, ft.w * ch, ft.h * cw,
+      ft.font, ft.size * ch, 'left', ft.color ?? 'white',
+    );
+    ctx.restore();
   }
 };
 

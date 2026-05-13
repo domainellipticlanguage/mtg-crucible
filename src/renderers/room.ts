@@ -1,8 +1,11 @@
-import { type SKRSContext2D } from '@napi-rs/canvas';
+import { createCanvas, loadImage, type SKRSContext2D } from '@napi-rs/canvas';
+import * as fs from 'fs';
+import * as path from 'path';
 import type { NormalizedCardData } from '../types';
 import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor, type ExclusionRect } from '../text';
 import { drawArt, drawManaCost, drawSetSymbol, measureManaCostWidth, drawFrame, frameColorCode } from '../helpers';
 import { getParsedAbilities, formatTypeLine } from '../parser';
+import { ASSETS_DIR } from '../assets-dir';
 import type { TemplateHooks, AnyLayout } from './render';
 
 /**
@@ -105,21 +108,35 @@ const roomBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
     await drawArt(ctx, card.artUrl, L.art, cw, ch, { rotate: -90, allowUnsafe });
   }
 
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(0, 0, cw, topH);
-  ctx.clip();
-  await drawFrame(ctx, frameDir, backCodes, backAccent, cw, ch, undefined, undefined,
-    { horizontal: true, gradientRange: { start: 0, end: topH } });
-  ctx.restore();
-
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(0, topH, cw, ch - topH);
-  ctx.clip();
-  await drawFrame(ctx, frameDir, frontCodes, frontAccent, cw, ch, undefined, undefined,
+  // Pre-render each door's frame to a full-canvas offscreen, then blend through the
+  // room mask so doors with different colors get a soft seam instead of a hard line.
+  const door1Canvas = createCanvas(cw, ch);
+  await drawFrame(door1Canvas.getContext('2d'), frameDir, frontCodes, frontAccent, cw, ch, undefined, undefined,
     { horizontal: true, gradientRange: { start: topH, end: ch } });
-  ctx.restore();
+
+  const door2Canvas = createCanvas(cw, ch);
+  await drawFrame(door2Canvas.getContext('2d'), frameDir, backCodes, backAccent, cw, ch, undefined, undefined,
+    { horizontal: true, gradientRange: { start: 0, end: topH } });
+
+  // door1 (front, bottom half) is the base; door2 (back, top half) is masked on top.
+  ctx.drawImage(door1Canvas, 0, 0);
+
+  const maskPath = path.join(ASSETS_DIR, 'masks', 'room-mask.png');
+  if (fs.existsSync(maskPath)) {
+    const masked = createCanvas(cw, ch);
+    const mCtx = masked.getContext('2d');
+    mCtx.drawImage(await loadImage(maskPath), 0, 0, cw, ch);
+    mCtx.globalCompositeOperation = 'source-in';
+    mCtx.drawImage(door2Canvas, 0, 0);
+    ctx.drawImage(masked, 0, 0);
+  } else {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, cw, topH);
+    ctx.clip();
+    ctx.drawImage(door2Canvas, 0, 0);
+    ctx.restore();
+  }
 
   await renderDoorText(ctx, card, L.door1, cw, ch, splitY, ch);
   if (door2) {
