@@ -291,11 +291,7 @@ export function deriveFrameColor(typeLine: ParsedTypeLine, card: Pick<CardData, 
     return accent ? { frameColor: 'artifact', accentColor: accent } : { frameColor: 'artifact' };
   }
 
-  // 4. Devoid — colorless frame and accent
-  const isDevoid = card.abilitiesText?.toLowerCase().includes('devoid');
-  if (isDevoid) return { frameColor: 'colorless', accentColor: 'colorless' };
-
-  // 5. Normal cards
+  // 4. Normal cards (devoid is now expressed via frameEffect='devoid', not a colorless frame)
   if (colors.size === 0) return { frameColor: 'colorless' };
   if (colors.size === 1) return { frameColor: MANA_COLOR_MAP[[...colors][0]] };
   if (isDualFrame) return { frameColor: twoColors!, accentColor: twoColors };
@@ -1390,6 +1386,31 @@ function toArray<T>(v: T | T[] | undefined): T[] {
   return Array.isArray(v) ? v : [v];
 }
 
+/**
+ * Infer a frame effect from the card's types and abilities.
+ *   - Nyx: enchantment with another primary type (Sythis = Enchantment Creature, etc.).
+ *     Bare Enchantments do NOT get Nyx — modern MTG is shifting to Nyx-for-all but we
+ *     don't follow that yet.
+ *   - Devoid: card has the "devoid" keyword AND the derived frame is colored. Pure
+ *     colorless devoid cards (Endbringer) skip this — the `devoid/c.png` asset doesn't
+ *     exist, and the standard colorless frame already matches Scryfall's Eldrazi look.
+ */
+export function inferFrameEffect(
+  typeLine: ParsedTypeLine,
+  abilitiesText: string | undefined,
+  derivedFrameColor: FrameColor | FrameColor[] | undefined,
+): FrameEffect {
+  if (typeLine.types.includes('enchantment') && typeLine.types.length > 1) {
+    return 'nyx';
+  }
+  const isDevoid = abilitiesText?.toLowerCase().includes('devoid');
+  if (isDevoid) {
+    const fc = Array.isArray(derivedFrameColor) ? derivedFrameColor[0] : derivedFrameColor;
+    if (fc && fc !== 'colorless') return 'devoid';
+  }
+  return 'normal';
+}
+
 export function normalizeCard(card: CardData, parent?: CardData): NormalizedCardData {
   const typeLine = resolveTypeLine(card);
 
@@ -1418,7 +1439,7 @@ export function normalizeCard(card: CardData, parent?: CardData): NormalizedCard
   });
 
   const frameColor = toArray<FrameColor>(card.frameColor ?? derived?.frameColor);
-  const frameEffect = toArray<FrameEffect>(card.frameEffect ?? 'normal');
+  const frameEffect = toArray<FrameEffect>(card.frameEffect ?? inferFrameEffect(typeLine, abilitiesText, frameColor));
   const accentColor = toArray<AccentColor>(card.accentColor ?? derived?.accentColor);
   const derivedTitle = (card.nameLineColor && card.typeLineColor)
     ? undefined

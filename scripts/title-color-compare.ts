@@ -25,7 +25,19 @@ type TestCase = { name: string; set?: string; bug: string; proposed: Override };
 
 const CASES: TestCase[] = [
   { name: 'Sythis, Harvest\'s Hand', set: 'mh2',
-    bug: 'fully hybrid {G/W} (MH2) — verdict: current artifact name/type matches Scryfall, no change',
+    bug: 'fully hybrid {G/W} (MH2) — also Enchantment Creature, should auto-infer Nyx',
+    proposed: {} },
+
+  { name: 'Doomwake Giant', set: 'jou',
+    bug: 'Enchantment Creature (mono-black) — should auto-infer Nyx frame effect',
+    proposed: {} },
+
+  { name: 'Whip of Erebos',
+    bug: 'Legendary Enchantment Artifact (Theros) — should auto-infer Nyx (Enchantment + Artifact)',
+    proposed: {} },
+
+  { name: 'Sigil of the Empty Throne',
+    bug: 'plain Enchantment (no other primary type) — should NOT get Nyx (control)',
     proposed: {} },
 
   { name: 'Prismari Pledgemage', set: 'stx',
