@@ -150,20 +150,17 @@ async function buildCardData(name: string, set?: string): Promise<{ card: CardDa
   return { card, png, displayName: sf.name };
 }
 
-async function buildThreeUp(scryfallPng: Buffer, currentPng: Buffer, proposedPng: Buffer, label: string, sub: string): Promise<Buffer> {
+async function buildComparison(scryfallPng: Buffer, currentPng: Buffer, label: string, sub: string): Promise<Buffer> {
   const sfImg = await loadImage(scryfallPng);
   const curImg = await loadImage(currentPng);
-  const propImg = await loadImage(proposedPng);
 
   const targetH = 1040;
-  const scale = (img: { width: number; height: number }) => targetH / img.height;
-  const sfW = Math.round(sfImg.width * scale(sfImg));
-  const curW = Math.round(curImg.width * scale(curImg));
-  const propW = Math.round(propImg.width * scale(propImg));
+  const sfW = Math.round(sfImg.width * (targetH / sfImg.height));
+  const curW = Math.round(curImg.width * (targetH / curImg.height));
 
   const gap = 20;
-  const labelH = 80; // bigger header area for two lines of text
-  const totalW = sfW + curW + propW + 2 * gap;
+  const labelH = 80;
+  const totalW = sfW + curW + gap;
   const totalH = targetH + labelH;
 
   const canvas = createCanvas(totalW, totalH);
@@ -171,28 +168,23 @@ async function buildThreeUp(scryfallPng: Buffer, currentPng: Buffer, proposedPng
   ctx.fillStyle = '#1c1c1c';
   ctx.fillRect(0, 0, totalW, totalH);
 
-  // Header band
   ctx.fillStyle = 'white';
   ctx.font = 'bold 22px sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('Scryfall (truth)', sfW / 2, 28);
-  ctx.fillText('Current crucible', sfW + gap + curW / 2, 28);
-  ctx.fillText('Proposed crucible', sfW + 2 * gap + curW + propW / 2, 28);
+  ctx.fillText('Crucible', sfW + gap + curW / 2, 28);
 
-  // Card name + bug note on second header line
   ctx.font = '15px sans-serif';
   ctx.fillStyle = '#bbbbbb';
   ctx.fillText(label, totalW / 2, 52);
   ctx.font = 'italic 13px sans-serif';
   ctx.fillStyle = '#888888';
-  // truncate sub if too long
   const maxSubChars = Math.floor(totalW / 8);
   const subTruncated = sub.length > maxSubChars ? sub.slice(0, maxSubChars - 3) + '...' : sub;
   ctx.fillText(subTruncated, totalW / 2, 70);
 
   ctx.drawImage(sfImg, 0, labelH, sfW, targetH);
   ctx.drawImage(curImg, sfW + gap, labelH, curW, targetH);
-  ctx.drawImage(propImg, sfW + 2 * gap + curW, labelH, propW, targetH);
 
   return canvas.toBuffer('image/png');
 }
@@ -202,15 +194,11 @@ async function processCase(c: TestCase): Promise<{ slug: string; compPath: strin
   console.log(`  ${c.bug}`);
 
   const { card, png: scryfallPng, displayName } = await buildCardData(c.name, c.set);
+  // Apply any proposed overrides (kept for ad-hoc experimentation; usually empty now
+  // that the engine handles inference).
+  const current = await renderCard({ ...card, ...c.proposed });
 
-  console.log(`  rendering current...`);
-  const current = await renderCard({ ...card }); // current behavior — no overrides
-
-  console.log(`  rendering proposed (overrides: ${JSON.stringify(c.proposed)})...`);
-  const proposed = await renderCard({ ...card, ...c.proposed });
-
-  console.log(`  building 3-up...`);
-  const comp = await buildThreeUp(scryfallPng, current.frontFace, proposed.frontFace, displayName, c.bug);
+  const comp = await buildComparison(scryfallPng, current.frontFace, displayName, c.bug);
 
   const slug = displayName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
   const compPath = path.join(OUT, `${slug}.png`);
