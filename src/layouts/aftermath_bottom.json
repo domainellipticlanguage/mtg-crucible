@@ -11,14 +11,16 @@
     "w": 0.42,
     "h": 0.0543,
     "size": 0.0381,
-    "font": "Beleren Bold"
+    "font": "Beleren Bold",
+    "angle": 90
   },
   "mana": {
-    "y": 0.005,
-    "w": 0.35,
-    "size": 0.05616605616605617,
-    "shadowX": -0.001,
-    "shadowY": 0.0029
+    "y": 0.9148,
+    "size": 0.04011861154718298,
+    "shadowX": -0.0014,
+    "shadowY": 0.0020714285714285713,
+    "x": 0.905,
+    "angle": 90
   },
   "type": {
     "x": 0.53,
@@ -26,7 +28,8 @@
     "w": 0.42,
     "h": 0.0543,
     "size": 0.0324,
-    "font": "Beleren Bold"
+    "font": "Beleren Bold",
+    "angle": 90
   },
   "rules": {
     "x": 0.44,
@@ -34,6 +37,7 @@
     "w": 0.35,
     "h": 0.35,
     "size": 0.09,
-    "font": "MPlantin"
+    "font": "MPlantin",
+    "angle": 90
   }
 }

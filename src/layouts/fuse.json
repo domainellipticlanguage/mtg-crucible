@@ -1,12 +1,11 @@
 {
-  "_rotated": true,
-  "_rotationOriginY": 1,
   "fuseText": {
     "x": 0.9033333333333332,
-    "y": 1.1761904761904762,
+    "y": 0.8238095238095238,
     "w": 0.9723809523809523,
     "h": 0.045,
     "size": 0.024,
-    "font": "MPlantin"
+    "font": "MPlantin",
+    "angle": -90
   }
 }

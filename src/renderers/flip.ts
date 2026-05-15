@@ -1,18 +1,18 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { loadImage, type SKRSContext2D } from '@napi-rs/canvas';
-import type { NormalizedCardData } from '../types';
+import { loadImage } from '@napi-rs/canvas';
 import { drawSingleLineText, drawWrappedText } from '../text';
 import { frameColorCode } from '../helpers';
-import { formatTypeLine } from '../parser';
+import { formatTypeLine, getParsedAbilities } from '../parser';
 import { ASSETS_DIR } from '../assets-dir';
-import { getParsedAbilities } from '../parser';
-import type { TemplateHooks, AnyLayout } from './render';
+import type { TemplateHooks } from './render';
+import { placeElement } from './element';
 
 /**
  * Flip card renderer (Kamigawa-style).
  * Top half is drawn normally by the main render pipeline.
- * This hook draws the flip PT image and all bottom-half text rotated 180°.
+ * This hook draws the flip PT image and all bottom-half text via the
+ * `angle: 180` convention on each element.
  */
 
 const flipBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
@@ -34,10 +34,8 @@ const flipBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
       if (hasPt1 && hasPt2) {
         ctx.rect(b.x * cw, b.y * ch, b.w * cw, b.h * ch);
       } else if (hasPt1) {
-        // Top half only
         ctx.rect(b.x * cw, b.y * ch, b.w * cw, midY - b.y * ch);
       } else {
-        // Bottom half only
         ctx.rect(b.x * cw, midY, b.w * cw, (b.y + b.h) * ch - midY);
       }
       ctx.clip();
@@ -46,24 +44,20 @@ const flipBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
     }
   }
 
-  ctx.save();
-  ctx.translate(cw, ch);
-  ctx.rotate(Math.PI);
-
   const n2 = L.name2;
   if (n2) {
-    const x = (1 - n2.x) * cw;
-    const y = (1 - n2.y) * ch;
-    drawSingleLineText(ctx, other.name ?? '', x, y, n2.w * cw, n2.h * ch, n2.font, n2.size * ch, 'left', 'black');
+    placeElement(ctx, n2, cw, ch, ({ wDim, hDim }) => {
+      drawSingleLineText(ctx, other.name ?? '', 0, 0, n2.w * wDim, n2.h * hDim, n2.font, n2.size * ch, 'left', 'black');
+    });
   }
 
   const t2 = L.type2;
   if (t2) {
-    const x = (1 - t2.x) * cw;
-    const y = (1 - t2.y) * ch;
-    const ptInset = hasPt2 ? (L.type2PtInset ?? 0) : 0;
-    const typeW = (t2.w - ptInset) * cw;
-    drawSingleLineText(ctx, formatTypeLine(other.typeLine), x, y, typeW, t2.h * ch, t2.font, t2.size * ch, 'left', 'black');
+    placeElement(ctx, t2, cw, ch, ({ wDim, hDim }) => {
+      const ptInset = hasPt2 ? (L.type2PtInset ?? 0) : 0;
+      const typeW = (t2.w - ptInset) * wDim;
+      drawSingleLineText(ctx, formatTypeLine(other.typeLine), 0, 0, typeW, t2.h * hDim, t2.font, t2.size * ch, 'left', 'black');
+    });
   }
 
   const r2 = L.rules2;
@@ -71,22 +65,20 @@ const flipBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
     const pa = getParsedAbilities(other);
     const rulesText = pa.unstructuredAbilities?.join('\n');
     if (rulesText) {
-      const x = (1 - r2.x) * cw;
-      const y = (1 - r2.y) * ch;
-      drawWrappedText(ctx, rulesText, x, y, r2.w * cw, r2.h * ch, r2.font, r2.size * ch);
+      placeElement(ctx, r2, cw, ch, ({ wDim, hDim }) => {
+        drawWrappedText(ctx, rulesText, 0, 0, r2.w * wDim, r2.h * hDim, r2.font, r2.size * ch);
+      });
     }
   }
 
   if (hasPt2) {
     const pt2 = L.pt2;
     if (pt2) {
-      const x = (1 - pt2.x) * cw;
-      const y = (1 - pt2.y) * ch;
-      drawSingleLineText(ctx, `${other.power}/${other.toughness}`, x, y, pt2.w * cw, pt2.h * ch, pt2.font, pt2.size * ch, 'center', 'black');
+      placeElement(ctx, pt2, cw, ch, ({ wDim, hDim }) => {
+        drawSingleLineText(ctx, `${other.power}/${other.toughness}`, 0, 0, pt2.w * wDim, pt2.h * hDim, pt2.font, pt2.size * ch, 'center', 'black');
+      });
     }
   }
-
-  ctx.restore();
 };
 
 // The top-half type line width is adjusted by the standard pipeline.

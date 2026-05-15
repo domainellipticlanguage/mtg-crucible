@@ -4,18 +4,15 @@ import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor } from '../text
 import { drawArt, drawManaCost, measureManaCostWidth, drawFrame, frameColorCode } from '../helpers';
 import { getParsedAbilities, formatTypeLine } from '../parser';
 import { AFTERMATH_BOTTOM_LAYOUT } from '../layout';
-import type { TemplateHooks, AnyLayout } from './render';
+import type { TemplateHooks } from './render';
+import { placeElement } from './element';
 
 /**
  * Aftermath card renderer.
  *
  * Top half is rendered by the standard pipeline (normal orientation).
- * Bottom half (linkedCard) is rendered here, rotated 90° clockwise.
- *
- * CC uses rotation:90 on text fields. We rotate the context 90° around the
- * anchor point, then draw in local space where:
- *   local x+ = card y+ (downward)
- *   local y+ = card x- (leftward)
+ * Bottom half (linkedCard) is rendered here, with each text element carrying
+ * `angle: 90` in its layout entry.
  */
 
 async function renderBottomText(
@@ -25,55 +22,46 @@ async function renderBottomText(
 ) {
   const L = AFTERMATH_BOTTOM_LAYOUT;
 
-  // Rotate 90° clockwise around the anchor point (top-right of bottom half)
-  const originX = L.name.x * cw;
-  const originY = L.name.y * ch;
+  const manaW = card.manaCost ? measureManaCostWidth(card.manaCost, ch, L.mana.size) : 0;
 
-  ctx.save();
-  ctx.translate(originX, originY);
-  ctx.rotate(Math.PI / 2);
-
-  // In rotated local space:
-  //   local x+ = card y+ (downward on card, scaled by ch)
-  //   local y+ = card x- (leftward on card, scaled by cw)
-  // Text width flows along local x (ch), text height along local y (cw).
-
-  // Name
-  const textW = L.name.w * ch;
-  const manaW = card.manaCost ? measureManaCostWidth(card.manaCost, cw, L.mana.size) : 0;
-  const nameW = textW - manaW;
-  drawSingleLineText(ctx, card.name ?? '', 0, 0, nameW, L.name.h * cw, L.name.font, L.name.size * ch, 'left', 'black');
-
-  // Mana cost — right-aligned in the name bar
+  // Mana cost — right-aligned at its anchor.
   if (card.manaCost) {
-    await drawManaCost(ctx, card.manaCost, ch, cw, {
-      y: L.mana.y,
-      w: L.mana.w,
-      size: L.mana.size,
-      shadowX: L.mana.shadowX,
-      shadowY: L.mana.shadowY,
+    await placeElement(ctx, L.mana, cw, ch, () => {
+      return drawManaCost(ctx, card.manaCost!, cw, ch, {
+        y: 0, w: 0,
+        size: L.mana.size, shadowX: L.mana.shadowX, shadowY: L.mana.shadowY,
+      });
     });
   }
 
-  // Type line — offset in local y (leftward from anchor = increasing y)
-  const typeY = (L.name.x - L.type.x) * cw;
-  drawSingleLineText(ctx, formatTypeLine(card.typeLine), 0, typeY, L.type.w * ch, L.type.h * cw, L.type.font, L.type.size * ch, 'left', 'black');
+  // Name — left-aligned, shrunk to avoid mana cost overlap.
+  placeElement(ctx, L.name, cw, ch, ({ wDim, hDim }) => {
+    const localBoxW = L.name.w * wDim - manaW;
+    drawSingleLineText(ctx, card.name ?? '', 0, 0, localBoxW, L.name.h * hDim,
+      L.name.font, L.name.size * ch, 'left', 'black');
+  });
 
-  // Rules text
+  // Type line.
+  placeElement(ctx, L.type, cw, ch, ({ wDim, hDim }) => {
+    drawSingleLineText(ctx, formatTypeLine(card.typeLine), 0, 0,
+      L.type.w * wDim, L.type.h * hDim,
+      L.type.font, L.type.size * ch, 'left', 'black');
+  });
+
+  // Rules text.
   const pa = getParsedAbilities(card);
   const rulesText = pa.unstructuredAbilities?.join('\n');
-  // local x = text flow (card y+), local y = perpendicular (card x-, leftward from anchor)
-  const rulesLocalX = (L.rules.y - L.name.y) * ch;
-  const rulesLocalY = (L.name.x - L.rules.x) * cw;
-  if (rulesText && card.flavorText) {
-    drawRulesAndFlavor(ctx, rulesText, card.flavorText, rulesLocalX, rulesLocalY, L.rules.w * ch, L.rules.h * cw, L.rules.font, L.rules.size * ch, []);
-  } else if (rulesText) {
-    drawWrappedText(ctx, rulesText, rulesLocalX, rulesLocalY, L.rules.w * ch, L.rules.h * cw, L.rules.font, L.rules.size * ch);
-  } else if (card.flavorText) {
-    drawWrappedText(ctx, card.flavorText, rulesLocalX, rulesLocalY, L.rules.w * ch, L.rules.h * cw, L.rules.font, L.rules.size * ch, { fontFamily: 'MPlantin Italic' });
-  }
-
-  ctx.restore();
+  placeElement(ctx, L.rules, cw, ch, ({ wDim, hDim }) => {
+    const rw = L.rules.w * wDim;
+    const rh = L.rules.h * hDim;
+    if (rulesText && card.flavorText) {
+      drawRulesAndFlavor(ctx, rulesText, card.flavorText, 0, 0, rw, rh, L.rules.font, L.rules.size * ch, []);
+    } else if (rulesText) {
+      drawWrappedText(ctx, rulesText, 0, 0, rw, rh, L.rules.font, L.rules.size * ch);
+    } else if (card.flavorText) {
+      drawWrappedText(ctx, card.flavorText, 0, 0, rw, rh, L.rules.font, L.rules.size * ch, { fontFamily: 'MPlantin Italic' });
+    }
+  });
 }
 
 const aftermathBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {

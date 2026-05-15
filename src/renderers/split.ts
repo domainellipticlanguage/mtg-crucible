@@ -2,22 +2,21 @@ import { createCanvas, loadImage, type SKRSContext2D } from '@napi-rs/canvas';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { NormalizedCardData } from '../types';
-import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor, type ExclusionRect } from '../text';
+import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor } from '../text';
 import { drawArt, drawManaCost, drawSetSymbol, measureManaCostWidth, drawFrame, frameColorCode } from '../helpers';
 import { getParsedAbilities, formatTypeLine } from '../parser';
 import { SPLIT_RIGHT_LAYOUT, SPLIT_LEFT_LAYOUT } from '../layout';
 import { ASSETS_DIR } from '../assets-dir';
-import type { TemplateHooks, AnyLayout } from './render';
+import type { TemplateHooks } from './render';
+import { placeElement } from './element';
 
 /**
  * Split card renderer.
  *
- * CC coordinates use rotation=-90: the anchor (x, y) is the starting point,
- * "width" spans vertically (up from anchor), "height" spans horizontally.
- *
- * We rotate -90° around each anchor point, then draw in local space where:
- *   local x+ = card y- (upward)
- *   local y+ = card x+ (rightward)
+ * Each half's text reads sideways. In the new convention every element
+ * carries its own `angle: -90` and (x, y) is the local upper-left on the
+ * tall canvas. `placeElement` translates to the anchor and rotates, so each
+ * draw call works in a normal left-to-right local frame.
  */
 
 async function renderSplitText(
@@ -27,86 +26,60 @@ async function renderSplitText(
   cw: number, ch: number,
   clipYMin: number, clipYMax: number,
 ) {
-  // Rotation origin is decoupled from name.y so editing name doesn't shift other entries.
-  // Falls back to name.y for layouts that haven't been migrated.
-  const origin = ((L as any)._rotationOriginY ?? L.name.y) as number;
-  const originY = origin * ch;
-
   ctx.save();
-  ctx.translate(0, originY);
-  ctx.rotate(-Math.PI / 2);
-
-  // Clip in rotated local space: local x = originY - canvas_y
-  // canvas_y range [clipYMin, clipYMax] → local x range [originY - clipYMax, originY - clipYMin]
-  const localXMin = originY - clipYMax;
-  const localXMax = originY - clipYMin;
+  // Clip to this half (canvas space).
   ctx.beginPath();
-  ctx.rect(localXMin, 0, localXMax - localXMin, cw);
+  ctx.rect(0, clipYMin, cw, clipYMax - clipYMin);
   ctx.clip();
 
-  // In rotated space:
-  //   local x spans "up" the card = text width direction
-  //   local y spans "right" across card = text height direction
-  // Font size scales with ch (the dimension text flows along).
+  const manaW = card.manaCost ? measureManaCostWidth(card.manaCost, ch, L.mana.size) : 0;
 
-  // In rotated local space:
-  //   local x+ = card y- (text flows "up" the card, scaled by ch)
-  //   local y+ = card x+ (perpendicular, scaled by cw)
-  //
-  // drawManaCost(ctx, mana, cwArg, chArg, layout) computes:
-  //   rightX = layout.w * cwArg    (right edge of mana area)
-  //   textY  = layout.y * chArg    (vertical position)
-  //   size   = layout.size * chArg (symbol pixel size)
-  //
-  // We need rightX along local-x (scaled by ch), textY along local-y (scaled by cw),
-  // and symbol size proportional to the name bar height (scaled by cw).
-
-  // Mana cost — far right of the name line
-  const manaW = card.manaCost ? measureManaCostWidth(card.manaCost, cw, L.mana.size) : 0;
+  // Mana cost — anchored at its (x, y); drawn right-aligned at the local origin.
   if (card.manaCost) {
-    await drawManaCost(ctx, card.manaCost, ch, cw, {
-      y: L.mana.y,
-      w: L.mana.w,
-      size: L.mana.size,
-      shadowX: L.mana.shadowX,
-      shadowY: L.mana.shadowY,
+    await placeElement(ctx, L.mana, cw, ch, () => {
+      // Use drawManaCost in normal cw/ch order; right-edge anchor at local (0, 0).
+      return drawManaCost(ctx, card.manaCost!, cw, ch, {
+        y: 0, w: 0,
+        size: L.mana.size, shadowX: L.mana.shadowX, shadowY: L.mana.shadowY,
+      });
     });
   }
 
-  // Name — left-aligned, shrunk to avoid mana cost overlap
-  const nameW = L.mana.w * ch - manaW;
-  const nameLocalX = (L.name.y - origin) * ch;
-  drawSingleLineText(ctx, card.name ?? '', nameLocalX, L.name.x * cw, nameW, L.name.h * cw, L.name.font, L.name.size * ch, 'left', 'black');
+  // Name — left-aligned in its local box, shrunk to avoid mana cost overlap.
+  placeElement(ctx, L.name, cw, ch, ({ wDim, hDim }) => {
+    const localBoxW = L.name.w * wDim - manaW;
+    drawSingleLineText(ctx, card.name ?? '', 0, 0, localBoxW, L.name.h * hDim,
+      L.name.font, L.name.size * ch, 'left', 'black');
+  });
 
-  // Type line
-  const typeLocalX = (L.type.y - origin) * ch;
-  drawSingleLineText(ctx, formatTypeLine(card.typeLine), typeLocalX, L.type.x * cw, L.type.w * ch, L.type.h * cw, L.type.font, L.type.size * ch, 'left', 'black');
+  // Type line.
+  placeElement(ctx, L.type, cw, ch, ({ wDim, hDim }) => {
+    drawSingleLineText(ctx, formatTypeLine(card.typeLine), 0, 0,
+      L.type.w * wDim, L.type.h * hDim,
+      L.type.font, L.type.size * ch, 'left', 'black');
+  });
 
-  // Set symbol (in rotated space: swap ch/cw)
-  await drawSetSymbol(ctx, card.rarity || 'common', L.setSymbol, cw, ch);
+  // Set symbol — anchored at right-edge / vertical-center.
+  // drawSetSymbol's signature is (ctx, rarity, layout, ch, cw); pass ch then cw.
+  await placeElement(ctx, L.setSymbol, cw, ch, () => {
+    return drawSetSymbol(ctx, card.rarity || 'common',
+      { x: 0, y: 0, w: 0, h: L.setSymbol.h }, ch, cw);
+  });
 
-  // Rules text
+  // Rules text.
   const pa = getParsedAbilities(card);
   const rulesText = pa.unstructuredAbilities?.join('\n');
-  const rulesY = (L.rules.y - origin) * ch;
-  const rulesX = L.rules.x * cw;
-  const rulesW = L.rules.w * ch;
-  const rulesH = L.rules.h * cw;
-
-  // Set symbol exclusion rect in rotated local space
-  const setH = L.setSymbol.h * cw;
-  const setW = setH; // approximately square
-  const setLocalX = (L.setSymbol.x - L.name.y) * ch - setW;
-  const setLocalY = L.setSymbol.y * cw - setH / 2;
-  const exclusionRects: ExclusionRect[] = [{ x: setLocalX, y: setLocalY, w: setW, h: setH }];
-
-  if (rulesText && card.flavorText) {
-    drawRulesAndFlavor(ctx, rulesText, card.flavorText, rulesY, rulesX, rulesW, rulesH, L.rules.font, L.rules.size * ch, exclusionRects);
-  } else if (rulesText) {
-    drawWrappedText(ctx, rulesText, rulesY, rulesX, rulesW, rulesH, L.rules.font, L.rules.size * ch, { exclusionRects });
-  } else if (card.flavorText) {
-    drawWrappedText(ctx, card.flavorText, rulesY, rulesX, rulesW, rulesH, L.rules.font, L.rules.size * ch, { fontFamily: 'MPlantin Italic', exclusionRects });
-  }
+  placeElement(ctx, L.rules, cw, ch, ({ wDim, hDim }) => {
+    const rw = L.rules.w * wDim;
+    const rh = L.rules.h * hDim;
+    if (rulesText && card.flavorText) {
+      drawRulesAndFlavor(ctx, rulesText, card.flavorText, 0, 0, rw, rh, L.rules.font, L.rules.size * ch, []);
+    } else if (rulesText) {
+      drawWrappedText(ctx, rulesText, 0, 0, rw, rh, L.rules.font, L.rules.size * ch);
+    } else if (card.flavorText) {
+      drawWrappedText(ctx, card.flavorText, 0, 0, rw, rh, L.rules.font, L.rules.size * ch, { fontFamily: 'MPlantin Italic' });
+    }
+  });
 
   ctx.restore();
 }
@@ -186,18 +159,14 @@ const splitBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
   // Uses drawWrappedText so the parenthetical reminder gets the standard italic styling.
   if (isFuse && (L as any).fuseText) {
     const ft = (L as any).fuseText;
-    const fuseOrigin = ((L as any)._rotationOriginY ?? 1.0) as number;
-    ctx.save();
-    ctx.translate(0, fuseOrigin * ch);
-    ctx.rotate(-Math.PI / 2);
-    const localX = (ft.y - fuseOrigin) * ch;
-    drawWrappedText(
-      ctx,
-      'Fuse (You may cast one or both halves of this card from your hand.)',
-      localX, ft.x * cw, ft.w * ch, ft.h * cw,
-      ft.font, ft.size * ch,
-    );
-    ctx.restore();
+    placeElement(ctx, ft, cw, ch, ({ wDim, hDim }) => {
+      drawWrappedText(
+        ctx,
+        'Fuse (You may cast one or both halves of this card from your hand.)',
+        0, 0, ft.w * wDim, ft.h * hDim,
+        ft.font, ft.size * ch,
+      );
+    });
   }
 };
 

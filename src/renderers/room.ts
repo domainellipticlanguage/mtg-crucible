@@ -2,11 +2,12 @@ import { createCanvas, loadImage, type SKRSContext2D } from '@napi-rs/canvas';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { NormalizedCardData } from '../types';
-import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor, type ExclusionRect } from '../text';
+import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor } from '../text';
 import { drawArt, drawManaCost, drawSetSymbol, measureManaCostWidth, drawFrame, frameColorCode } from '../helpers';
 import { getParsedAbilities, formatTypeLine } from '../parser';
 import { ASSETS_DIR } from '../assets-dir';
 import type { TemplateHooks, AnyLayout } from './render';
+import { placeElement } from './element';
 
 /**
  * Room renderer — Duskmourn-style split enchantments. Two doors stacked in
@@ -23,68 +24,57 @@ async function renderDoorText(
   cw: number, ch: number,
   clipYMin: number, clipYMax: number,
 ) {
-  // Rotation origin is decoupled from name.y so that editing name doesn't shift other entries.
-  // Falls back to name.y for layouts that haven't been migrated.
-  const origin = (L._rotationOriginY ?? L.name.y) as number;
-  const originY = origin * ch;
-
   ctx.save();
-  ctx.translate(0, originY);
-  ctx.rotate(-Math.PI / 2);
-
-  const localXMin = originY - clipYMax;
-  const localXMax = originY - clipYMin;
   ctx.beginPath();
-  ctx.rect(localXMin, 0, localXMax - localXMin, cw);
+  ctx.rect(0, clipYMin, cw, clipYMax - clipYMin);
   ctx.clip();
 
-  const manaW = card.manaCost ? measureManaCostWidth(card.manaCost, cw, L.mana.size) : 0;
+  const manaW = card.manaCost ? measureManaCostWidth(card.manaCost, ch, L.mana.size) : 0;
+
   if (card.manaCost) {
-    await drawManaCost(ctx, card.manaCost, ch, cw, {
-      y: L.mana.y,
-      w: L.mana.w,
-      size: L.mana.size,
-      shadowX: L.mana.shadowX,
-      shadowY: L.mana.shadowY,
+    await placeElement(ctx, L.mana, cw, ch, () => {
+      return drawManaCost(ctx, card.manaCost!, cw, ch, {
+        y: 0, w: 0,
+        size: L.mana.size, shadowX: L.mana.shadowX, shadowY: L.mana.shadowY,
+      });
     });
   }
 
-  const nameW = L.mana.w * ch - manaW;
-  const nameLocalX = (L.name.y - origin) * ch;
-  drawSingleLineText(ctx, card.name ?? '', nameLocalX, L.name.x * cw, nameW, L.name.h * cw, L.name.font, L.name.size * ch, 'left', 'black');
+  placeElement(ctx, L.name, cw, ch, ({ wDim, hDim }) => {
+    const localBoxW = L.name.w * wDim - manaW;
+    drawSingleLineText(ctx, card.name ?? '', 0, 0, localBoxW, L.name.h * hDim,
+      L.name.font, L.name.size * ch, 'left', 'black');
+  });
 
   if (L.type) {
-    const typeLocalX = (L.type.y - origin) * ch;
-    drawSingleLineText(ctx, formatTypeLine(card.typeLine), typeLocalX, L.type.x * cw, L.type.w * ch, L.type.h * cw, L.type.font, L.type.size * ch, 'left', L.type.color ?? 'black');
+    placeElement(ctx, L.type, cw, ch, ({ wDim, hDim }) => {
+      drawSingleLineText(ctx, formatTypeLine(card.typeLine), 0, 0,
+        L.type.w * wDim, L.type.h * hDim,
+        L.type.font, L.type.size * ch, 'left', L.type.color ?? 'black');
+    });
   }
 
   if (L.setSymbol) {
-    await drawSetSymbol(ctx, card.rarity || 'common', L.setSymbol, cw, ch);
+    // drawSetSymbol's signature is (ctx, rarity, layout, ch, cw); pass ch then cw.
+    await placeElement(ctx, L.setSymbol, cw, ch, () => {
+      return drawSetSymbol(ctx, card.rarity || 'common',
+        { x: 0, y: 0, w: 0, h: L.setSymbol.h }, ch, cw);
+    });
   }
 
   const pa = getParsedAbilities(card);
   const rulesText = pa.unstructuredAbilities?.join('\n');
-  const rulesY = (L.rules.y - origin) * ch;
-  const rulesX = L.rules.x * cw;
-  const rulesW = L.rules.w * ch;
-  const rulesH = L.rules.h * cw;
-
-  const exclusionRects: ExclusionRect[] = [];
-  if (L.setSymbol) {
-    const setH = L.setSymbol.h * cw;
-    const setW = setH;
-    const setLocalX = (L.setSymbol.x - origin) * ch - setW;
-    const setLocalY = L.setSymbol.y * cw - setH / 2;
-    exclusionRects.push({ x: setLocalX, y: setLocalY, w: setW, h: setH });
-  }
-
-  if (rulesText && card.flavorText) {
-    drawRulesAndFlavor(ctx, rulesText, card.flavorText, rulesY, rulesX, rulesW, rulesH, L.rules.font, L.rules.size * ch, exclusionRects);
-  } else if (rulesText) {
-    drawWrappedText(ctx, rulesText, rulesY, rulesX, rulesW, rulesH, L.rules.font, L.rules.size * ch, { exclusionRects });
-  } else if (card.flavorText) {
-    drawWrappedText(ctx, card.flavorText, rulesY, rulesX, rulesW, rulesH, L.rules.font, L.rules.size * ch, { fontFamily: 'MPlantin Italic', exclusionRects });
-  }
+  placeElement(ctx, L.rules, cw, ch, ({ wDim, hDim }) => {
+    const rw = L.rules.w * wDim;
+    const rh = L.rules.h * hDim;
+    if (rulesText && card.flavorText) {
+      drawRulesAndFlavor(ctx, rulesText, card.flavorText, 0, 0, rw, rh, L.rules.font, L.rules.size * ch, []);
+    } else if (rulesText) {
+      drawWrappedText(ctx, rulesText, 0, 0, rw, rh, L.rules.font, L.rules.size * ch);
+    } else if (card.flavorText) {
+      drawWrappedText(ctx, card.flavorText, 0, 0, rw, rh, L.rules.font, L.rules.size * ch, { fontFamily: 'MPlantin Italic' });
+    }
+  });
 
   ctx.restore();
 }

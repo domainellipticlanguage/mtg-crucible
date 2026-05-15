@@ -57,7 +57,8 @@
     "w": 0.8292,
     "h": 0.0543,
     "size": 0.0381,
-    "font": "Beleren Bold"
+    "font": "Beleren Bold",
+    "angle": 180
   },
   "type2": {
     "x": 0.9147,
@@ -65,7 +66,8 @@
     "w": 0.8292,
     "h": 0.0543,
     "size": 0.0324,
-    "font": "Beleren Bold"
+    "font": "Beleren Bold",
+    "angle": 180
   },
   "type2PtInset": 0.11333333333333333,
   "rules2": {
@@ -74,7 +76,8 @@
     "w": 0.828,
     "h": 0.12,
     "size": 0.0305,
-    "font": "MPlantin"
+    "font": "MPlantin",
+    "angle": 180
   },
   "pt2": {
     "x": 0.1734,
@@ -82,7 +85,8 @@
     "w": 0.0967,
     "h": 0.0372,
     "size": 0.0324,
-    "font": "Beleren Bold SmCaps"
+    "font": "Beleren Bold SmCaps",
+    "angle": 180
   },
   "flipPtBounds": {
     "x": 0.0374,

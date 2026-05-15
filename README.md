@@ -255,6 +255,7 @@ npm run dev       # start local dev server with hot reload
 - [ ] Add hybrid colorless
 - [ ] Fix spacing on Omen name line (too much room between name and mana cost)
 - [ ] Use a mask for multi-colored rooms
+- [ ] Standardize layout convention (x,y,angle)
 
 ## Security
 
