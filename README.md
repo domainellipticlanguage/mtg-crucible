@@ -238,6 +238,7 @@ npm run dev       # start local dev server with hot reload
 - [ ] Support custom set symbol image via `setSymbolUrl`
 - [ ] Optimize asset size
 - [ ] Refactor colorless as a frame effect
+- [ ] Refactor planeswalker as a frame effect
 - [ ] Refactor exclusion zone architecture
 - [ ] Fix exclusion zone on P/T box
 - [ ] Fix border radius on component
@@ -252,11 +253,92 @@ npm run dev       # start local dev server with hot reload
 - [ ] Rename artUrl to just art
 - [ ] Improve masking for split cards (mask area invalid).
 - [X] Elongate hyphen for keyword abilities (`Equip - {2}`) and modals (`Choose one -`).
-- [ ] Add hybrid colorless
-- [ ] Fix spacing on Omen name line (too much room between name and mana cost)
+- [X] Add hybrid colorless
 - [ ] Use a mask for multi-colored rooms
-- [ ] Standardize layout convention (x,y,angle)
+- [X] Standardize layout convention (x,y,angle)
 
+### Rendering bugs
+- [ ] Fix spacing on Omen name line (too much room between name and mana cost)
+- [ ] Not rendering flavortext on flip secondary
+- [ ] color indicator on flip renders on wrong side
+- [ ] Fix tab alignment for modal (cryptic command)
+- [ ] Art Description: multi-line like Flavor Text:
+
+Missing color indictor, also bug with flip cards where if no P/T, the set symbol still respects the P/T exclusion zone
+```
+Cinderforge Goblet {2}{R}
+Artifact
+Whenever you cast an instant or sorcery spell, Cinderforge Goblet deals 1 damage to any target.
+If a player would be dealt damage by Cinderforge Goblet, instead flip it.
+Rarity: Uncommon
+Flavor Text: The molten brew never stays still.
+Art Description: A fiery goblet erupting with flames
+Artist: prunaai/p-image
+Designer: thismagiccarddoesnotexist.com
+----
+Cinderforge Dragon
+Color Indicator: Red
+Creature — Dragon
+Flying
+Whenever Cinderforge Dragon deals combat damage to a player, that player discards a card.
+4/4
+Rarity: Uncommon
+Flavor Text: Its roar reshapes the battlefield.
+Art Description: A massive red dragon coiled around a forge
+Artist: prunaai/p-image
+Designer: thismagiccarddoesnotexist.com
+```
+
+
+
+
+Messed up reminder hint on primary face:
+```
+Kami's Blade {3}{W}{U}
+Creature — Spirit Soldier
+First strike
+Whenever Kami's Blade attacks, you may exile target instant or sorcery card from your graveyard. If you do, Kami's Blade gets +1/+1 until end of turn.
+2/3
+Rarity: Rare
+Flavor Text: The blade sings with the voices of ancestors, guiding each strike toward destiny.
+Art Description: An ethereal samurai in shimmering armor wields a glowing katana; cherry blossoms drift around him under a moonlit sky.
+Artist: prunaai/p-image
+Designer: thismagiccarddoesnotexist.com
+----
+Kami's Edge
+Color Indicator: White and Blue
+Artifact — Equipment
+Equipped creature gets +2/+2 and has vigilance.
+Whenever equipped creature deals combat damage to a player, you may sacrifice Kami's Edge. If you do, create a 2/2 white Spirit creature token.
+Rarity: Rare
+Art Description: The same katana, now a radiant relic hung on a shrine wall, its edge shimmering with lingering spiritual energy.
+Artist: prunaai/p-image
+Designer: thismagiccarddoesnotexist.com
+```
+
+Weirdly small type line on primary card:
+```
+Mirage Trickster {2}{U}
+Creature — Illusion
+Whenever Mirage Trickster deals combat damage to a player, flip Mirage Trickster.
+2/2
+Rarity: Uncommon
+Flavor Text: Its form shimmers, never quite where you think.
+Art Description: ...
+Artist: prunaai/p-image
+Designer: thismagiccarddoesnotexist.com
+----
+Illusory Apex
+Color Indicator: Blue
+Creature — Illusion
+Flying
+Whenever Illusory Apex deals combat damage to a player, you may return target nonland permanent to its owner's hand.
+4/4
+Rarity: Uncommon
+Flavor Text: Reality bends to its will, leaving only wonder behind.
+Artist: prunaai/p-image
+Designer: thismagiccarddoesnotexist.com
+```
 ## Security
 
 When rendering card data from untrusted users (e.g. on a public web server), leave `allowUnsafeArtUrls` off (the default). This blocks art URLs that point to:
