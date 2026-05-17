@@ -109,7 +109,11 @@ function isDebug(): boolean {
 export async function renderCardImage(card: NormalizedCardData, templateOverride?: string, quality: RenderQuality = 'high', format: RenderFormat = 'png', allowUnsafeArtUrls = false): Promise<Buffer> {
   const templateKey = templateOverride ?? card.cardTemplate;
   const config = TEMPLATES[templateKey] ?? TEMPLATES.standard;
-  const { layout: L, w: cw, h: ch, frame, hooks, crownDir, ptDir } = config;
+  // Shallow-clone the layout so hooks (notably preFrame) can mutate top-level
+  // entries per-card without leaking back to the cached module-level JSON.
+  // Hooks that need to swap a sub-object should assign a new one (`L.x = {...L.x, ...}`).
+  const { layout: cachedLayout, w: cw, h: ch, frame, hooks, crownDir, ptDir } = config;
+  const L = { ...cachedLayout };
 
   // Convert FrameColor names to single-letter codes once at the top of the pipeline
   const frameCodes = card.frameColor.map(c => frameColorCode(c));

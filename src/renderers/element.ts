@@ -1,6 +1,7 @@
 import type { SKRSContext2D } from '@napi-rs/canvas';
+import type { Color } from '../types';
 import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor, type ExclusionRect } from '../text';
-import { drawManaCost, drawSetSymbol } from '../helpers';
+import { drawManaCost, drawSetSymbol, drawColorIndicator } from '../helpers';
 
 /**
  * Layout-element convention.
@@ -110,6 +111,29 @@ export function drawSingleLineAt(
     drawSingleLineText(ctx, text, 0, 0, w, el.h * hDim,
       el.font, el.size * ch,
       opts.align ?? 'left', opts.color ?? 'black');
+  });
+}
+
+/** Type line inside an element box, with optional color-indicator dot rendered
+ *  to the left and the type text shifted right to clear it. */
+export function drawTypeLineAt(
+  ctx: SKRSContext2D,
+  el: RectElement,
+  cw: number,
+  ch: number,
+  text: string,
+  opts: {
+    colorIndicator?: Color[];
+    color?: string;
+    shrinkBy?: number;
+  } = {},
+): void {
+  placeElement(ctx, el, cw, ch, ({ wDim, hDim }) => {
+    const hPx = el.h * hDim;
+    const indicatorOffset = drawColorIndicator(ctx, opts.colorIndicator, 0, 0, hPx);
+    const w = el.w * wDim - indicatorOffset - (opts.shrinkBy ?? 0);
+    drawSingleLineText(ctx, text, indicatorOffset, 0, w, hPx,
+      el.font, el.size * ch, 'left', opts.color ?? 'black');
   });
 }
 

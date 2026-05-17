@@ -736,13 +736,14 @@ function parseSingleFace(text: string): CardData {
   {
     const filtered: string[] = [];
     const flavorParts: string[] = [];
+    const artDescParts: string[] = [];
     for (const line of body) {
       const flavorMatch = line.match(FLAVOR_TEXT_REGEX);
       if (flavorMatch) { flavorParts.push(flavorMatch[1].trim()); continue; }
       const artMatch = line.match(ART_REGEX);
       if (artMatch) { artUrl = artMatch[1]; continue; }
       const artDescMatch = line.match(ART_DESCRIPTION_REGEX);
-      if (artDescMatch) { artDescription = artDescMatch[1].trim(); continue; }
+      if (artDescMatch) { artDescParts.push(artDescMatch[1].trim()); continue; }
       const rarityMatch = line.match(RARITY_REGEX);
       if (rarityMatch) {
         const raw = rarityMatch[1].toLowerCase();
@@ -806,6 +807,9 @@ function parseSingleFace(text: string): CardData {
     }
     if (flavorParts.length > 0) {
       flavorText = flavorParts.join('\n');
+    }
+    if (artDescParts.length > 0) {
+      artDescription = artDescParts.join('\n');
     }
     body = filtered;
   }
@@ -910,7 +914,11 @@ export function formatCard(card: CardData): string {
 
   // Metadata lines
   if (typeof card.artUrl === 'string' && card.artUrl) lines.push(`Art URL: ${card.artUrl}`);
-  if (card.artDescription) lines.push(`Art Description: ${card.artDescription}`);
+  if (card.artDescription) {
+    for (const ad of card.artDescription.split('\n')) {
+      lines.push(`Art Description: ${ad}`);
+    }
+  }
   if (card.artist) lines.push(`Artist: ${card.artist}`);
   if (card.setCode) lines.push(`Set: ${card.setCode}`);
   if (card.collectorNumber) lines.push(`Collector Number: ${card.collectorNumber}`);

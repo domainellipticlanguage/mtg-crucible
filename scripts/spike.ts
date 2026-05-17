@@ -671,6 +671,45 @@ async function main() {
     },
   });
 
+  // 45c. Flip card — primary face has NO P/T (artifact), secondary HAS P/T.
+  // Tests that flipPreFrame shifts the set symbol to the right edge of the
+  // type bar when there's no primary P/T to share the bar with.
+  await render('cinderforge-goblet', {
+    name: 'Cinderforge Goblet', manaCost: '{2}{R}',
+    typeLine: { supertypes: [], types: ['artifact'], subtypes: [] },
+    frameColor: 'artifact',
+    rarity: 'uncommon',
+    abilities: 'Whenever you cast an instant or sorcery spell, Cinderforge Goblet deals 1 damage to any target.\nIf a player would be dealt damage by Cinderforge Goblet, instead flip it.',
+    flavorText: 'The molten brew never stays still.',
+    linkType: 'flip',
+    linkedCard: {
+      name: 'Cinderforge Dragon',
+      typeLine: { supertypes: [], types: ['creature'], subtypes: ['Dragon'] },
+      frameColor: 'red',
+      colorIndicator: ['red'],
+      abilities: 'Flying\nWhenever Cinderforge Dragon deals combat damage to a player, that player discards a card.',
+      flavorText: 'Its roar reshapes the battlefield.',
+      power: '4', toughness: '4',
+    },
+  });
+
+  // 45d. Flip card — both faces have NO P/T. Set symbol shift still applies on
+  // primary; secondary's reading of position should be unaffected.
+  await render('artifact-flip-no-pt', {
+    name: 'Sealed Chalice', manaCost: '{2}',
+    typeLine: { supertypes: [], types: ['artifact'], subtypes: [] },
+    frameColor: 'artifact',
+    rarity: 'rare',
+    abilities: '{T}: Add one mana of any color.\nWhen Sealed Chalice is unsealed, flip it.',
+    linkType: 'flip',
+    linkedCard: {
+      name: 'Sealed Chalice, Cracked',
+      typeLine: { supertypes: [], types: ['artifact'], subtypes: [] },
+      frameColor: 'artifact',
+      abilities: 'Spells you cast cost {1} less to cast.',
+    },
+  });
+
   // 46. Mutate card — Gemrazer
   await render('gemrazer', {
     name: 'Gemrazer', manaCost: '{3}{G}',

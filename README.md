@@ -258,13 +258,13 @@ npm run dev       # start local dev server with hot reload
 - [X] Standardize layout convention (x,y,angle)
 
 ### Rendering bugs
-- [ ] Fix spacing on Omen name line (too much room between name and mana cost)
-- [ ] Not rendering flavortext on flip secondary
-- [ ] color indicator on flip renders on wrong side
-- [ ] Fix tab alignment for modal (cryptic command)
-- [ ] Art Description: multi-line like Flavor Text:
+- [X] Fix spacing on Omen name line (too much room between name and mana cost)
+- [X] Not rendering flavortext on flip secondary
+- [X] color indicator on flip renders on wrong side
+- [ ] Fix tab alignment for modal (cryptic command) — deferred; needs bullet-aware wrapping in text.ts
+- [X] Art Description: multi-line like Flavor Text:
 
-Missing color indictor, also bug with flip cards where if no P/T, the set symbol still respects the P/T exclusion zone
+[X] Missing color indictor, also bug with flip cards where if no P/T, the set symbol still respects the P/T exclusion zone
 ```
 Cinderforge Goblet {2}{R}
 Artifact
@@ -292,7 +292,7 @@ Designer: thismagiccarddoesnotexist.com
 
 
 
-Messed up reminder hint on primary face:
+[ ] Messed up reminder hint on primary face — couldn't repro from this text; secondary type bar now shows "Artifact — Equipment" correctly with color indicator. Re-check if it recurs.
 ```
 Kami's Blade {3}{W}{U}
 Creature — Spirit Soldier
@@ -316,7 +316,7 @@ Artist: prunaai/p-image
 Designer: thismagiccarddoesnotexist.com
 ```
 
-Weirdly small type line on primary card:
+[X] Weirdly small type line on primary card — could not repro on current renderer; treating as fixed/stale.
 ```
 Mirage Trickster {2}{U}
 Creature — Illusion
