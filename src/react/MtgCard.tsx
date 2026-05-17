@@ -80,11 +80,26 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle, h
   // Back face is visible when Y rotation puts it face-forward
   const showingFront = !card.backFaceImageUrl || (Math.round(currentRotation.y / 180) % 2 === 0);
 
-  const handleClick = useCallback(() => {
+  const rotate = useCallback(() => {
     if (!hasMultipleStates) return;
     setRotationIndex(i => (i + 1) % rotations.length);
     setWidgetSpin(s => s + 1);
   }, [hasMultipleStates, rotations.length]);
+
+  // Card viewport: rotate but let the click bubble — so a parent <Link> can
+  // still treat a card click as navigation.
+  const handleViewportClick = useCallback(() => {
+    rotate();
+  }, [rotate]);
+
+  // Rotate widget: rotate + consume the click, so it never falls through to a
+  // parent <Link>. The widget exists specifically for in-place rotation.
+  const handleWidgetClick = useCallback((e: React.MouseEvent) => {
+    if (!hasMultipleStates) return;
+    e.preventDefault();
+    e.stopPropagation();
+    rotate();
+  }, [hasMultipleStates, rotate]);
 
   // Close context menu on click outside or escape
   useEffect(() => {
@@ -233,7 +248,7 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle, h
           height: '100%',
           aspectRatio,
         }}
-        onClick={handleClick}
+        onClick={handleViewportClick}
         onContextMenu={handleContextMenu}
       >
         <div
@@ -282,7 +297,7 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle, h
             zIndex: 2,
             ...rotateWidgetStyle,
           }}
-          onClick={handleClick}
+          onClick={handleWidgetClick}
         >
           <RotateWidget spinKey={widgetSpin} style={{ width: '100%', height: '100%' }} />
         </div>
