@@ -1,12 +1,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { loadImage } from '@napi-rs/canvas';
-import { drawSingleLineText, drawWrappedText } from '../text';
 import { frameColorCode } from '../helpers';
 import { formatTypeLine, getParsedAbilities } from '../parser';
 import { ASSETS_DIR } from '../assets-dir';
 import type { TemplateHooks } from './render';
-import { placeElement } from './element';
+import { drawSingleLineAt, drawWrappedAt } from './element';
 
 /**
  * Flip card renderer (Kamigawa-style).
@@ -44,40 +43,23 @@ const flipBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
     }
   }
 
-  const n2 = L.name2;
-  if (n2) {
-    placeElement(ctx, n2, cw, ch, ({ wDim, hDim }) => {
-      drawSingleLineText(ctx, other.name ?? '', 0, 0, n2.w * wDim, n2.h * hDim, n2.font, n2.size * ch, 'left', 'black');
-    });
+  if (L.name2) drawSingleLineAt(ctx, L.name2, cw, ch, other.name ?? '');
+
+  if (L.type2) {
+    // Pre-shrink the type box when there's a P/T to avoid overlap.
+    const t2 = hasPt2 && L.type2PtInset
+      ? { ...L.type2, w: L.type2.w - L.type2PtInset }
+      : L.type2;
+    drawSingleLineAt(ctx, t2, cw, ch, formatTypeLine(other.typeLine));
   }
 
-  const t2 = L.type2;
-  if (t2) {
-    placeElement(ctx, t2, cw, ch, ({ wDim, hDim }) => {
-      const ptInset = hasPt2 ? (L.type2PtInset ?? 0) : 0;
-      const typeW = (t2.w - ptInset) * wDim;
-      drawSingleLineText(ctx, formatTypeLine(other.typeLine), 0, 0, typeW, t2.h * hDim, t2.font, t2.size * ch, 'left', 'black');
-    });
+  if (L.rules2) {
+    const rulesText = getParsedAbilities(other).unstructuredAbilities?.join('\n');
+    if (rulesText) drawWrappedAt(ctx, L.rules2, cw, ch, rulesText);
   }
 
-  const r2 = L.rules2;
-  if (r2) {
-    const pa = getParsedAbilities(other);
-    const rulesText = pa.unstructuredAbilities?.join('\n');
-    if (rulesText) {
-      placeElement(ctx, r2, cw, ch, ({ wDim, hDim }) => {
-        drawWrappedText(ctx, rulesText, 0, 0, r2.w * wDim, r2.h * hDim, r2.font, r2.size * ch);
-      });
-    }
-  }
-
-  if (hasPt2) {
-    const pt2 = L.pt2;
-    if (pt2) {
-      placeElement(ctx, pt2, cw, ch, ({ wDim, hDim }) => {
-        drawSingleLineText(ctx, `${other.power}/${other.toughness}`, 0, 0, pt2.w * wDim, pt2.h * hDim, pt2.font, pt2.size * ch, 'center', 'black');
-      });
-    }
+  if (hasPt2 && L.pt2) {
+    drawSingleLineAt(ctx, L.pt2, cw, ch, `${other.power}/${other.toughness}`, { align: 'center' });
   }
 };
 
