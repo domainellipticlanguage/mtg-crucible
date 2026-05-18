@@ -227,8 +227,10 @@ Rarity: Uncommon
 Flavor Text: Sunlight dapples the floor in emerald shards.
 `.trim() },
 
-  // 13. Transform front — hint line should use back type line, not the front's full ability text.
-  { name: '13-transform-front-hint-line', card: `
+  // 13. MDFC front — bottom hint shows the back's full ability text when the
+  //     back has no mana cost (e.g. color-indicator only). Should show nothing
+  //     (or the type) on the right side, not a sentence.
+  { name: '13-mdfc-hint-shows-ability', card: `
 Duskfang {2}{B}
 Creature — Vampire
 Whenever you cast a white spell, Duskfang transforms into Dawnfang.
@@ -236,7 +238,7 @@ Whenever Duskfang deals combat damage to a player, you may discard a card. If yo
 2/2
 Rarity: Uncommon
 Flavor Text: He prowls the twilight, waiting for the first light.
-----
+--modal_dfc--
 Dawnfang
 Color Indicator: White
 Creature — Vampire

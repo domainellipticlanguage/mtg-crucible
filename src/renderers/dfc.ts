@@ -26,14 +26,15 @@ export const transformBackHooks: TemplateHooks = {};
 // Shows the other face's type line and mana cost or ability hint at the bottom.
 
 function getFlipsideHint(card: NormalizedCardData): string {
-  // For lands (no mana cost), show the tap/mana ability as a compact hint
+  // For lands (no mana cost), show the tap/mana ability as a compact hint.
+  // Anything else with no mana cost (e.g. color-indicator back face) shows
+  // nothing on the right — its type already appears on the left.
   if (!card.manaCost) {
     const pa = getParsedAbilities(card);
     const abilities = pa.unstructuredAbilities;
     if (abilities && abilities.length > 0) {
-      // Prefer the shortest mana-producing ability (e.g. "{T}: Add {W}.")
       const tapAbility = abilities.find(a => a.includes('{T}'));
-      return tapAbility ?? abilities[abilities.length - 1];
+      if (tapAbility) return tapAbility;
     }
   }
   return '';
