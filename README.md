@@ -263,6 +263,96 @@ npm run dev       # start local dev server with hot reload
 - [X] color indicator on flip renders on wrong side
 - [ ] Fix tab alignment for modal (cryptic command) — deferred; needs bullet-aware wrapping in text.ts
 - [X] Art Description: multi-line like Flavor Text:
+- [ ] UG color indicator doesn't look right (colors too close. Green too dark. Blue too light)
+- [ ] Major bug where adventure failed to be inferred and linkType was inferred as mdfc
+```
+Arcane Librarian {2}{U}
+Creature — Human Wizard
+Tap: Add {U}.
+Whenever you cast an instant or sorcery spell, draw a card, then discard a card.
+2/3
+Rarity: Uncommon
+Flavor Text: She catalogues secrets the world has forgotten.
+Art URL: https://thismagiccarddoesnotexist3.s3.amazonaws.com/art/7acde24b-d91b-4a02-a4e1-734be0596c64.png
+Art Description: A young woman in flowing blue robes surrounded by floating scrolls, a glowing quill in hand.
+Artist: prunaai/p-image
+Designer: thismagiccarddoesnotexist.com
+----
+Tome of Unraveling {2}{U}
+Sorcery — Adventure
+Target player mills three cards. (Then shuffle this card into its owner's library.)
+Rarity: Uncommon
+Art URL: https://thismagiccarddoesnotexist3.s3.amazonaws.com/art/ed1b6d09-ad27-4952-8510-9daeb0dfa3a1.png
+Art Description: The same library scene, but focus on a massive ancient tome opening, pages swirling.
+Artist: prunaai/p-image
+Designer: thismagiccarddoesnotexist.com
+```
+- [ ] Flavor text does not render on Prepare spells (only the primary card, not the secondary card)
+```
+Sylvan Arcanist {1}{U}{G}
+Creature — Human Wizard
+Whenever you cast an instant or sorcery spell, Sylvan Arcanist becomes prepared. (While it's prepared, you may cast a copy of its spell. Doing so unprepares it.)
+2/2
+Rarity: Uncommon
+Flavor Text: "Knowledge blooms when the forest whispers."
+Art Description: A cloaked wizard standing in a misty glade, blue sigils floating around green vines.
+Artist: prunaai/p-image
+Designer: thismagiccarddoesnotexist.com
+----
+Arcane Surge {U}{G}
+Instant — Prepared
+Draw two cards.
+Rarity: Common
+Flavor Text: "The currents of magic surge in tandem."
+Artist: prunaai/p-image
+Designer: thismagiccarddoesnotexist.com
+```
+- [ ] Secondary room name spacing with mana cost issue
+```
+Rainforest Canopy {2}{G}{U}{U}
+Enchantment — Room
+Whenever you cast a noncreature spell, you may draw a card, then discard a card.
+Rarity: Uncommon
+Flavor Text: A sigh of green and blue drifts through the canopy.
+Art URL: https://thismagiccarddoesnotexist3.s3.amazonaws.com/art/5455b84c-1812-46d7-92b7-b0ef67d567f9.png
+Art Description: A panoramic view of 2 scenes melded together. On the left side is Lush jungle clearing with bright tropical flowers and a gentle wind stirring the leaves.. On the right side is High view of a dense rainforest canopy with shafts of light piercing through the foliage..
+Artist: prunaai/p-image
+Designer: thismagiccarddoesnotexist.com
+--room--
+Rainforest Canopy {3}{G}{U}{U}
+Enchantment — Room
+Whenever a land you control becomes tapped, you may add {G}.
+Rarity: Uncommon
+Flavor Text: Sunlight dapples the floor in emerald shards.
+Artist: prunaai/p-image
+Designer: thismagiccarddoesnotexist.com
+```
+
+- [ ] Hint line uses the entire ability text instead of using the type line
+```
+Duskfang {2}{B}
+Creature — Vampire
+Whenever you cast a white spell, Duskfang transforms into Dawnfang.
+Whenever Duskfang deals combat damage to a player, you may discard a card. If you do, draw a card.
+2/2
+Rarity: Uncommon
+Flavor Text: He prowls the twilight, waiting for the first light.
+Art Description: A shadowy vampire looming over a foggy cityscape, with a crescent moon.
+Artist: prunaai/p-image
+Designer: thismagiccarddoesnotexist.com
+----
+Dawnfang
+Color Indicator: White
+Creature — Vampire
+Whenever Dawnfang attacks, you gain 2 life.
+Whenever a white spell you control resolves, Dawnfang gets +1/+1 until end of turn.
+3/3
+Rarity: Uncommon
+Flavor Text: At sunrise, his bite becomes a blessing.
+Art Description: Change the background to a sunrise, with golden light illuminating the vampire.
+Artist: prunaai/p-image
+Designer: thismagiccarddoesnotexist.com
+```
 
 [X] Missing color indictor, also bug with flip cards where if no P/T, the set symbol still respects the P/T exclusion zone
 ```

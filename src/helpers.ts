@@ -330,10 +330,10 @@ export async function drawGradientCrowns(
 
 const COLOR_HEX: Record<Color, string> = {
   white: '#ccced0',
-  blue: '#005f9a',
+  blue: '#073a6e',
   black: '#1a1918',
   red: '#c12d1f',
-  green: '#006336',
+  green: '#0e8a3f',
 };
 
 /**

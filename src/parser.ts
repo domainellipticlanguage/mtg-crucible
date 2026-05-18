@@ -1263,6 +1263,9 @@ export function inferLinkType(card: CardData, frontTypeLine: ParsedTypeLine, bac
   const hasRoom = (tl: ParsedTypeLine) => tl.subtypes.some(s => s.toLowerCase() === 'room');
   if (hasRoom(frontTypeLine) && hasRoom(backTypeLine)) return 'room';
 
+  // Adventure: front is a creature, back has "Adventure" subtype.
+  if (backTypeLine.subtypes.some(s => s.toLowerCase() === 'adventure')) return 'adventure';
+
   if (bothHaveManaCost) {
     const fullText = frontText + '\n' + backText;
     if (/\bFuse\b/.test(fullText)) return 'fuse';
@@ -1278,7 +1281,7 @@ export function inferLinkType(card: CardData, frontTypeLine: ParsedTypeLine, bac
   if (frontTypeLine.types.includes('battle') || card.battleDefense) return 'transform';
   if (/\bflip\b/i.test(frontText)) return 'flip';
   const fullText = frontText + '\n' + backText;
-  if (/\btransform\b/i.test(fullText)) return 'transform';
+  if (/\btransforms?\b/i.test(fullText)) return 'transform';
   return 'modal_dfc';
 }
 

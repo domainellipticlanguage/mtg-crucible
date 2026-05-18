@@ -168,6 +168,84 @@ Flavor Text: "The sparkmage shrieked."
       power: '4', toughness: '4',
     },
   }},
+
+  // 9. UG color indicator — green looks too dark and blue too light; wedges look too similar.
+  { name: '09-ug-color-indicator', card: {
+    name: 'Simic Aether Mage', manaCost: '{1}{G}{U}',
+    typeLine: { supertypes: [], types: ['creature'], subtypes: ['Human', 'Wizard'] },
+    frameColor: ['green', 'blue'], rarity: 'rare',
+    colorIndicator: ['green', 'blue'],
+    abilities: 'Flash\nWhenever Simic Aether Mage enters, scry 2.',
+    flavorText: 'Currents of mana flow through her like rivers through the canopy.',
+    power: '2', toughness: '3',
+  }},
+
+  // 10. Adventure mis-inferred as MDFC. Parser-level bug — verbatim input.
+  { name: '10-adventure-mis-inferred', card: `
+Arcane Librarian {2}{U}
+Creature — Human Wizard
+{T}: Add {U}.
+Whenever you cast an instant or sorcery spell, draw a card, then discard a card.
+2/3
+Rarity: Uncommon
+Flavor Text: She catalogues secrets the world has forgotten.
+----
+Tome of Unraveling {2}{U}
+Sorcery — Adventure
+Target player mills three cards. (Then exile this card.)
+Rarity: Uncommon
+`.trim() },
+
+  // 11. Prepare — secondary face flavor text not rendered.
+  { name: '11-prepare-secondary-flavor', card: `
+Sylvan Arcanist {1}{U}{G}
+Creature — Human Wizard
+Whenever you cast an instant or sorcery spell, Sylvan Arcanist becomes prepared. (While it's prepared, you may cast a copy of its spell. Doing so unprepares it.)
+2/2
+Rarity: Uncommon
+Flavor Text: "Knowledge blooms when the forest whispers."
+----
+Arcane Surge {U}{G}
+Instant — Prepared
+Draw two cards.
+Rarity: Common
+Flavor Text: "The currents of magic surge in tandem."
+`.trim() },
+
+  // 12. Room — secondary door name/mana-cost spacing.
+  { name: '12-room-secondary-name-spacing', card: `
+Rainforest Canopy {2}{G}{U}{U}
+Enchantment — Room
+Whenever you cast a noncreature spell, you may draw a card, then discard a card.
+Rarity: Uncommon
+Flavor Text: A sigh of green and blue drifts through the canopy.
+--room--
+Rainforest Canopy {3}{G}{U}{U}
+Enchantment — Room
+Whenever a land you control becomes tapped, you may add {G}.
+Rarity: Uncommon
+Flavor Text: Sunlight dapples the floor in emerald shards.
+`.trim() },
+
+  // 13. Transform front — hint line should use back type line, not the front's full ability text.
+  { name: '13-transform-front-hint-line', card: `
+Duskfang {2}{B}
+Creature — Vampire
+Whenever you cast a white spell, Duskfang transforms into Dawnfang.
+Whenever Duskfang deals combat damage to a player, you may discard a card. If you do, draw a card.
+2/2
+Rarity: Uncommon
+Flavor Text: He prowls the twilight, waiting for the first light.
+----
+Dawnfang
+Color Indicator: White
+Creature — Vampire
+Whenever Dawnfang attacks, you gain 2 life.
+Whenever a white spell you control resolves, Dawnfang gets +1/+1 until end of turn.
+3/3
+Rarity: Uncommon
+Flavor Text: At sunrise, his bite becomes a blessing.
+`.trim() },
 ];
 
 async function main() {

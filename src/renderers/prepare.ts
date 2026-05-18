@@ -2,7 +2,7 @@ import { createCanvas, loadImage, type SKRSContext2D } from '@napi-rs/canvas';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { NormalizedCardData } from '../types';
-import { drawSingleLineText, drawWrappedText } from '../text';
+import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor } from '../text';
 import { drawManaCost, measureManaCostWidth, frameColorCode, drawGradientFrames } from '../helpers';
 import { formatTypeLine } from '../parser';
 import { ASSETS_DIR } from '../assets-dir';
@@ -58,13 +58,17 @@ async function body(ctx: SKRSContext2D, card: NormalizedCardData, L: Record<stri
     prepRulesText = prep.abilities.unstructuredAbilities?.join('\n');
   }
 
-  if (prepRulesText) {
-    const rx = L.prepRules.x * cw;
-    const ry = L.prepRules.y * ch;
-    const rw = L.prepRules.w * cw;
-    const rh = L.prepRules.h * ch;
-    const rs = L.prepRules.size * ch;
+  const rx = L.prepRules.x * cw;
+  const ry = L.prepRules.y * ch;
+  const rw = L.prepRules.w * cw;
+  const rh = L.prepRules.h * ch;
+  const rs = L.prepRules.size * ch;
+  if (prepRulesText && prep.flavorText) {
+    drawRulesAndFlavor(ctx, prepRulesText, prep.flavorText, rx, ry, rw, rh, L.prepRules.font, rs);
+  } else if (prepRulesText) {
     drawWrappedText(ctx, prepRulesText, rx, ry, rw, rh, L.prepRules.font, rs);
+  } else if (prep.flavorText) {
+    drawWrappedText(ctx, prep.flavorText, rx, ry, rw, rh, L.prepRules.font, rs, { fontFamily: 'MPlantin Italic' });
   }
 }
 
