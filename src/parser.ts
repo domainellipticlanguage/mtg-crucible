@@ -1266,14 +1266,17 @@ export function inferLinkType(card: CardData, frontTypeLine: ParsedTypeLine, bac
   // Adventure: front is a creature, back has "Adventure" subtype.
   if (backTypeLine.subtypes.some(s => s.toLowerCase() === 'adventure')) return 'adventure';
 
+  // Prepare: presence of "prepare" / "prepared" in card text. Checked before the
+  // mana-cost gate because the prepared (back) face carries a color indicator
+  // instead of a mana cost, so bothHaveManaCost is false for these cards.
+  if (/\bprepared?\b/i.test(frontText + '\n' + backText)) return 'prepare';
+
   if (bothHaveManaCost) {
     const fullText = frontText + '\n' + backText;
     if (/\bFuse\b/.test(fullText)) return 'fuse';
     if (/\bAftermath\b/.test(fullText)) return 'aftermath';
     // Omen: back face has Omen subtype (always on Instant/Sorcery)
     if (backTypeLine.subtypes.some(s => s.toLowerCase() === 'omen')) return 'omen';
-    // Prepare: presence of "prepare" / "prepared" in card text
-    if (/\bprepared?\b/i.test(fullText)) return 'prepare';
     if (isSpell(frontTypeLine) && isSpell(backTypeLine)) return 'split';
     return 'modal_dfc';
   }
