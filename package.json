@@ -34,7 +34,9 @@
     "build:react": "tsc -p tsconfig.react.json",
     "dev": "npx tsx watch scripts/dev-server.ts",
     "spike": "npx tsx scripts/spike.ts",
-    "generate-assets": "npx tsx logo/generate-assets.ts"
+    "generate-assets": "npx tsx logo/generate-assets.ts",
+    "prepublishOnly": "npm run build",
+    "release": "npm run build && npm login && npm version patch && npm publish && git push --follow-tags"
   },
   "keywords": [
     "mtg",
