@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseCard, formatCard, toScryfallText } from '../src/parser';
+import { parseCard, formatCard, toScryfallText, inferFrameEffect } from '../src/parser';
 import { renderCard, normalizeCard, parseTypeLine } from '../src';
 
 describe('parseCard', () => {
@@ -1318,5 +1318,39 @@ describe('parseCard — multi-face inference', () => {
       2/2
     `));
     expect(card.linkType).toBe('flip');
+  });
+});
+
+describe('inferFrameEffect', () => {
+  it('infers snow from the snow supertype', () => {
+    expect(inferFrameEffect(parseTypeLine('Snow Creature — Bear'), undefined, 'green')).toBe('snow');
+    expect(inferFrameEffect(parseTypeLine('Snow Land'), undefined, 'land')).toBe('snow');
+  });
+
+  it('does not infer snow for non-snow cards', () => {
+    expect(inferFrameEffect(parseTypeLine('Creature — Bear'), undefined, 'green')).toBe('normal');
+  });
+
+  it('snow supertype takes precedence over nyx (enchantment creature)', () => {
+    expect(inferFrameEffect(parseTypeLine('Snow Enchantment Creature — God'), undefined, 'white')).toBe('snow');
+  });
+
+  it('normalizeCard sets frameEffect=[snow] for a snow creature', () => {
+    const card = normalizeCard(parseCard(`
+      Rimebound Bear {1}{G}
+      Snow Creature — Bear
+      2/2
+    `));
+    expect(card.frameEffect).toEqual(['snow']);
+  });
+
+  it('explicit frameEffect overrides the snow inference', () => {
+    const card = normalizeCard({
+      name: 'Rimebound Bear',
+      manaCost: '{1}{G}',
+      typeLine: { supertypes: ['snow'], types: ['creature'], subtypes: ['Bear'] },
+      frameEffect: 'normal',
+    });
+    expect(card.frameEffect).toEqual(['normal']);
   });
 });

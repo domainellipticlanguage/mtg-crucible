@@ -921,6 +921,22 @@ async function main() {
     power: '1', toughness: '2', rarity: 'rare',
   });
 
+  // Snow supertype auto-infers frameEffect = 'snow' (no explicit frameEffect set).
+  await render('snow-creature', {
+    name: 'Rimewood Sentinel', manaCost: '{2}{U}',
+    typeLine: 'Snow Creature — Bear',
+    abilities: 'Vigilance\n{T}: Add {C}. Spend this mana only to activate abilities.',
+    power: '2', toughness: '3', rarity: 'rare',
+  });
+
+  // Same card without the Snow supertype — plain frame, for comparison.
+  await render('snow-creature-control', {
+    name: 'Rimewood Sentinel', manaCost: '{2}{U}',
+    typeLine: 'Creature — Bear',
+    abilities: 'Vigilance\n{T}: Add {C}. Spend this mana only to activate abilities.',
+    power: '2', toughness: '3', rarity: 'rare',
+  });
+
   console.log(`\nDone! ${rendered} of ${idx} cards rendered, output to ${OUT}`);
 }
 

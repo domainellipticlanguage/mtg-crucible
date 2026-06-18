@@ -1414,6 +1414,9 @@ export function inferFrameEffect(
   abilitiesText: string | undefined,
   derivedFrameColor: FrameColor | FrameColor[] | undefined,
 ): FrameEffect {
+  if (typeLine.supertypes.includes('snow')) {
+    return 'snow';
+  }
   if (typeLine.types.includes('enchantment') && typeLine.types.length > 1) {
     return 'nyx';
   }
