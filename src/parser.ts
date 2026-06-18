@@ -50,7 +50,6 @@ const FLAVOR_TEXT_REGEX = /^Flavor Text:\s*(.+)$/i;
 
 const ZERO_WIDTH_REGEX = /[\u200B-\u200D\uFEFF]/g;
 const SUPERTYPES = new Set<string>(['legendary', 'basic', 'snow', 'world']);
-const TYPES = new Set<string>(['creature', 'instant', 'sorcery', 'enchantment', 'artifact', 'planeswalker', 'land', 'battle']);
 const COLOR_ALIASES: Record<string, Color> = {
   w: 'white', white: 'white',
   u: 'blue', blue: 'blue',
@@ -174,9 +173,13 @@ export function parseTypeLine(typeLine: string | undefined): ParsedTypeLine {
   const supertypes: Supertype[] = [];
   const types: Type[] = [];
   for (const word of left.split(/\s+/)) {
+    if (!word) continue;
     const lower = word.toLowerCase();
+    // The left side of the dash is supertypes + types. Anything that isn't a
+    // known supertype is treated as a type — recognized or not — so custom /
+    // misspelled type lines (e.g. "Blah Dne") survive instead of vanishing.
     if (SUPERTYPES.has(lower)) supertypes.push(lower as Supertype);
-    else if (TYPES.has(lower)) types.push(lower as Type);
+    else types.push(lower);
   }
   return { supertypes, types, subtypes };
 }

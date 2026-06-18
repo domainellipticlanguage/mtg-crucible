@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parseCard, formatCard, toScryfallText, inferFrameEffect } from '../src/parser';
-import { renderCard, normalizeCard, parseTypeLine } from '../src';
+import { renderCard, normalizeCard, parseTypeLine, formatTypeLine } from '../src';
 
 describe('parseCard', () => {
   it('parses a simple instant', () => {
@@ -1318,6 +1318,28 @@ describe('parseCard — multi-face inference', () => {
       2/2
     `));
     expect(card.linkType).toBe('flip');
+  });
+});
+
+describe('parseTypeLine', () => {
+  it('keeps unrecognized type words instead of dropping them', () => {
+    expect(parseTypeLine('Blah Dne')).toEqual({ supertypes: [], types: ['blah', 'dne'], subtypes: [] });
+  });
+
+  it('mixes known and unknown types, preserving order', () => {
+    expect(parseTypeLine('Legendary Creatuer — Bear')).toEqual({
+      supertypes: ['legendary'], types: ['creatuer'], subtypes: ['Bear'],
+    });
+  });
+
+  it('still parses a normal type line', () => {
+    expect(parseTypeLine('Legendary Creature — Bear')).toEqual({
+      supertypes: ['legendary'], types: ['creature'], subtypes: ['Bear'],
+    });
+  });
+
+  it('round-trips an unrecognized type line through formatTypeLine', () => {
+    expect(formatTypeLine(parseTypeLine('Blah Dne'))).toBe('Blah Dne');
   });
 });
 

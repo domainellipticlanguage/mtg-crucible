@@ -27,7 +27,10 @@ export const SUPERTYPES_LIST = ['legendary', 'basic', 'snow', 'world'] as const;
 export type Supertype = (typeof SUPERTYPES_LIST)[number];
 
 export const CARD_TYPES = ['creature', 'instant', 'sorcery', 'enchantment', 'artifact', 'planeswalker', 'land', 'battle'] as const;
-export type Type = (typeof CARD_TYPES)[number];
+// Known card types, plus any other string (custom/unrecognized types). The
+// `(string & {})` keeps literal autocomplete + narrowing for the known values
+// while still accepting arbitrary type words from the type line.
+export type Type = (typeof CARD_TYPES)[number] | (string & {});
 
 // Too many to list. All creatures. All land types. Shrine, Saga, etc.
 export type Subtype = string;
