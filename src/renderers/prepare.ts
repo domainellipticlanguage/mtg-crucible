@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { NormalizedCardData } from '../types';
 import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor } from '../text';
-import { drawManaCost, frameColorCode, drawGradientFrames } from '../helpers';
+import { drawManaCost, measureManaCostWidth, frameColorCode, drawGradientFrames } from '../helpers';
 import { formatTypeLine } from '../parser';
 import { ASSETS_DIR } from '../assets-dir';
 
@@ -40,9 +40,12 @@ async function body(ctx: SKRSContext2D, card: NormalizedCardData, L: Record<stri
   const prepCodes = prep.frameColor.map(c => frameColorCode(c));
   await drawMaskedPrepareFrame(ctx, prepCodes, 'prepare-mask.png', cw, ch);
 
-  // The prep name field ends well left of the right-justified mana cost, so they
-  // don't share space — no need to shrink the name to make room for the mana.
-  drawSingleLineText(ctx, prep.name ?? '', L.prepName.x * cw, L.prepName.y * ch, L.prepName.w * cw, L.prepName.h * ch, L.prepName.font, L.prepName.size * ch, 'left', 'white');
+  // Same name+mana pattern as the standard card: the name field spans up to the
+  // right-justified mana cost, and the available width is shrunk by the mana
+  // width so a long name scales down instead of running under the cost.
+  const prepManaW = prep.manaCost ? measureManaCostWidth(prep.manaCost, ch, L.prepMana.size) : 0;
+  const prepNameW = L.prepName.w * cw - prepManaW;
+  drawSingleLineText(ctx, prep.name ?? '', L.prepName.x * cw, L.prepName.y * ch, prepNameW, L.prepName.h * ch, L.prepName.font, L.prepName.size * ch, 'left', 'white');
 
   if (prep.manaCost) {
     await drawManaCost(ctx, prep.manaCost, cw, ch, L.prepMana);

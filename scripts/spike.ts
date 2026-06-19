@@ -947,7 +947,7 @@ async function main() {
     flavorText: 'She reads the future as easily as the past.',
     linkType: 'prepare',
     linkedCard: {
-      name: 'Fact or Fiction', manaCost: '{2}{U}{U}',
+      name: 'Homunculus Drop', manaCost: '{2}{U}{U}',
       typeLine: { supertypes: [], types: ['instant'], subtypes: [] },
       abilities: 'Reveal the top five cards of your library. An opponent separates those cards into two piles. Put one pile into your hand and the other into your graveyard.',
     },
