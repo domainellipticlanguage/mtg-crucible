@@ -195,7 +195,6 @@ import { MtgCard } from 'mtg-crucible/react';
 <MtgCard
   card={renderedCardDisplay}
   cardText="Crucible of Legends"           // will be invisible, but searchable with ctrl+f
-  rotateWidgetStyle={{ display: 'none' }}  // optional: hide rotation arrow
 />
 ```
 
@@ -205,6 +204,15 @@ The component supports:
 - Invisible searchable text overlay for Ctrl+F
 
 ![React Component Demo](https://raw.githubusercontent.com/domainellipticlanguage/mtg-crucible/main/examples/react-component.gif)
+
+## In the Wild
+
+Projects built with Crucible:
+
+- **[This Magic Card Does Not Exist](https://thismagiccarddoesnotexist.com/)** — A website for creating custom cards with AI.
+- **[Obsidian Custom MTG](https://github.com/domainellipticlanguage/obsidian-custom-mtg)** — an [Obsidian](https://obsidian.md) plugin for creating custom cards in plaintext in your vault.
+
+Built something with Crucible? Open a PR to add it here.
 
 ## Development
 
