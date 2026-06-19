@@ -937,6 +937,22 @@ async function main() {
     power: '2', toughness: '3', rarity: 'rare',
   });
 
+  // Prepare — long prepared-spell name (mana-cost gap repro)
+  await render('archivist-fact-or-fiction', {
+    name: 'Archivist of Paradox', manaCost: '{2}{U}{U}',
+    typeLine: { supertypes: ['legendary'], types: ['creature'], subtypes: ['Human', 'Wizard'] },
+    frameColor: 'blue', rarity: 'mythic',
+    abilities: "Whenever you cast an instant or sorcery spell, Archivist of Paradox becomes prepared. (While it's prepared, you may cast a copy of its prepared spell. Doing so unprepares it.)",
+    power: '2', toughness: '4',
+    flavorText: 'She reads the future as easily as the past.',
+    linkType: 'prepare',
+    linkedCard: {
+      name: 'Fact or Fiction', manaCost: '{2}{U}{U}',
+      typeLine: { supertypes: [], types: ['instant'], subtypes: [] },
+      abilities: 'Reveal the top five cards of your library. An opponent separates those cards into two piles. Put one pile into your hand and the other into your graveyard.',
+    },
+  });
+
   console.log(`\nDone! ${rendered} of ${idx} cards rendered, output to ${OUT}`);
 }
 
