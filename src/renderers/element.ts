@@ -1,7 +1,7 @@
 import type { SKRSContext2D } from '@napi-rs/canvas';
 import type { Color } from '../types';
 import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor, type ExclusionRect } from '../text';
-import { drawManaCost, drawSetSymbol, drawColorIndicator } from '../helpers';
+import { drawManaCost, measureManaCostWidth, drawSetSymbol, drawColorIndicator } from '../helpers';
 
 /**
  * Layout-element convention.
@@ -174,6 +174,74 @@ export function drawRulesAndFlavorAt(
     drawRulesAndFlavor(ctx, rules, flavor, 0, 0, el.w * wDim, el.h * hDim,
       el.font, el.size * ch, exclusionRects);
   });
+}
+
+/**
+ * The constant gap (as a fraction of card width) the standard frame leaves
+ * between the right edge of a name field and the mana cost. Baked from the
+ * standard layout so `drawNameAndMana` reproduces it everywhere.
+ */
+const NAME_MANA_GAP = 0.0146;
+
+/**
+ * Draw a card name with a right-justified mana cost to its right — the single
+ * source of truth for every "name then mana" bar (main card and every linked
+ * face: adventure, omen, prepare, aftermath, split, room, ...).
+ *
+ * The name's available width is derived from the *mana cost's* geometry: the
+ * name shrinks to butt up against the cost (leaving a small constant gap) no
+ * matter how long the name is or how many pips the cost has. The name element's
+ * own `w` is intentionally ignored as the right bound — where the name ends is
+ * governed solely by where the mana begins. This eliminates the class of
+ * gap/overlap bugs that arose from hand-syncing each layout's `name.w` to its
+ * mana anchor.
+ *
+ * Works unrotated and for a quarter-turn (split / room / aftermath). The name
+ * and mana elements are assumed to share the same `angle` and sit on one line.
+ *
+ * Mana anchor convention (matching drawManaCost / drawManaCostAt):
+ *   - unrotated mana element: right edge sits at `mana.w * cw` (has no x/angle).
+ *   - rotated mana element:   right edge sits at the element's (x, y) anchor.
+ */
+export async function drawNameAndMana(
+  ctx: SKRSContext2D,
+  nameEl: RectElement,
+  manaEl: ManaElement & { w?: number },
+  cw: number,
+  ch: number,
+  name: string,
+  manaStr: string | undefined,
+  opts: { color?: string } = {},
+): Promise<void> {
+  const angle = (((nameEl.angle ?? 0) % 360) + 360) % 360;
+  const manaW = manaStr ? measureManaCostWidth(manaStr, ch, manaEl.size) : 0;
+
+  // Project the name's start and the mana's right edge onto the text-advance
+  // axis (canvas pixels). For a quarter turn the advance axis is canvas-y.
+  let nameStart: number;
+  let manaAnchor: number;
+  if (angle === 90) {
+    nameStart = nameEl.y * ch;
+    manaAnchor = manaEl.y * ch; // rotated: right edge at the (x, y) anchor
+  } else if (angle === 270) {
+    nameStart = -(nameEl.y * ch);
+    manaAnchor = -(manaEl.y * ch);
+  } else {
+    nameStart = nameEl.x * cw;
+    manaAnchor = (manaEl.w ?? 0) * cw; // unrotated: right edge at w
+  }
+
+  const nameW = Math.max(0, manaAnchor - manaW - nameStart - NAME_MANA_GAP * cw);
+
+  placeElement(ctx, nameEl, cw, ch, ({ hDim }) => {
+    drawSingleLineText(ctx, name, 0, 0, nameW, nameEl.h * hDim,
+      nameEl.font, nameEl.size * ch, 'left', opts.color ?? 'black');
+  });
+
+  if (manaStr) {
+    if (angle === 0) await drawManaCost(ctx, manaStr, cw, ch, manaEl as ManaElement & { w: number });
+    else await drawManaCostAt(ctx, manaEl, cw, ch, manaStr);
+  }
 }
 
 /** Right-aligned mana cost at an anchor. */

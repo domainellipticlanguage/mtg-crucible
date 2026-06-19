@@ -2,12 +2,12 @@ import { createCanvas, loadImage, type SKRSContext2D } from '@napi-rs/canvas';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { NormalizedCardData } from '../types';
-import { drawArt, measureManaCostWidth, drawFrame, frameColorCode } from '../helpers';
+import { drawArt, drawFrame, frameColorCode } from '../helpers';
 import { getParsedAbilities, formatTypeLine } from '../parser';
 import { SPLIT_RIGHT_LAYOUT, SPLIT_LEFT_LAYOUT } from '../layout';
 import { ASSETS_DIR } from '../assets-dir';
 import type { TemplateHooks } from './render';
-import { drawSingleLineAt, drawWrappedAt, drawRulesAndFlavorAt, drawManaCostAt, drawSetSymbolAt } from './element';
+import { drawSingleLineAt, drawWrappedAt, drawRulesAndFlavorAt, drawNameAndMana, drawSetSymbolAt } from './element';
 
 /**
  * Split card renderer.
@@ -30,10 +30,7 @@ async function renderSplitText(
   ctx.rect(0, clipYMin, cw, clipYMax - clipYMin);
   ctx.clip();
 
-  const manaW = card.manaCost ? measureManaCostWidth(card.manaCost, ch, L.mana.size) : 0;
-  if (card.manaCost) await drawManaCostAt(ctx, L.mana, cw, ch, card.manaCost);
-
-  drawSingleLineAt(ctx, L.name, cw, ch, card.name ?? '', { shrinkBy: manaW });
+  await drawNameAndMana(ctx, L.name, L.mana, cw, ch, card.name ?? '', card.manaCost);
   drawSingleLineAt(ctx, L.type, cw, ch, formatTypeLine(card.typeLine));
   await drawSetSymbolAt(ctx, L.setSymbol, cw, ch, card.rarity || 'common');
 

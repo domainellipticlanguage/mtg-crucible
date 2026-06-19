@@ -1,22 +1,15 @@
 import { type SKRSContext2D } from '@napi-rs/canvas';
 import type { NormalizedCardData } from '../types';
 import { drawSingleLineText, drawWrappedText } from '../text';
-import { drawManaCost, measureManaCostWidth } from '../helpers';
 import { formatTypeLine } from '../parser';
+import { drawNameAndMana } from './element';
 
 async function body(ctx: SKRSContext2D, card: NormalizedCardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
   const adv = card.linkedCard;
   if (!adv) return;
 
-  // Adventure name (white text, shrink for mana cost)
-  const advManaW = adv.manaCost ? measureManaCostWidth(adv.manaCost, ch, L.advMana.size) : 0;
-  const advNameW = L.advName.w * cw - advManaW;
-  drawSingleLineText(ctx, adv.name ?? '', L.advName.x * cw, L.advName.y * ch, advNameW, L.advName.h * ch, L.advName.font, L.advName.size * ch, 'left', 'white');
-
-  // Adventure mana cost
-  if (adv.manaCost) {
-    await drawManaCost(ctx, adv.manaCost, cw, ch, L.advMana);
-  }
+  // Adventure name + mana cost (name width derived from the mana geometry)
+  await drawNameAndMana(ctx, L.advName, L.advMana, cw, ch, adv.name ?? '', adv.manaCost, { color: 'white' });
 
   // Adventure type line
   const advTypeLine = formatTypeLine(adv.typeLine);

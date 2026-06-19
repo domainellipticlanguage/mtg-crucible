@@ -26,11 +26,12 @@ import { ASSETS_DIR } from '../assets-dir';
 import { getParsedAbilities, formatTypeLine } from '../parser';
 
 import {
-  drawArt, drawCorners, drawSetSymbol, drawBottomInfo, drawManaCost, measureManaCostWidth,
+  drawArt, drawCorners, drawSetSymbol, drawBottomInfo,
   frameColorCode,
   drawColorIndicator, drawFrame, drawGradientCrowns,
 } from '../helpers';
 import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor, type ExclusionRect } from '../text';
+import { drawNameAndMana } from './element';
 import { planeswalkerHooks } from './planeswalker';
 import { sagaHooks } from './saga';
 import { classHooks } from './class';
@@ -261,13 +262,8 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
       setSymW = await drawSetSymbol(ctx, card.rarity || 'common', L.setSymbol, ch, cw);
     }
 
-    // Mana cost
-    if (card.manaCost) await drawManaCost(ctx, card.manaCost, cw, ch, L.mana);
-
-    // Name (shrink available width to avoid mana cost)
-    const manaW = card.manaCost ? measureManaCostWidth(card.manaCost, ch, L.mana.size) : 0;
-    const nameW = L.name.w * cw - manaW;
-    drawSingleLineText(ctx, card.name ?? '', L.name.x * cw, L.name.y * ch, nameW, L.name.h * ch, L.name.font, L.name.size * ch, 'left', L.name.color ?? textColor);
+    // Name + mana cost (name width derived from the mana geometry)
+    await drawNameAndMana(ctx, L.name, L.mana, cw, ch, card.name ?? '', card.manaCost, { color: L.name.color ?? textColor });
 
     // Type line + color indicator (shrink available width to avoid set symbol)
     const typeX = L.type.x * cw;

@@ -953,6 +953,21 @@ async function main() {
     },
   });
 
+  // Aftermath — long bottom name + multi-pip cost (name/mana overlap repro)
+  await render('overgrowth-resurgence', {
+    name: 'Sudden Overgrowth', manaCost: '{2}{G}',
+    typeLine: { supertypes: [], types: ['sorcery'], subtypes: [] },
+    frameColor: 'green', rarity: 'rare',
+    abilities: 'Distribute three +1/+1 counters among any number of target creatures.',
+    linkType: 'aftermath',
+    linkedCard: {
+      name: 'Verdant Resurgence', manaCost: '{4}{G}{G}',
+      typeLine: { supertypes: [], types: ['sorcery'], subtypes: [] },
+      frameColor: 'green',
+      abilities: 'Aftermath (Cast this spell only from your graveyard. Then exile it.)\nReturn all permanent cards from your graveyard to the battlefield.',
+    },
+  });
+
   console.log(`\nDone! ${rendered} of ${idx} cards rendered, output to ${OUT}`);
 }
 

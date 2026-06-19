@@ -3,9 +3,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { NormalizedCardData } from '../types';
 import { drawSingleLineText, drawWrappedText } from '../text';
-import { drawManaCost, measureManaCostWidth, frameColorCode, drawGradientFrames } from '../helpers';
+import { frameColorCode, drawGradientFrames } from '../helpers';
 import { formatTypeLine } from '../parser';
 import { ASSETS_DIR } from '../assets-dir';
+import { drawNameAndMana } from './element';
 
 /** Draw an omen-dir frame in the given colors, clipped through a mask file, onto ctx. */
 async function drawMaskedOmenFrame(
@@ -40,13 +41,7 @@ async function body(ctx: SKRSContext2D, card: NormalizedCardData, L: Record<stri
   const omenCodes = omen.frameColor.map(c => frameColorCode(c));
   await drawMaskedOmenFrame(ctx, omenCodes, 'omen-mask.png', cw, ch);
 
-  const omenManaW = omen.manaCost ? measureManaCostWidth(omen.manaCost, ch, L.omenMana.size) : 0;
-  const omenNameW = L.omenName.w * cw - omenManaW;
-  drawSingleLineText(ctx, omen.name ?? '', L.omenName.x * cw, L.omenName.y * ch, omenNameW, L.omenName.h * ch, L.omenName.font, L.omenName.size * ch, 'left', 'white');
-
-  if (omen.manaCost) {
-    await drawManaCost(ctx, omen.manaCost, cw, ch, L.omenMana);
-  }
+  await drawNameAndMana(ctx, L.omenName, L.omenMana, cw, ch, omen.name ?? '', omen.manaCost, { color: 'white' });
 
   const omenTypeLine = formatTypeLine(omen.typeLine);
   drawSingleLineText(ctx, omenTypeLine, L.omenType.x * cw, L.omenType.y * ch, L.omenType.w * cw, L.omenType.h * ch, L.omenType.font, L.omenType.size * ch, 'left', 'white');

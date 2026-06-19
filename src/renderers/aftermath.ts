@@ -1,10 +1,10 @@
 import { type SKRSContext2D } from '@napi-rs/canvas';
 import type { NormalizedCardData } from '../types';
-import { drawArt, measureManaCostWidth, drawFrame, frameColorCode } from '../helpers';
+import { drawArt, drawFrame, frameColorCode } from '../helpers';
 import { getParsedAbilities, formatTypeLine } from '../parser';
 import { AFTERMATH_BOTTOM_LAYOUT } from '../layout';
 import type { TemplateHooks } from './render';
-import { drawSingleLineAt, drawWrappedAt, drawRulesAndFlavorAt, drawManaCostAt } from './element';
+import { drawSingleLineAt, drawWrappedAt, drawRulesAndFlavorAt, drawNameAndMana } from './element';
 
 /**
  * Aftermath card renderer. The top half rides the standard pipeline; the
@@ -19,10 +19,7 @@ async function renderBottomText(
 ) {
   const L = AFTERMATH_BOTTOM_LAYOUT;
 
-  const manaW = card.manaCost ? measureManaCostWidth(card.manaCost, ch, L.mana.size) : 0;
-  if (card.manaCost) await drawManaCostAt(ctx, L.mana, cw, ch, card.manaCost);
-
-  drawSingleLineAt(ctx, L.name, cw, ch, card.name ?? '', { shrinkBy: manaW });
+  await drawNameAndMana(ctx, L.name, L.mana, cw, ch, card.name ?? '', card.manaCost);
   drawSingleLineAt(ctx, L.type, cw, ch, formatTypeLine(card.typeLine));
 
   const rulesText = getParsedAbilities(card).unstructuredAbilities?.join('\n');
