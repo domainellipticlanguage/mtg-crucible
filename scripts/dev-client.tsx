@@ -939,6 +939,62 @@ function EditorApp() {
   const displayW = DISPLAY_H * aspect;
   const displayH = DISPLAY_H;
 
+  // Nudge the selected element by (dxPx, dyPx) in on-screen display pixels —
+  // same basis as the drag handlers (which divide deltas by displayW/displayH).
+  // Mirrors each box type's drag "move" behavior (rect/setSymbol move x/y, mana
+  // moves its right edge w/y) and routes through the same rotated-frame conversions.
+  const nudgeSelected = useCallback((dxPx: number, dyPx: number) => {
+    if (!selectedKey || !effectiveLayout) return;
+    const entry = getAtPath(effectiveLayout, selectedKey);
+    if (!entry) return;
+    const dx = dxPx / displayW;
+    const dy = dyPx / displayH;
+    const originY = getRotationOriginY(effectiveLayout, selectedKey);
+
+    if (manaKeys.includes(selectedKey)) {
+      const disp = originY != null ? manaToCanvas(entry, originY, canvasSize.w, canvasSize.h) : entry;
+      const moved = { ...disp, w: disp.w + dx, y: disp.y + dy };
+      updateEntry(selectedKey, originY != null ? manaFromCanvas(moved, originY, canvasSize.w, canvasSize.h) : moved);
+    } else if (setSymbolKeys.includes(selectedKey)) {
+      const disp = originY != null ? setSymbolToCanvas(entry, originY) : entry;
+      const moved = { ...disp, x: disp.x + dx, y: disp.y + dy };
+      updateEntry(selectedKey, originY != null ? setSymbolFromCanvas(moved as Rect & Record<string, any>, originY) : moved);
+    } else {
+      const disp = originY != null ? { ...entry, ...rectToCanvas(entry, originY) } : entry;
+      const moved = { ...disp, x: disp.x + dx, y: disp.y + dy };
+      updateEntry(selectedKey, originY != null ? { ...entry, ...rectFromCanvas(moved as Rect, originY) } : moved);
+    }
+  }, [selectedKey, effectiveLayout, displayW, displayH, canvasSize, manaKeys, setSymbolKeys]);
+
+  // Focus the canvas when an element is selected so arrow keys reach our handler
+  // (clicking a box calls preventDefault, so focus would otherwise stay in the
+  // card-text textarea and the guard below would swallow the arrows).
+  const canvasRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (selectedKey) canvasRef.current?.focus({ preventScroll: true });
+  }, [selectedKey]);
+
+  // Arrow keys nudge the selected element by 1 display pixel (Shift = 10).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!selectedKey) return;
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.isContentEditable) return;
+      let dx = 0, dy = 0;
+      if (e.key === 'ArrowLeft') dx = -1;
+      else if (e.key === 'ArrowRight') dx = 1;
+      else if (e.key === 'ArrowUp') dy = -1;
+      else if (e.key === 'ArrowDown') dy = 1;
+      else return;
+      e.preventDefault();
+      const step = e.shiftKey ? 10 : 1;
+      nudgeSelected(dx * step, dy * step);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedKey, nudgeSelected]);
+
   return (
     <div style={{ display: 'flex', gap: '1rem', width: '100%', flexWrap: 'wrap' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1, minWidth: 360, maxWidth: 600 }}>
@@ -998,7 +1054,8 @@ function EditorApp() {
         </div>
         {error && <pre className="error">{error}</pre>}
       </div>
-      <div style={{ position: 'relative', width: displayW, height: displayH, flexShrink: 0, background: '#000', overflow: 'hidden' }}
+      <div ref={canvasRef} tabIndex={0}
+           style={{ position: 'relative', width: displayW, height: displayH, flexShrink: 0, background: '#000', overflow: 'hidden', outline: 'none' }}
            onMouseDown={() => setSelectedKey(null)}>
         {rendered && (
           <img
