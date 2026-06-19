@@ -1157,10 +1157,10 @@ const TEMPLATE_CONFIGS: Record<TemplateName, { layout: Record<string, any>; w: n
   class:              { layout: CLASS_LAYOUT, w: PW_W, h: PW_H },
   battle:             { layout: BTL_LAYOUT, w: BTL_W, h: BTL_H },
   adventure:          { layout: ADV_LAYOUT, w: PW_W, h: PW_H },
-  transform_front:    { layout: TF_FRONT_LAYOUT, w: PW_W, h: PW_H },
-  transform_back:     { layout: TF_BACK_LAYOUT, w: PW_W, h: PW_H },
-  mdfc_front:         { layout: MDFC_FRONT_LAYOUT, w: PW_W, h: PW_H },
-  mdfc_back:          { layout: MDFC_BACK_LAYOUT, w: PW_W, h: PW_H },
+  transform_front:    { layout: TF_FRONT_LAYOUT, w: PW_W, h: PW_H, linkedLayout: TF_BACK_LAYOUT },
+  transform_back:     { layout: TF_BACK_LAYOUT, w: PW_W, h: PW_H, linkedLayout: TF_FRONT_LAYOUT },
+  mdfc_front:         { layout: MDFC_FRONT_LAYOUT, w: PW_W, h: PW_H, linkedLayout: MDFC_BACK_LAYOUT },
+  mdfc_back:          { layout: MDFC_BACK_LAYOUT, w: PW_W, h: PW_H, linkedLayout: MDFC_FRONT_LAYOUT },
   split:              { layout: SPLIT_RIGHT_LAYOUT, w: PW_W, h: PW_H, linkedLayout: SPLIT_LEFT_LAYOUT },
   fuse:               { layout: SPLIT_RIGHT_LAYOUT, w: PW_W, h: PW_H, linkedLayout: SPLIT_LEFT_LAYOUT },
   aftermath:          { layout: AFTERMATH_TOP_LAYOUT, w: PW_W, h: PW_H, linkedLayout: AFTERMATH_BOTTOM_LAYOUT },
@@ -1206,10 +1206,15 @@ export function resolveTemplate(card: CardData): TemplateName {
   return 'standard';
 }
 
-function getArtDimensionsForFace(card: CardData, templateKey: TemplateName, linked: boolean): { width: number; height: number } {
+function getArtDimensionsForFace(card: CardData, templateKey: TemplateName, linked: boolean): { width: number; height: number } | null {
   const config = TEMPLATE_CONFIGS[templateKey] ?? TEMPLATE_CONFIGS.standard;
   const { w: cw, h: ch } = config;
-  const L = (linked && config.linkedLayout) ? config.linkedLayout : config.layout;
+  // The linked face only has its own art when the template defines a separate
+  // layout for it (split/fuse/aftermath, transform/mdfc). Templates like
+  // adventure/prepare/omen/flip share the primary face's single art, so there
+  // is no secondary art to size — don't fall back to the primary layout.
+  if (linked && !config.linkedLayout) return null;
+  const L = linked ? config.linkedLayout! : config.layout;
 
   // Colorless and devoid frames are full-bleed — art fills the entire card
   const fc = Array.isArray(card.frameColor) ? card.frameColor[0] : card.frameColor;
@@ -1242,11 +1247,10 @@ export function getArtDimensions(card: CardData): { primaryArtDimensions: { widt
     return { primaryArtDimensions: { width: Math.round(a.h * PW_H), height: Math.round(a.w * PW_W) } };
   }
   const templateKey = resolveTemplate(card);
-  const primary = getArtDimensionsForFace(card, templateKey, false);
-  let secondary: { width: number; height: number } | undefined;
-  if (card.linkedCard) {
-    secondary = getArtDimensionsForFace(card.linkedCard, templateKey, true);
-  }
+  const primary = getArtDimensionsForFace(card, templateKey, false)!;
+  const secondary = card.linkedCard
+    ? getArtDimensionsForFace(card.linkedCard, templateKey, true) ?? undefined
+    : undefined;
   return { primaryArtDimensions: primary, secondaryArtDimensions: secondary };
 }
 
