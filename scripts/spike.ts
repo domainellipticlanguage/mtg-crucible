@@ -968,6 +968,53 @@ async function main() {
     },
   });
 
+  // Adventure — spell colored differently from the creature (red creature, blue adventure)
+  await render('emberclaw-frostbolt', {
+    name: 'Emberclaw Warbeast', manaCost: '{3}{R}',
+    typeLine: { supertypes: [], types: ['creature'], subtypes: ['Beast'] },
+    frameColor: 'red', rarity: 'rare',
+    abilities: 'Trample\nWhenever Emberclaw Warbeast attacks, it gets +1/+0 until end of turn.',
+    power: '4', toughness: '4',
+    linkType: 'adventure',
+    linkedCard: {
+      name: 'Frostbolt', manaCost: '{1}{U}',
+      typeLine: { supertypes: [], types: ['instant'], subtypes: ['Adventure'] },
+      frameColor: 'blue',
+      abilities: 'Tap target creature. It deals no combat damage this turn.',
+    },
+  });
+
+  // Adventure — multi-color (hybrid) adventure spell: blend must stay inside the book
+  await render('thornwild-cinderbloom', {
+    name: 'Thornwild Guardian', manaCost: '{4}{G}',
+    typeLine: { supertypes: [], types: ['creature'], subtypes: ['Beast'] },
+    frameColor: 'green', rarity: 'mythic',
+    abilities: 'Reach, vigilance',
+    power: '5', toughness: '6',
+    linkType: 'adventure',
+    linkedCard: {
+      name: 'Cinderbloom Hex', manaCost: '{U}{R}',
+      typeLine: { supertypes: [], types: ['sorcery'], subtypes: ['Adventure'] },
+      frameColor: ['blue', 'red'],
+      abilities: 'Draw a card, then Cinderbloom Hex deals 2 damage to any target.',
+    },
+  });
+
+  // Adventure — accented creature (artifact frame + gold accent pinline) to test adventure-pinline accent
+  await render('clockwork-questing', {
+    name: 'Clockwork Questbeast', manaCost: '{4}',
+    typeLine: { supertypes: [], types: ['artifact', 'creature'], subtypes: ['Construct'] },
+    frameColor: 'artifact', accentColor: 'multicolor', rarity: 'mythic',
+    abilities: 'Trample, haste',
+    power: '4', toughness: '4',
+    linkType: 'adventure',
+    linkedCard: {
+      name: 'Wind Up', manaCost: '{1}',
+      typeLine: { supertypes: [], types: ['sorcery'], subtypes: ['Adventure'] },
+      abilities: 'Put two +1/+1 counters on target artifact creature.',
+    },
+  });
+
   console.log(`\nDone! ${rendered} of ${idx} cards rendered, output to ${OUT}`);
 }
 
