@@ -109,18 +109,70 @@ export async function drawGradientFrames(
     ctx.drawImage(await loadImage(basePath), 0, 0, cw, ch);
   }
 
-  // Overlay each subsequent frame through gradient mask
-  for (let i = 1; i < colorCodes.length; i++) {
+  const n = colorCodes.length;
+  if (n === 1) return;
+
+  // Gradient geometry along the blend axis (x for vertical, y for horizontal).
+  const fullSpan = horizontal ? ch : cw;
+  const rangeStart = gradientRange?.start ?? 0;
+  const rangeSpan = gradientRange ? (gradientRange.end - gradientRange.start) : fullSpan;
+  const transitionFraction = 0.5;
+  const halfTrans = (rangeSpan / n) * transitionFraction * 0.5;
+  const transStartOf = (i: number) => rangeStart + (i / n) * rangeSpan - halfTrans;
+  const transEndOf = (i: number) => rangeStart + (i / n) * rangeSpan + halfTrans;
+
+  // Overlay each subsequent frame through a gradient mask. Each overlay only
+  // needs to be painted within the band where it is actually visible: from where
+  // its own ramp begins, up to where the NEXT overlay becomes fully opaque (and
+  // would paint over it anyway). The last overlay runs to the end. This makes the
+  // work ~O(cw·ch) total instead of O(n·cw·ch) — the alpha=0 left and the
+  // overwritten alpha=255 right of every strip are skipped. Output is identical.
+  for (let i = 1; i < n; i++) {
     const framePath = resolveFramePath(dirs[i], colorCodes[i]);
     if (!framePath) continue;
 
-    const mask = createGradientMask(cw, ch, i, colorCodes.length, 0.5, horizontal, gradientRange);
-    const offscreen = createCanvas(cw, ch);
+    const tStart = transStartOf(i);
+    const tEnd = transEndOf(i);
+    const bandStart = Math.max(0, Math.floor(tStart));
+    const bandEnd = i < n - 1 ? Math.min(fullSpan, Math.ceil(transEndOf(i + 1))) : fullSpan;
+    if (bandEnd <= bandStart) continue;
+    const bandLen = bandEnd - bandStart;
+
+    // Strip-sized offscreen: only the visible band along the blend axis, full
+    // extent on the other axis.
+    const sw = horizontal ? cw : bandLen;
+    const sh = horizontal ? bandLen : ch;
+    const offscreen = createCanvas(sw, sh);
     const offCtx = offscreen.getContext('2d');
+
+    // Sine-smoothed alpha ramp, computed only over the band.
+    const mask = offCtx.createImageData(sw, sh);
+    const data = mask.data;
+    const alphaAt = (p: number): number => {
+      if (p <= tStart) return 0;
+      if (p >= tEnd) return 255;
+      const t = (p - tStart) / (tEnd - tStart);
+      return Math.round((0.5 - 0.5 * Math.cos(t * Math.PI)) * 255);
+    };
+    if (horizontal) {
+      for (let yy = 0; yy < sh; yy++) {
+        const alpha = alphaAt(bandStart + yy);
+        const rowOff = yy * sw * 4;
+        for (let x = 0; x < sw; x++) data[rowOff + x * 4 + 3] = alpha;
+      }
+    } else {
+      for (let xx = 0; xx < sw; xx++) {
+        const alpha = alphaAt(bandStart + xx);
+        for (let yy = 0; yy < sh; yy++) data[(yy * sw + xx) * 4 + 3] = alpha;
+      }
+    }
     offCtx.putImageData(mask, 0, 0);
     offCtx.globalCompositeOperation = 'source-in';
-    offCtx.drawImage(await loadImage(framePath), 0, 0, cw, ch);
-    ctx.drawImage(offscreen, 0, 0);
+    // Draw the full frame shifted so the band aligns to the strip's origin.
+    const dx = horizontal ? 0 : -bandStart;
+    const dy = horizontal ? -bandStart : 0;
+    offCtx.drawImage(await loadImage(framePath), dx, dy, cw, ch);
+    ctx.drawImage(offscreen, horizontal ? 0 : bandStart, horizontal ? bandStart : 0);
   }
 }
 
