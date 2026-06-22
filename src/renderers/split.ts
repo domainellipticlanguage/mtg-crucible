@@ -1,11 +1,9 @@
-import { createCanvas, loadImage, type SKRSContext2D } from '@napi-rs/canvas';
-import * as fs from 'fs';
-import * as path from 'path';
+import type { Ctx } from '../platform';
+import { createCanvas, loadAssetImage } from '../platform';
 import type { NormalizedCardData } from '../types';
 import { drawArt, drawFrame, frameColorCode } from '../helpers';
 import { getParsedAbilities, formatTypeLine } from '../parser';
 import { SPLIT_RIGHT_LAYOUT, SPLIT_LEFT_LAYOUT } from '../layout';
-import { ASSETS_DIR } from '../assets-dir';
 import type { TemplateHooks } from './render';
 import { drawSingleLineAt, drawWrappedAt, drawRulesAndFlavorAt, drawNameAndMana, drawSetSymbolAt } from './element';
 
@@ -19,7 +17,7 @@ import { drawSingleLineAt, drawWrappedAt, drawRulesAndFlavorAt, drawNameAndMana,
  */
 
 async function renderSplitText(
-  ctx: SKRSContext2D,
+  ctx: Ctx,
   card: NormalizedCardData,
   L: typeof SPLIT_RIGHT_LAYOUT,
   cw: number, ch: number,
@@ -61,10 +59,9 @@ const splitBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
   // For non-fuse split, rect-clip is fine — the frame art has its own pinline at topH.
   const topH = Math.round(splitY);
   const isFuse = frameDir === 'fuse';
-  const fuseTopMask = path.join(ASSETS_DIR, 'masks', 'fuse-top.png');
-  const useFuseMask = isFuse && fs.existsSync(fuseTopMask);
+  const fuseTopMask = isFuse ? await loadAssetImage('masks/fuse-top.png') : null;
 
-  if (useFuseMask) {
+  if (fuseTopMask) {
     // Bottom half (card/left card) as full-canvas base
     const bottomCanvas = createCanvas(cw, ch);
     await drawFrame(bottomCanvas.getContext('2d'), frameDir, frontCodes, frontAccent, cw, ch, undefined, undefined,
@@ -77,7 +74,7 @@ const splitBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
       { horizontal: true, gradientRange: { start: 0, end: topH } });
     const masked = createCanvas(cw, ch);
     const mCtx = masked.getContext('2d');
-    mCtx.drawImage(await loadImage(fuseTopMask), 0, 0, cw, ch);
+    mCtx.drawImage(fuseTopMask, 0, 0, cw, ch);
     mCtx.globalCompositeOperation = 'source-in';
     mCtx.drawImage(topCanvas, 0, 0);
     ctx.drawImage(masked, 0, 0);

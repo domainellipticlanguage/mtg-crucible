@@ -1,7 +1,6 @@
-import { loadImage, type SKRSContext2D } from '@napi-rs/canvas';
-import * as path from 'path';
+import type { Ctx } from '../platform';
+import { loadAssetImage } from '../platform';
 import type { NormalizedCardData, SagaAbilities } from '../types';
-import { ASSETS_DIR } from '../assets-dir';
 import { drawWrappedText, fillTextHeavy, wrapParagraphs, computeHeight } from '../text';
 import { getParsedAbilities } from '../parser';
 
@@ -15,7 +14,7 @@ function romanNumeral(n: number): string {
   ][n] || String(n);
 }
 
-async function body(ctx: SKRSContext2D, card: NormalizedCardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
+async function body(ctx: Ctx, card: NormalizedCardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
   const pa = getParsedAbilities(card);
   const saga = pa.structuredAbilities as SagaAbilities;
   const chapters = saga.chapters;
@@ -60,8 +59,8 @@ async function body(ctx: SKRSContext2D, card: NormalizedCardData, L: Record<stri
   const scale = totalAvailableH / totalNatural;
   const chapterHeights = naturalHeights.map(h => h * scale);
 
-  const chapterImg = await loadImage(path.join(ASSETS_DIR, 'frames', 'saga', 'sagaChapter.png'));
-  const dividerImg = await loadImage(path.join(ASSETS_DIR, 'frames', 'saga', 'sagaDivider.png'));
+  const chapterImg = await loadAssetImage('frames/saga/sagaChapter.png');
+  const dividerImg = await loadAssetImage('frames/saga/sagaDivider.png');
 
   const chapterFontSize = ch * L.chapterFont;
   ctx.textAlign = 'center';
@@ -76,7 +75,7 @@ async function body(ctx: SKRSContext2D, card: NormalizedCardData, L: Record<stri
     const sagaW = L.saga.w * cw;
 
     // Divider line
-    ctx.drawImage(dividerImg, sagaX, abilityY - (L.divider.h * ch) / 2, sagaW, L.divider.h * ch);
+    if (dividerImg) ctx.drawImage(dividerImg, sagaX, abilityY - (L.divider.h * ch) / 2, sagaW, L.divider.h * ch);
 
     // Chapter numeral hex(es)
     const numX = sagaX + L.chapter.xOff * cw;
@@ -93,22 +92,22 @@ async function body(ctx: SKRSContext2D, card: NormalizedCardData, L: Record<stri
     ctx.fillStyle = 'black';
 
     if (chapCount === 1) {
-      ctx.drawImage(chapterImg, numX, numY, numW, numH);
+      if (chapterImg) ctx.drawImage(chapterImg, numX, numY, numW, numH);
       const label = romanNumeral(chapterNumbers[0]);
       fillTextHeavy(ctx, label, numTextX - ctx.measureText(label).width / 2, numTextY, 0.6);
     } else if (chapCount === 2) {
       const spread = L.chapterSpread * ch;
-      ctx.drawImage(chapterImg, numX, numY - spread, numW, numH);
-      ctx.drawImage(chapterImg, numX, numY + spread, numW, numH);
+      if (chapterImg) ctx.drawImage(chapterImg, numX, numY - spread, numW, numH);
+      if (chapterImg) ctx.drawImage(chapterImg, numX, numY + spread, numW, numH);
       const label0 = romanNumeral(chapterNumbers[0]);
       const label1 = romanNumeral(chapterNumbers[1]);
       fillTextHeavy(ctx, label0, numTextX - ctx.measureText(label0).width / 2, numTextY - spread, 0.6);
       fillTextHeavy(ctx, label1, numTextX - ctx.measureText(label1).width / 2, numTextY + spread, 0.6);
     } else if (chapCount === 3) {
       const spread = 2 * L.chapterSpread * ch;
-      ctx.drawImage(chapterImg, numX, numY - spread, numW, numH);
-      ctx.drawImage(chapterImg, numX, numY, numW, numH);
-      ctx.drawImage(chapterImg, numX, numY + spread, numW, numH);
+      if (chapterImg) ctx.drawImage(chapterImg, numX, numY - spread, numW, numH);
+      if (chapterImg) ctx.drawImage(chapterImg, numX, numY, numW, numH);
+      if (chapterImg) ctx.drawImage(chapterImg, numX, numY + spread, numW, numH);
       const label0 = romanNumeral(chapterNumbers[0]);
       const label1 = romanNumeral(chapterNumbers[1]);
       const label2 = romanNumeral(chapterNumbers[2]);

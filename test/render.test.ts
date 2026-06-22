@@ -1,83 +1,91 @@
 import { describe, it, expect } from 'vitest';
-import { renderCard } from '../src';
+import { renderCard, toDisplayCard, bytes } from '../src';
 import type { CardData } from '../src';
 
 // PNG magic bytes: 89 50 4E 47 0D 0A 1A 0A
-const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const PNG_MAGIC = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
-function pngDimensions(buf: Buffer): { width: number; height: number } {
+function startsWith(buf: Uint8Array, prefix: Uint8Array): boolean {
+  if (buf.length < prefix.length) return false;
+  for (let i = 0; i < prefix.length; i++) if (buf[i] !== prefix[i]) return false;
+  return true;
+}
+
+function pngDimensions(buf: Uint8Array): { width: number; height: number } {
   // Width at bytes 16-19, height at bytes 20-23 (big-endian uint32 in IHDR)
-  return {
-    width: buf.readUInt32BE(16),
-    height: buf.readUInt32BE(20),
-  };
+  const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+  return { width: view.getUint32(16), height: view.getUint32(20) };
 }
 
 describe('renderCard', () => {
-  it('renders a standard card as a valid PNG', async () => {
-    const { frontFace: buf } = await renderCard({
+  it('renders a standard card as a valid PNG Blob', async () => {
+    const { frontFace } = await renderCard({
       name: 'Lightning Bolt', manaCost: '{R}',
       typeLine: { supertypes: [], types: ['instant'], subtypes: [] },
       abilities: 'Lightning Bolt deals 3 damage to any target.',
       frameColor: 'red', rarity: 'uncommon',
     });
-    expect(Buffer.isBuffer(buf)).toBe(true);
-    expect(buf.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
+    expect(frontFace).toBeInstanceOf(Blob);
+    expect(frontFace.type).toBe('image/png');
+    const buf = await bytes(frontFace);
+    expect(startsWith(buf, PNG_MAGIC)).toBe(true);
     const { width, height } = pngDimensions(buf);
     expect(width).toBe(2010);
     expect(height).toBe(2814);
   });
 
   it('renders a creature with P/T', async () => {
-    const { frontFace: buf } = await renderCard({
+    const { frontFace } = await renderCard({
       name: 'Grizzly Bears', manaCost: '{1}{G}',
       typeLine: { supertypes: [], types: ['creature'], subtypes: ['Bear'] },
       power: '2', toughness: '2', frameColor: 'green', rarity: 'common',
     });
-    expect(buf.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
+    const buf = await bytes(frontFace);
+    expect(startsWith(buf, PNG_MAGIC)).toBe(true);
     expect(pngDimensions(buf)).toEqual({ width: 2010, height: 2814 });
   });
 
   it('renders a legendary creature with crown', async () => {
-    const { frontFace: buf } = await renderCard({
+    const { frontFace } = await renderCard({
       name: 'Questing Beast', manaCost: '{2}{G}{G}',
       typeLine: { supertypes: ['legendary'], types: ['creature'], subtypes: ['Beast'] },
       abilities: 'Vigilance, deathtouch, haste',
       power: '4', toughness: '4', frameColor: 'green', rarity: 'mythic',
     });
-    expect(buf.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
+    const buf = await bytes(frontFace);
+    expect(startsWith(buf, PNG_MAGIC)).toBe(true);
     expect(buf.length).toBeGreaterThan(10000);
   });
 
   it('renders a vehicle with white P/T text', async () => {
-    const { frontFace: buf } = await renderCard({
+    const { frontFace } = await renderCard({
       name: 'Smuggler\'s Copter', manaCost: '{2}',
       typeLine: { supertypes: [], types: ['artifact'], subtypes: ['Vehicle'] },
       abilities: 'Flying\nCrew 1',
       power: '3', toughness: '3', frameColor: 'vehicle', rarity: 'rare',
     });
-    expect(buf.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
+    expect(startsWith(await bytes(frontFace), PNG_MAGIC)).toBe(true);
   });
 
   it('renders rules text with inline mana symbols', async () => {
-    const { frontFace: buf } = await renderCard({
+    const { frontFace } = await renderCard({
       name: 'Sol Ring', manaCost: '{1}',
       typeLine: { supertypes: [], types: ['artifact'], subtypes: [] },
       abilities: '{T}: Add {C}{C}.',
       frameColor: 'artifact', rarity: 'uncommon',
     });
-    expect(buf.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
+    expect(startsWith(await bytes(frontFace), PNG_MAGIC)).toBe(true);
   });
 
   it('renders rules + flavor text with divider', async () => {
-    const { frontFace: buf } = await renderCard({
+    const { frontFace } = await renderCard({
       name: 'Lightning Bolt', manaCost: '{R}',
       typeLine: { supertypes: [], types: ['instant'], subtypes: [] },
       abilities: 'Lightning Bolt deals 3 damage to any target.',
       flavorText: '"The sparkmage shrieked."',
       frameColor: 'red', rarity: 'uncommon',
     });
-    expect(buf.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
+    expect(startsWith(await bytes(frontFace), PNG_MAGIC)).toBe(true);
   });
 
   it('renders a planeswalker as a valid PNG', async () => {
@@ -95,8 +103,8 @@ describe('renderCard', () => {
         ],
       } },
     };
-    const { frontFace: buf } = await renderCard(card);
-    expect(buf.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
+    const buf = await bytes((await renderCard(card)).frontFace);
+    expect(startsWith(buf, PNG_MAGIC)).toBe(true);
     expect(pngDimensions(buf)).toEqual({ width: 2010, height: 2814 });
   });
 
@@ -114,8 +122,8 @@ describe('renderCard', () => {
         ],
       } },
     };
-    const { frontFace: buf } = await renderCard(card);
-    expect(buf.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
+    const buf = await bytes((await renderCard(card)).frontFace);
+    expect(startsWith(buf, PNG_MAGIC)).toBe(true);
     expect(pngDimensions(buf)).toEqual({ width: 2010, height: 2814 });
   });
 
@@ -127,8 +135,8 @@ describe('renderCard', () => {
       frameColor: 'white', rarity: 'rare',
       battleDefense: '3',
     };
-    const { frontFace: buf } = await renderCard(card);
-    expect(buf.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
+    const buf = await bytes((await renderCard(card)).frontFace);
+    expect(startsWith(buf, PNG_MAGIC)).toBe(true);
     expect(pngDimensions(buf)).toEqual({ width: 2010, height: 2814 });
   });
 
@@ -148,33 +156,45 @@ describe('renderCard', () => {
       },
     };
     const result = await renderCard(card);
-    expect(result.frontFace.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
-    expect(pngDimensions(result.frontFace)).toEqual({ width: 2010, height: 2814 });
+    expect(startsWith(await bytes(result.frontFace), PNG_MAGIC)).toBe(true);
+    expect(pngDimensions(await bytes(result.frontFace))).toEqual({ width: 2010, height: 2814 });
     expect(result.frontFaceOrientation).toBe('horizontal');
     expect(result.backFace).toBeDefined();
-    expect(result.backFace!.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
-    expect(pngDimensions(result.backFace!)).toEqual({ width: 2010, height: 2814 });
+    expect(result.backFace).toBeInstanceOf(Blob);
+    expect(startsWith(await bytes(result.backFace!), PNG_MAGIC)).toBe(true);
+    expect(pngDimensions(await bytes(result.backFace!))).toEqual({ width: 2010, height: 2814 });
     expect(result.backFaceOrientation).toBe('vertical');
     expect(result.rotations).toEqual([{ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 90 }, { x: 0, y: 180, z: 0 }]);
   });
 
   it('renders a gold multicolor legendary', async () => {
-    const { frontFace: buf } = await renderCard({
+    const { frontFace } = await renderCard({
       name: 'Maelstrom Wanderer', manaCost: '{5}{U}{R}{G}',
       typeLine: { supertypes: ['legendary'], types: ['creature'], subtypes: ['Elemental'] },
       abilities: 'Creatures you control have haste.\nCascade, cascade',
       power: '7', toughness: '5', frameColor: 'multicolor', rarity: 'mythic',
     });
-    expect(buf.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
+    expect(startsWith(await bytes(frontFace), PNG_MAGIC)).toBe(true);
   });
 
   it('renders phyrexian mana in cost and rules', async () => {
-    const { frontFace: buf } = await renderCard({
+    const { frontFace } = await renderCard({
       name: 'Birthing Pod', manaCost: '{3}{G/P}',
       typeLine: { supertypes: [], types: ['artifact'], subtypes: [] },
       abilities: '{1}{G/P}, {T}, Sacrifice a creature: Search your library.',
       frameColor: 'artifact', rarity: 'rare',
     });
-    expect(buf.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
+    expect(startsWith(await bytes(frontFace), PNG_MAGIC)).toBe(true);
+  });
+
+  it('toDisplayCard derives data-URL strings from the Blob output', async () => {
+    const rendered = await renderCard({
+      name: 'Lightning Bolt', manaCost: '{R}',
+      typeLine: { supertypes: [], types: ['instant'], subtypes: [] },
+      frameColor: 'red', rarity: 'common',
+    });
+    const card = toDisplayCard(rendered);
+    expect(card.frontFaceImageUrl.startsWith('data:image/png;base64,')).toBe(true);
+    expect(card.frontFaceImageUrl.length).toBeGreaterThan(100);
   });
 });

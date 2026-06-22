@@ -1,4 +1,4 @@
-import { type SKRSContext2D } from '@napi-rs/canvas';
+import type { Ctx } from '../platform';
 import type { NormalizedCardData } from '../types';
 import { drawArt, drawFrame, frameColorCode } from '../helpers';
 import { getParsedAbilities, formatTypeLine } from '../parser';
@@ -13,7 +13,7 @@ import { drawSingleLineAt, drawWrappedAt, drawRulesAndFlavorAt, drawNameAndMana 
  */
 
 async function renderBottomText(
-  ctx: SKRSContext2D,
+  ctx: Ctx,
   card: NormalizedCardData,
   cw: number, ch: number,
 ) {

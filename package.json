@@ -1,17 +1,28 @@
 {
   "name": "mtg-crucible",
-  "version": "0.3.16",
-  "description": "TypeScript library for rendering custom Magic: The Gathering card images as PNGs",
+  "version": "0.4.0",
+  "description": "TypeScript library for rendering custom Magic: The Gathering card images, in Node and the browser",
   "repository": {
     "type": "git",
     "url": "https://github.com/domainellipticlanguage/mtg-crucible.git"
   },
   "main": "dist/index.js",
+  "browser": "dist/index.browser.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "browser": {
+        "types": "./dist/index.browser.d.ts",
+        "default": "./dist/index.browser.js"
+      },
+      "node": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "default": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
     },
     "./parser": {
       "types": "./dist/parser/index.d.ts",
@@ -28,7 +39,10 @@
   ],
   "scripts": {
     "test": "vitest",
-    "build": "rm -rf dist && tsc && tsc -p tsconfig.parser.json && tsc -p tsconfig.react.json",
+    "gen": "tsx scripts/gen-version.ts && tsx scripts/gen-symbol-manifest.ts",
+    "build": "rm -rf dist && npx tsx scripts/gen-version.ts && tsc && tsc -p tsconfig.parser.json && tsc -p tsconfig.react.json",
+    "build:check-browser": "npx tsx scripts/verify-browser-build.ts",
+    "example:browser": "esbuild examples/browser/main.ts --bundle --format=esm --outfile=examples/browser/main.js --platform=browser && npx tsx examples/browser/serve.ts",
     "build:parser": "tsc -p tsconfig.parser.json",
     "build:core": "tsc",
     "build:react": "tsc -p tsconfig.react.json",

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>mtg-crucible — browser smoke test</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #1a1a2e; color: #e0e0e0; padding: 2rem; }
+    #status { font-size: 1.1rem; font-weight: 600; padding: .5rem .75rem; border-radius: 6px; display: inline-block; }
+    #status.pass { background: #14532d; color: #d1fae5; }
+    #status.fail { background: #7f1d1d; color: #fee2e2; }
+    #card { width: 360px; max-width: 90vw; margin-top: 1.5rem; border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,.5); }
+    code { background: #16213e; padding: .1rem .35rem; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>mtg-crucible — browser smoke test</h1>
+  <p>Renders one card client-side and asserts a non-empty PNG <code>Blob</code>. Assets are
+     fetched on demand from jsDelivr (override with <code>setAssetBaseUrl</code>).</p>
+  <div id="status">Rendering…</div>
+  <br />
+  <img id="card" alt="rendered card" />
+  <!-- Build with: npm run example:browser  (bundles main.ts → main.js) -->
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-import type { SKRSContext2D } from '@napi-rs/canvas';
+import type { Ctx } from '../platform';
 import type { NormalizedCardData } from '../types';
 import { drawSingleLineText, measureRichText, drawRichLine } from '../text';
 import { drawManaCost } from '../helpers';

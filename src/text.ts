@@ -1,4 +1,4 @@
-import type { SKRSContext2D } from '@napi-rs/canvas';
+import type { Ctx } from './platform';
 export type RichToken = { type: 'text' | 'symbol'; value: string; italic?: boolean };
 import { FONT_HEIGHT_RATIO } from './layout';
 import { getManaSymbolSync } from './symbols';
@@ -37,7 +37,7 @@ function getEffectiveWidth(
 
 /** Wrap paragraphs at full width, then re-wrap any lines that actually collide with exclusion rects. */
 function wrapWithExclusions(
-  ctx: SKRSContext2D, paragraphs: string[], boxW: number, textSize: number,
+  ctx: Ctx, paragraphs: string[], boxW: number, textSize: number,
   boxX: number, boxY: number, exclusionRects: ExclusionRect[],
   paraSpacing: number,
 ): { text: string; paraStart: boolean; insideParens: boolean }[] {
@@ -63,7 +63,7 @@ function wrapWithExclusions(
   }, textSize, paraSpacing);
 }
 
-export function fillTextHeavy(ctx: SKRSContext2D, text: string, x: number, y: number, strokeWidth = 0.4): void {
+export function fillTextHeavy(ctx: Ctx, text: string, x: number, y: number, strokeWidth = 0.4): void {
   ctx.save();
   ctx.textAlign = 'left';
   ctx.strokeStyle = ctx.fillStyle as string;
@@ -117,7 +117,7 @@ export function tokenize(text: string, initialItalic = false): RichToken[] {
 const HYBRID_SCALE = 1.2;
 function isHybridSymbol(sym: string): boolean { return sym.includes('/'); }
 
-export function measureTokenWidth(ctx: SKRSContext2D, tokens: RichToken[], textSize: number): number {
+export function measureTokenWidth(ctx: Ctx, tokens: RichToken[], textSize: number): number {
   const baseSymbolSize = textSize * 0.78;
   const spacing = textSize * 0.06;
   let width = 0;
@@ -137,11 +137,11 @@ export function measureTokenWidth(ctx: SKRSContext2D, tokens: RichToken[], textS
   return width;
 }
 
-export function measureRichText(ctx: SKRSContext2D, text: string, textSize: number, initialItalic = false): number {
+export function measureRichText(ctx: Ctx, text: string, textSize: number, initialItalic = false): number {
   return measureTokenWidth(ctx, tokenize(text, initialItalic), textSize);
 }
 
-export function drawRichLine(ctx: SKRSContext2D, text: string, x: number, baselineY: number, textSize: number, strokeWidth = 0.4, initialItalic = false): void {
+export function drawRichLine(ctx: Ctx, text: string, x: number, baselineY: number, textSize: number, strokeWidth = 0.4, initialItalic = false): void {
   const tokens = tokenize(text, initialItalic);
   const baseSymbolSize = textSize * 0.78;
   const spacing = textSize * 0.03;
@@ -167,7 +167,7 @@ export function drawRichLine(ctx: SKRSContext2D, text: string, x: number, baseli
 }
 
 export function drawSingleLineText(
-  ctx: SKRSContext2D, text: string,
+  ctx: Ctx, text: string,
   x: number, y: number, w: number, h: number,
   font: string, size: number,
   align: 'left' | 'center' | 'right' = 'left',
@@ -192,7 +192,7 @@ export function drawSingleLineText(
 }
 
 export function wrapParagraphs(
-  ctx: SKRSContext2D, paragraphs: string[], maxWidth: number | ((yOffset: number) => number), textSize: number,
+  ctx: Ctx, paragraphs: string[], maxWidth: number | ((yOffset: number) => number), textSize: number,
   paraSpacing = 0,
 ): { text: string; paraStart: boolean; insideParens: boolean }[] {
   const getWidth = typeof maxWidth === 'function' ? maxWidth : () => maxWidth;
@@ -251,7 +251,7 @@ export function computeHeight(lines: { paraStart: boolean }[], textSize: number,
 
 /** Measure the height text would need at a given font size, without drawing. */
 export function measureWrappedHeight(
-  ctx: SKRSContext2D, text: string, maxWidth: number,
+  ctx: Ctx, text: string, maxWidth: number,
   font: string, textSize: number,
 ): number {
   ctx.font = `${textSize}px "${font}"`;
@@ -261,7 +261,7 @@ export function measureWrappedHeight(
 }
 
 export function drawWrappedText(
-  ctx: SKRSContext2D, text: string,
+  ctx: Ctx, text: string,
   boxX: number, boxY: number, boxW: number, boxH: number,
   font: string, startingSize: number,
   options: { fontFamily?: string; color?: string; exclusionRects?: ExclusionRect[] } = {},
@@ -306,7 +306,7 @@ export function drawWrappedText(
 }
 
 export function drawRulesAndFlavor(
-  ctx: SKRSContext2D,
+  ctx: Ctx,
   rulesText: string, flavorText: string,
   boxX: number, boxY: number, boxW: number, boxH: number,
   font: string, startingSize: number,

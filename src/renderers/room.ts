@@ -1,10 +1,8 @@
-import { createCanvas, loadImage, type SKRSContext2D } from '@napi-rs/canvas';
-import * as fs from 'fs';
-import * as path from 'path';
+import type { Ctx } from '../platform';
+import { createCanvas, loadAssetImage } from '../platform';
 import type { NormalizedCardData } from '../types';
 import { drawArt, drawFrame, frameColorCode } from '../helpers';
 import { getParsedAbilities, formatTypeLine } from '../parser';
-import { ASSETS_DIR } from '../assets-dir';
 import type { TemplateHooks, AnyLayout } from './render';
 import { drawSingleLineAt, drawWrappedAt, drawRulesAndFlavorAt, drawNameAndMana, drawSetSymbolAt } from './element';
 
@@ -17,7 +15,7 @@ import { drawSingleLineAt, drawWrappedAt, drawRulesAndFlavorAt, drawNameAndMana,
  */
 
 async function renderDoorText(
-  ctx: SKRSContext2D,
+  ctx: Ctx,
   card: NormalizedCardData,
   L: AnyLayout,
   cw: number, ch: number,
@@ -72,11 +70,11 @@ const roomBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
   // door1 (front, bottom half) is the base; door2 (back, top half) is masked on top.
   ctx.drawImage(door1Canvas, 0, 0);
 
-  const maskPath = path.join(ASSETS_DIR, 'masks', 'room-mask.png');
-  if (fs.existsSync(maskPath)) {
+  const roomMask = await loadAssetImage('masks/room-mask.png');
+  if (roomMask) {
     const masked = createCanvas(cw, ch);
     const mCtx = masked.getContext('2d');
-    mCtx.drawImage(await loadImage(maskPath), 0, 0, cw, ch);
+    mCtx.drawImage(roomMask, 0, 0, cw, ch);
     mCtx.globalCompositeOperation = 'source-in';
     mCtx.drawImage(door2Canvas, 0, 0);
     ctx.drawImage(masked, 0, 0);

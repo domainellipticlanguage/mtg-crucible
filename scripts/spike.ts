@@ -11,6 +11,11 @@ import { renderCard } from '../src';
 import type { CardData, RenderedCard } from '../src';
 
 const OUT = path.resolve(__dirname, '..', '.output', 'spike');
+
+/** renderCard now returns Blobs; write one to disk. */
+async function writeBlob(filePath: string, blob: Blob): Promise<void> {
+  fs.writeFileSync(filePath, Buffer.from(await blob.arrayBuffer()));
+}
 const args = process.argv.slice(2);
 const openFlag = args.includes('--open');
 const indices = args.filter(a => a !== '--open').map(Number).filter(n => !isNaN(n));
@@ -26,7 +31,7 @@ async function render(name: string, card: CardData | string): Promise<RenderedCa
   console.log(`${idx}. ${name}`);
   const result = await renderCard(card);
   const outPath = path.join(OUT, `${String(idx).padStart(2, '0')}-${name}.png`);
-  fs.writeFileSync(outPath, result.frontFace);
+  await writeBlob(outPath, result.frontFace);
   if (openFlag && ONLY) execSync(`open "${outPath}"`);
   return result;
 }
@@ -541,7 +546,7 @@ async function main() {
   });
   // Write back face too
   if (delver?.backFace) {
-    fs.writeFileSync(path.join(OUT, `${String(idx).padStart(2, '0')}-delver-back.png`), delver.backFace);
+    await writeBlob(path.join(OUT, `${String(idx).padStart(2, '0')}-delver-back.png`), delver.backFace);
   }
 
   // 40. Modal DFC — Emeria's Call // Emeria, Shattered Skyclave
@@ -560,7 +565,7 @@ async function main() {
     },
   });
   if (emeria?.backFace) {
-    fs.writeFileSync(path.join(OUT, `${String(idx).padStart(2, '0')}-emeria-back.png`), emeria.backFace);
+    await writeBlob(path.join(OUT, `${String(idx).padStart(2, '0')}-emeria-back.png`), emeria.backFace);
   }
 
   // 41. Multicolor Transform — Archangel Avacyn // Avacyn, the Purifier (gold pinlines)
@@ -582,7 +587,7 @@ async function main() {
     },
   });
   if (avacynTf?.backFace) {
-    fs.writeFileSync(path.join(OUT, `${String(idx).padStart(2, '0')}-avacyn-transform-back.png`), avacynTf.backFace);
+    await writeBlob(path.join(OUT, `${String(idx).padStart(2, '0')}-avacyn-transform-back.png`), avacynTf.backFace);
   }
 
   // 42. Multicolor MDFC — Shatterskull Smashing // Shatterskull, the Hammer Pass
@@ -601,7 +606,7 @@ async function main() {
     },
   });
   if (shatterskull?.backFace) {
-    fs.writeFileSync(path.join(OUT, `${String(idx).padStart(2, '0')}-shatterskull-back.png`), shatterskull.backFace);
+    await writeBlob(path.join(OUT, `${String(idx).padStart(2, '0')}-shatterskull-back.png`), shatterskull.backFace);
   }
 
   // 43. Split card — Fire // Ice

@@ -1,11 +1,9 @@
-import { createCanvas, loadImage, type SKRSContext2D } from '@napi-rs/canvas';
-import * as fs from 'fs';
-import * as path from 'path';
+import type { Ctx, CanvasImage } from '../platform';
+import { createCanvas, loadAssetImage } from '../platform';
 import type { NormalizedCardData } from '../types';
 import { drawSingleLineText, drawWrappedText } from '../text';
 import { frameColorCode, drawGradientFrames } from '../helpers';
 import { formatTypeLine } from '../parser';
-import { ASSETS_DIR } from '../assets-dir';
 import { drawNameAndMana } from './element';
 
 /**
@@ -14,9 +12,8 @@ import { drawNameAndMana } from './element';
  */
 let bookXFractionCache: { start: number; end: number } | null = null;
 
-async function bookXFraction(maskPath: string): Promise<{ start: number; end: number }> {
+function bookXFraction(img: CanvasImage): { start: number; end: number } {
   if (bookXFractionCache) return bookXFractionCache;
-  const img = await loadImage(maskPath);
   const c = createCanvas(img.width, img.height);
   const x = c.getContext('2d');
   x.drawImage(img, 0, 0);
@@ -47,16 +44,16 @@ async function bookXFraction(maskPath: string): Promise<{ start: number; end: nu
  * hybrid blends left→right *within* the book instead of across the whole card.
  */
 async function drawAdventureBookFrame(
-  ctx: SKRSContext2D, colorCodes: string[], cw: number, ch: number,
+  ctx: Ctx, colorCodes: string[], cw: number, ch: number,
 ): Promise<void> {
   if (colorCodes.length === 0) return;
-  const maskPath = path.join(ASSETS_DIR, 'frames', 'adventure', 'bookLeft.png');
-  if (!fs.existsSync(maskPath)) return;
+  const maskImg = await loadAssetImage('frames/adventure/bookLeft.png');
+  if (!maskImg) return;
 
   // Confine a multi-color blend to the book's horizontal span.
   let gradientRange: { start: number; end: number } | undefined;
   if (colorCodes.length > 1) {
-    const f = await bookXFraction(maskPath);
+    const f = bookXFraction(maskImg);
     gradientRange = { start: f.start * cw, end: f.end * cw };
   }
 
@@ -65,13 +62,13 @@ async function drawAdventureBookFrame(
 
   const clipped = createCanvas(cw, ch);
   const clipCtx = clipped.getContext('2d');
-  clipCtx.drawImage(await loadImage(maskPath), 0, 0, cw, ch);
+  clipCtx.drawImage(maskImg, 0, 0, cw, ch);
   clipCtx.globalCompositeOperation = 'source-in';
   clipCtx.drawImage(frameCanvas, 0, 0);
   ctx.drawImage(clipped, 0, 0);
 }
 
-async function body(ctx: SKRSContext2D, card: NormalizedCardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
+async function body(ctx: Ctx, card: NormalizedCardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
   const adv = card.linkedCard;
   if (!adv) return;
 

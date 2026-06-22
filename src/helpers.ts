@@ -1,12 +1,6 @@
-import { createCanvas, loadImage, GlobalFonts, ImageData, type SKRSContext2D } from '@napi-rs/canvas';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as dns from 'dns';
-import * as net from 'net';
-import https from 'https';
-import * as ipaddr from 'ipaddr.js';
-import type { CardData, NormalizedCardData, Color, FrameColor } from './types';
-import { ASSETS_DIR } from './assets-dir';
+import type { NormalizedCardData, Color, FrameColor } from './types';
+import type { Ctx, CtxImageData, CanvasImage } from './platform';
+import { createCanvas, loadAssetImage, loadImageBytes, loadArt, loadFont } from './platform';
 
 const FRAME_COLOR_CODES: Record<FrameColor, string> = {
   white: 'w', blue: 'u', black: 'b', red: 'r', green: 'g',
@@ -17,6 +11,9 @@ export function frameColorCode(fc: FrameColor | undefined): string {
   return fc ? FRAME_COLOR_CODES[fc] ?? 'c' : 'c';
 }
 
+function isBytes(v: unknown): v is Uint8Array {
+  return v instanceof Uint8Array;
+}
 
 /**
  * Create a sine-smoothed gradient alpha mask for one zone in a multi-zone gradient.
@@ -28,7 +25,7 @@ function createGradientMask(
   transitionFraction = 0.5,
   horizontal = false,
   gradientRange?: { start: number; end: number },
-): ImageData {
+): CtxImageData {
   const fullSpan = horizontal ? ch : cw;
   // If a sub-range is specified, compute gradient zones within that range
   const rangeStart = gradientRange?.start ?? 0;
@@ -74,24 +71,21 @@ function createGradientMask(
   return imgData;
 }
 
+/** Resolve a frame image, falling back to artifact for colorless when c.png doesn't exist. */
+async function resolveFrameImage(dir: string, code: string): Promise<CanvasImage | null> {
+  const primary = await loadAssetImage(`frames/${dir}/${code}.png`);
+  if (primary) return primary;
+  if (code === 'c') return loadAssetImage(`frames/${dir}/a.png`);
+  return null;
+}
+
 /**
  * Draw multiple frame colors with gradient blending.
  * colorCodes[0] is drawn as the base; each subsequent code is overlaid
  * through a sine-smoothed gradient mask.
  */
-/** Resolve a frame image path, falling back to artifact for colorless when c.png doesn't exist. */
-function resolveFramePath(dir: string, code: string): string | undefined {
-  const primary = path.join(ASSETS_DIR, 'frames', dir, `${code}.png`);
-  if (fs.existsSync(primary)) return primary;
-  if (code === 'c') {
-    const fallback = path.join(ASSETS_DIR, 'frames', dir, 'a.png');
-    if (fs.existsSync(fallback)) return fallback;
-  }
-  return undefined;
-}
-
 export async function drawGradientFrames(
-  ctx: SKRSContext2D,
+  ctx: Ctx,
   template: string | string[],
   colorCodes: string[],
   cw: number, ch: number,
@@ -104,9 +98,9 @@ export async function drawGradientFrames(
   const dirs = colorCodes.map((_, i) => rawDirs[i % rawDirs.length]);
 
   // Draw base frame
-  const basePath = resolveFramePath(dirs[0], colorCodes[0]);
-  if (basePath) {
-    ctx.drawImage(await loadImage(basePath), 0, 0, cw, ch);
+  const baseImg = await resolveFrameImage(dirs[0], colorCodes[0]);
+  if (baseImg) {
+    ctx.drawImage(baseImg, 0, 0, cw, ch);
   }
 
   const n = colorCodes.length;
@@ -128,8 +122,8 @@ export async function drawGradientFrames(
   // work ~O(cw·ch) total instead of O(n·cw·ch) — the alpha=0 left and the
   // overwritten alpha=255 right of every strip are skipped. Output is identical.
   for (let i = 1; i < n; i++) {
-    const framePath = resolveFramePath(dirs[i], colorCodes[i]);
-    if (!framePath) continue;
+    const frameImg = await resolveFrameImage(dirs[i], colorCodes[i]);
+    if (!frameImg) continue;
 
     const tStart = transStartOf(i);
     const tEnd = transEndOf(i);
@@ -171,7 +165,7 @@ export async function drawGradientFrames(
     // Draw the full frame shifted so the band aligns to the strip's origin.
     const dx = horizontal ? 0 : -bandStart;
     const dy = horizontal ? -bandStart : 0;
-    offCtx.drawImage(await loadImage(framePath), dx, dy, cw, ch);
+    offCtx.drawImage(frameImg, dx, dy, cw, ch);
     ctx.drawImage(offscreen, horizontal ? 0 : bandStart, horizontal ? bandStart : 0);
   }
 }
@@ -185,7 +179,7 @@ export async function drawGradientFrames(
  *   2. Overlay the base frame's border using the frame mask (e.g. land rocky border)
  */
 export async function drawFrame(
-  ctx: SKRSContext2D,
+  ctx: Ctx,
   template: string | string[],
   frameCodes: string[],
   accentCodes: string[] | undefined,
@@ -232,21 +226,20 @@ export async function drawFrame(
     // Overlay through each available mask region
     const allMasks = ['title', 'type', 'pinline', 'rules', 'pinline-textbox'];
     for (const maskName of allMasks) {
-      const maskPath = path.join(ASSETS_DIR, 'masks', `${maskTemplate}-${maskName}.png`);
-      if (!fs.existsSync(maskPath)) continue;
+      const maskImg = await loadAssetImage(`masks/${maskTemplate}-${maskName}.png`);
+      if (!maskImg) continue;
       const source = maskName === 'title' ? nameCanvas : maskName === 'type' ? typeCanvas : accentCanvas;
       const offscreen = createCanvas(cw, ch);
       const offCtx = offscreen.getContext('2d');
-      offCtx.drawImage(await loadImage(maskPath), 0, 0, cw, ch);
+      offCtx.drawImage(maskImg, 0, 0, cw, ch);
       offCtx.globalCompositeOperation = 'source-in';
       offCtx.drawImage(source, 0, 0);
       ctx.drawImage(offscreen, 0, 0);
     }
 
     // Overlay accent colors on banner (N-color vertical split)
-    const bannerPath = path.join(ASSETS_DIR, 'masks', `${maskTemplate}-banner.png`);
-    if (fs.existsSync(bannerPath)) {
-      const bannerMask = await loadImage(bannerPath);
+    const bannerMask = await loadAssetImage(`masks/${maskTemplate}-banner.png`);
+    if (bannerMask) {
       const n = accentCodes.length;
 
       // Find horizontal bounds of the banner mask
@@ -268,8 +261,8 @@ export async function drawFrame(
 
       for (let i = 0; i < n; i++) {
         const dirs = Array.isArray(template) ? template : accentCodes.map(() => template);
-        const framePath = resolveFramePath(dirs[i % dirs.length], accentCodes[i]);
-        if (!framePath) continue;
+        const frameImg = await resolveFrameImage(dirs[i % dirs.length], accentCodes[i]);
+        if (!frameImg) continue;
 
         const strip = createCanvas(cw, ch);
         const sCtx = strip.getContext('2d');
@@ -281,7 +274,7 @@ export async function drawFrame(
         sCtx.fillRect(minX + stripW * i, 0, stripW, ch);
         // Fill with color frame
         sCtx.globalCompositeOperation = 'source-in';
-        sCtx.drawImage(await loadImage(framePath), 0, 0, cw, ch);
+        sCtx.drawImage(frameImg, 0, 0, cw, ch);
 
         ctx.drawImage(strip, 0, 0);
       }
@@ -299,8 +292,8 @@ export async function drawFrame(
       overlays.push({ mask: 'type', codes: typeLineCodes });
     }
     // Cache pre-rendered canvases by codes key to avoid duplicating work
-    const canvasCache = new Map<string, typeof ctx>();
-    for (const { mask, codes } of overlays) {
+    const canvasCache = new Map<string, Ctx>();
+    for (const { codes } of overlays) {
       const key = codes.join();
       if (!canvasCache.has(key)) {
         const c = createCanvas(cw, ch);
@@ -309,12 +302,12 @@ export async function drawFrame(
       }
     }
     for (const { mask, codes } of overlays) {
-      const maskPath = path.join(ASSETS_DIR, 'masks', `${maskTemplate}-${mask}.png`);
-      if (!fs.existsSync(maskPath)) continue;
+      const maskImg = await loadAssetImage(`masks/${maskTemplate}-${mask}.png`);
+      if (!maskImg) continue;
       const srcCtx = canvasCache.get(codes.join())!;
       const offscreen = createCanvas(cw, ch);
       const offCtx = offscreen.getContext('2d');
-      offCtx.drawImage(await loadImage(maskPath), 0, 0, cw, ch);
+      offCtx.drawImage(maskImg, 0, 0, cw, ch);
       offCtx.globalCompositeOperation = 'source-in';
       offCtx.drawImage(srcCtx.canvas, 0, 0);
       ctx.drawImage(offscreen, 0, 0);
@@ -325,23 +318,23 @@ export async function drawFrame(
 /**
  * Draw gradient-blended crown assets for legendary cards with multi-color accents.
  * Same algorithm as drawGradientFrames but for crown images.
+ *
+ * `baseDir` is an asset path relative to the assets root (e.g. 'crowns' or
+ * 'crowns/transformFront').
  */
 export async function drawGradientCrowns(
-  ctx: SKRSContext2D,
+  ctx: Ctx,
   colorCodes: string[],
   x: number, y: number, w: number, h: number,
-  maskImg: any | null,
+  maskImg: CanvasImage | null,
   cw: number, ch: number,
-  baseDir?: string,
+  baseDir = 'crowns',
 ): Promise<void> {
   if (colorCodes.length === 0) return;
-  const crownDir = baseDir ?? path.join(ASSETS_DIR, 'crowns');
 
-  const drawCrown = async (crownCtx: SKRSContext2D, code: string) => {
-    const crownPath = path.join(crownDir, `${code}.png`);
-    if (fs.existsSync(crownPath)) {
-      crownCtx.drawImage(await loadImage(crownPath), x, y, w, h);
-    }
+  const drawCrown = async (crownCtx: Ctx, code: string) => {
+    const crownImg = await loadAssetImage(`${baseDir}/${code}.png`);
+    if (crownImg) crownCtx.drawImage(crownImg, x, y, w, h);
   };
 
   // Build composite crown on offscreen canvas
@@ -353,15 +346,15 @@ export async function drawGradientCrowns(
 
   // Overlay subsequent crowns through gradient masks
   for (let i = 1; i < colorCodes.length; i++) {
-    const crownPath = path.join(crownDir, `${colorCodes[i]}.png`);
-    if (!fs.existsSync(crownPath)) continue;
+    const crownImg = await loadAssetImage(`${baseDir}/${colorCodes[i]}.png`);
+    if (!crownImg) continue;
 
     const mask = createGradientMask(cw, ch, i, colorCodes.length);
     const offscreen = createCanvas(cw, ch);
     const offCtx = offscreen.getContext('2d');
     offCtx.putImageData(mask, 0, 0);
     offCtx.globalCompositeOperation = 'source-in';
-    offCtx.drawImage(await loadImage(crownPath), x, y, w, h);
+    offCtx.drawImage(crownImg, x, y, w, h);
     crownCtx.drawImage(offscreen, 0, 0);
   }
 
@@ -394,7 +387,7 @@ const COLOR_HEX: Record<Color, string> = {
  * Returns 0 if the card has no color indicator.
  */
 export function drawColorIndicator(
-  ctx: SKRSContext2D,
+  ctx: Ctx,
   colors: Color[] | undefined,
   x: number, y: number, h: number,
 ): number {
@@ -495,92 +488,32 @@ import { loadManaSymbol, parseManaString, preloadAllSymbols } from './symbols';
 
 let initialized = false;
 
-function registerFonts(): void {
-  GlobalFonts.registerFromPath(path.join(ASSETS_DIR, 'fonts', 'beleren-b.ttf'), 'Beleren Bold');
-  GlobalFonts.registerFromPath(path.join(ASSETS_DIR, 'fonts', 'beleren-bsc.ttf'), 'Beleren Bold SmCaps');
-  GlobalFonts.registerFromPath(path.join(ASSETS_DIR, 'fonts', 'mplantin.ttf'), 'MPlantin');
-  GlobalFonts.registerFromPath(path.join(ASSETS_DIR, 'fonts', 'mplantin-i.ttf'), 'MPlantin Italic');
+async function registerFonts(): Promise<void> {
+  await Promise.all([
+    loadFont('Beleren Bold', 'fonts/beleren-b.ttf'),
+    loadFont('Beleren Bold SmCaps', 'fonts/beleren-bsc.ttf'),
+    loadFont('MPlantin', 'fonts/mplantin.ttf'),
+    loadFont('MPlantin Italic', 'fonts/mplantin-i.ttf'),
+  ]);
 }
 
 export async function ensureInitialized(): Promise<void> {
   if (initialized) return;
-  registerFonts();
+  await registerFonts();
   await preloadAllSymbols();
   initialized = true;
 }
 
-function isUnsafeIp(ip: string): boolean {
-  try {
-    const range = ipaddr.parse(ip).range();
-    return range !== 'unicast';
-  } catch {
-    return true;
-  }
-}
-
-async function resolveHostnameSafe(hostname: string): Promise<void> {
-  // URL.hostname returns IPv6 addresses wrapped in brackets, e.g. "[::1]"
-  const bare = hostname.startsWith('[') && hostname.endsWith(']') ? hostname.slice(1, -1) : hostname;
-  if (net.isIP(bare)) {
-    if (isUnsafeIp(bare)) throw new Error(`Refusing to fetch unsafe IP: ${bare}`);
-    return;
-  }
-  const addrs = await dns.promises.lookup(bare, { all: true });
-  for (const a of addrs) {
-    if (isUnsafeIp(a.address)) {
-      throw new Error(`Hostname ${bare} resolves to unsafe IP: ${a.address}`);
-    }
-  }
-}
-
-export async function fetchBuffer(url: string, allowUnsafe = false): Promise<Buffer> {
-  // Support data URIs (always safe)
-  if (url.startsWith('data:')) {
-    const comma = url.indexOf(',');
-    if (comma === -1) throw new Error('Invalid data URI');
-    const isBase64 = url.slice(0, comma).includes(';base64');
-    const data = url.slice(comma + 1);
-    return Buffer.from(data, isBase64 ? 'base64' : 'utf-8');
-  }
-  // Local file paths and file:// URIs (gated by allowUnsafe)
-  if (url.startsWith('file://') || url.startsWith('/') || url.startsWith('./')) {
-    if (!allowUnsafe) throw new Error('Local file art URLs are disabled. Set allowUnsafeArtUrls: true to enable.');
-    const filePath = url.startsWith('file://') ? new URL(url).pathname : url;
-    return fs.promises.readFile(filePath);
-  }
-  // HTTP(S): check that the hostname doesn't resolve to a private/loopback/etc IP
-  if (!allowUnsafe) {
-    const { hostname } = new URL(url);
-    await resolveHostnameSafe(hostname);
-  }
-  const httpModule = url.startsWith('http://') ? require('http') : https;
-  return new Promise<Buffer>((resolve, reject) => {
-    httpModule.get(url, (res: any) => {
-      const status = res.statusCode ?? 0;
-      if (status >= 300 && status < 400 && res.headers.location) {
-        return fetchBuffer(res.headers.location, allowUnsafe).then(resolve, reject);
-      }
-      if (status < 200 || status >= 300) {
-        res.resume(); // drain
-        return reject(new Error(`HTTP ${status} ${res.statusMessage || ''}`.trim()));
-      }
-      const chunks: Buffer[] = [];
-      res.on('data', (chunk: Buffer) => chunks.push(chunk));
-      res.on('end', () => resolve(Buffer.concat(chunks)));
-      res.on('error', reject);
-    }).on('error', reject);
-  });
-}
-
 export async function drawArt(
-  ctx: SKRSContext2D, artUrl: string | Buffer,
+  ctx: Ctx, artUrl: string | Uint8Array,
   bounds: { x: number; y: number; w: number; h: number },
   cw: number, ch: number,
   options?: { rotate?: number; allowUnsafe?: boolean },
 ): Promise<void> {
   try {
-    const buf = Buffer.isBuffer(artUrl) ? artUrl : await fetchBuffer(artUrl, options?.allowUnsafe);
-    let img = await loadImage(buf);
+    let img = isBytes(artUrl)
+      ? await loadImageBytes(artUrl)
+      : await loadArt(artUrl, options?.allowUnsafe ?? false);
     // Rotate the image if requested (90 = CW, -90 = CCW)
     if (options?.rotate) {
       const rot = createCanvas(img.height, img.width);
@@ -593,7 +526,7 @@ export async function drawArt(
         rctx.rotate(-Math.PI / 2);
       }
       rctx.drawImage(img, 0, 0);
-      img = rot as any;
+      img = rot as unknown as CanvasImage;
     }
     const ax = bounds.x * cw, ay = bounds.y * ch, aw = bounds.w * cw, ah = bounds.h * ch;
     const artAspect = img.width / img.height;
@@ -604,12 +537,12 @@ export async function drawArt(
     ctx.drawImage(img, sx, sy, sw, sh, ax, ay, aw, ah);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    const src = Buffer.isBuffer(artUrl) ? `<Buffer ${artUrl.length}b>` : artUrl;
+    const src = isBytes(artUrl) ? `<bytes ${artUrl.length}b>` : artUrl;
     console.warn(`  Failed to load art from ${src}: ${msg}`);
   }
 }
 
-function drawSmallCaps(ctx: SKRSContext2D, text: string, x: number, y: number, fontSize: number, font: string): number {
+function drawSmallCaps(ctx: Ctx, text: string, x: number, y: number, fontSize: number, font: string): number {
   const smallSize = fontSize * 0.82;
   let cx = x;
   for (const ch of text) {
@@ -623,7 +556,7 @@ function drawSmallCaps(ctx: SKRSContext2D, text: string, x: number, y: number, f
   return cx - x;
 }
 
-export function drawCorners(ctx: SKRSContext2D, cw: number, ch: number, format: 'png' | 'jpeg' | 'webp' = 'png'): void {
+export function drawCorners(ctx: Ctx, cw: number, ch: number, format: 'png' | 'jpeg' | 'webp' = 'png'): void {
   const r = 0.048 * cw;
   const isJpeg = format === 'jpeg';
   ctx.globalCompositeOperation = isJpeg ? 'source-over' : 'destination-out';
@@ -636,13 +569,12 @@ export function drawCorners(ctx: SKRSContext2D, cw: number, ch: number, format: 
 }
 
 export async function drawSetSymbol(
-  ctx: SKRSContext2D, rarity: string,
+  ctx: Ctx, rarity: string,
   layout: { x: number; y: number; w: number; h: number },
   ch: number, cw: number,
 ): Promise<number> {
-  const setSymPath = path.join(ASSETS_DIR, 'symbols', 'set', `set-${rarity}.svg`);
-  if (!fs.existsSync(setSymPath)) return 0;
-  const setImg = await loadImage(setSymPath);
+  const setImg = await loadAssetImage(`symbols/set/set-${rarity}.svg`);
+  if (!setImg) return 0;
   const sh = layout.h * ch;
   const sw = sh * (setImg.width / setImg.height);
   const sx = layout.x * cw - sw;
@@ -651,7 +583,7 @@ export async function drawSetSymbol(
   return sw;
 }
 
-export async function drawBottomInfo(ctx: SKRSContext2D, card: Pick<NormalizedCardData, 'collectorNumber' | 'artist' | 'setCode' | 'designer'>, cw: number, ch: number): Promise<void> {
+export async function drawBottomInfo(ctx: Ctx, card: Pick<NormalizedCardData, 'collectorNumber' | 'artist' | 'setCode' | 'designer'>, cw: number, ch: number): Promise<void> {
   const fontSize = ch * 0.0143;
   const y1 = ch * 0.965;
   const y2 = y1 + fontSize * 1.4;
@@ -663,7 +595,7 @@ export async function drawBottomInfo(ctx: SKRSContext2D, card: Pick<NormalizedCa
   ctx.textBaseline = 'alphabetic';
   ctx.shadowColor = 'black'; ctx.shadowOffsetX = 1; ctx.shadowOffsetY = 1; ctx.shadowBlur = 2;
 
-  const set = (card.setCode || 'CRU * EN').replace(/\s*\*\s*/g, ' \u2022 ');
+  const set = (card.setCode || 'CRU * EN').replace(/\s*\*\s*/g, ' • ');
   const artist = card.artist || '';
   const brushPad = fontSize * 0.25;
   const setWidth = ctx.measureText(`${set} `).width;
@@ -677,17 +609,16 @@ export async function drawBottomInfo(ctx: SKRSContext2D, card: Pick<NormalizedCa
   const notForSaleX = cw * 0.21;
   ctx.fillText('Not For Sale', notForSaleX, y1);
   ctx.textAlign = 'right';
-  ctx.fillText(`\u2122 & \u00A9 ${new Date().getFullYear()} Wizards of the Coast`, rightX, y1);
+  ctx.fillText(`™ & © ${new Date().getFullYear()} Wizards of the Coast`, rightX, y1);
   ctx.textAlign = 'left';
 
   // Bottom line: set • lang + artist brush + artist (left), designer (right)
   ctx.fillText(`${set} `, leftX, y2);
   if (artist) {
-    try {
-      const brushPath = path.join(ASSETS_DIR, 'symbols', 'misc', 'artistbrush.svg');
-      const brushImg = await loadImage(brushPath);
+    const brushImg = await loadAssetImage('symbols/misc/artistbrush.svg');
+    if (brushImg) {
       ctx.drawImage(brushImg, leftX + setWidth + brushPad, y2 - brushHeight * 0.85, brushWidth, brushHeight);
-    } catch { /* skip icon if load fails */ }
+    }
     drawSmallCaps(ctx, artist, artistX, y2, fontSize, 'Beleren Bold');
     ctx.font = `${fontSize}px "MPlantin"`;
   }
@@ -719,7 +650,7 @@ export function measureManaCostWidth(manaStr: string, ch: number, manaSize: numb
 }
 
 export async function drawManaCost(
-  ctx: SKRSContext2D, manaStr: string,
+  ctx: Ctx, manaStr: string,
   cw: number, ch: number,
   manaLayout: { y: number; w: number; size: number; shadowX: number; shadowY: number },
 ): Promise<void> {

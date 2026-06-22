@@ -1,4 +1,4 @@
-import type { SKRSContext2D } from '@napi-rs/canvas';
+import type { Ctx } from '../platform';
 import type { Color } from '../types';
 import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor, type ExclusionRect } from '../text';
 import { drawManaCost, measureManaCostWidth, drawSetSymbol, drawColorIndicator } from '../helpers';
@@ -68,7 +68,7 @@ export function localDims(angle: number, cw: number, ch: number): { wDim: number
  * below instead of touching `placeElement` directly.
  */
 export function placeElement(
-  ctx: SKRSContext2D,
+  ctx: Ctx,
   el: LayoutElement,
   cw: number,
   ch: number,
@@ -95,7 +95,7 @@ export function placeElement(
  *  side of the available width — used by name fields that share their bar with
  *  the mana cost. */
 export function drawSingleLineAt(
-  ctx: SKRSContext2D,
+  ctx: Ctx,
   el: RectElement,
   cw: number,
   ch: number,
@@ -117,7 +117,7 @@ export function drawSingleLineAt(
 /** Type line inside an element box, with optional color-indicator dot rendered
  *  to the left and the type text shifted right to clear it. */
 export function drawTypeLineAt(
-  ctx: SKRSContext2D,
+  ctx: Ctx,
   el: RectElement,
   cw: number,
   ch: number,
@@ -140,7 +140,7 @@ export function drawTypeLineAt(
 /** Wrapped text inside an element box. `italic` switches to MPlantin Italic
  *  (used for flavor-only text). */
 export function drawWrappedAt(
-  ctx: SKRSContext2D,
+  ctx: Ctx,
   el: RectElement,
   cw: number,
   ch: number,
@@ -162,7 +162,7 @@ export function drawWrappedAt(
 
 /** Rules text with a flavor divider below. */
 export function drawRulesAndFlavorAt(
-  ctx: SKRSContext2D,
+  ctx: Ctx,
   el: RectElement,
   cw: number,
   ch: number,
@@ -204,7 +204,7 @@ const NAME_MANA_GAP = 0.0146;
  *   - rotated mana element:   right edge sits at the element's (x, y) anchor.
  */
 export async function drawNameAndMana(
-  ctx: SKRSContext2D,
+  ctx: Ctx,
   nameEl: RectElement,
   manaEl: ManaElement & { w?: number },
   cw: number,
@@ -246,7 +246,7 @@ export async function drawNameAndMana(
 
 /** Right-aligned mana cost at an anchor. */
 export async function drawManaCostAt(
-  ctx: SKRSContext2D,
+  ctx: Ctx,
   el: ManaElement,
   cw: number,
   ch: number,
@@ -261,7 +261,7 @@ export async function drawManaCostAt(
 
 /** Set symbol image at an anchor (right-edge x, vertical-center y). */
 export async function drawSetSymbolAt(
-  ctx: SKRSContext2D,
+  ctx: Ctx,
   el: SetSymbolElement,
   cw: number,
   ch: number,

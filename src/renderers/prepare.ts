@@ -1,33 +1,31 @@
-import { createCanvas, loadImage, type SKRSContext2D } from '@napi-rs/canvas';
-import * as fs from 'fs';
-import * as path from 'path';
+import type { Ctx } from '../platform';
+import { createCanvas, loadAssetImage } from '../platform';
 import type { NormalizedCardData } from '../types';
 import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor } from '../text';
 import { frameColorCode, drawGradientFrames } from '../helpers';
 import { formatTypeLine } from '../parser';
-import { ASSETS_DIR } from '../assets-dir';
 import { drawNameAndMana } from './element';
 
 /** Draw a prepare-dir frame in the given colors, clipped through a mask file, onto ctx. */
 async function drawMaskedPrepareFrame(
-  ctx: SKRSContext2D, colorCodes: string[], maskFilename: string, cw: number, ch: number,
+  ctx: Ctx, colorCodes: string[], maskFilename: string, cw: number, ch: number,
 ): Promise<void> {
   if (colorCodes.length === 0) return;
-  const maskPath = path.join(ASSETS_DIR, 'masks', maskFilename);
-  if (!fs.existsSync(maskPath)) return;
+  const maskImg = await loadAssetImage(`masks/${maskFilename}`);
+  if (!maskImg) return;
 
   const frameCanvas = createCanvas(cw, ch);
   await drawGradientFrames(frameCanvas.getContext('2d'), 'prepare', colorCodes, cw, ch);
 
   const clipped = createCanvas(cw, ch);
   const clipCtx = clipped.getContext('2d');
-  clipCtx.drawImage(await loadImage(maskPath), 0, 0, cw, ch);
+  clipCtx.drawImage(maskImg, 0, 0, cw, ch);
   clipCtx.globalCompositeOperation = 'source-in';
   clipCtx.drawImage(frameCanvas, 0, 0);
   ctx.drawImage(clipped, 0, 0);
 }
 
-async function body(ctx: SKRSContext2D, card: NormalizedCardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
+async function body(ctx: Ctx, card: NormalizedCardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
   const prep = card.linkedCard;
   if (!prep) return;
 

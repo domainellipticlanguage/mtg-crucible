@@ -187,7 +187,7 @@ export interface CardData {
   power?: string;
   toughness?: string;
 
-  artUrl?: string | Buffer;
+  artUrl?: string | Uint8Array;
   artDescription?: string;
 
   flavorText?: string;
@@ -230,7 +230,7 @@ export interface NormalizedCardData {
   power: string;
   toughness: string;
 
-  artUrl: string | Buffer;
+  artUrl: string | Uint8Array;
   artDescription: string;
 
   flavorText: string;
@@ -284,9 +284,11 @@ export interface RenderOptions {
 }
 
 export interface RenderedCard {
-  frontFace: Buffer;
+  /** The rendered front face, as a Blob with the correct image MIME type. */
+  frontFace: Blob;
   frontFaceOrientation: 'horizontal' | 'vertical';
-  backFace?: Buffer;
+  /** The rendered back face (for two-image multi-face cards), if any. */
+  backFace?: Blob;
   backFaceOrientation?: 'horizontal' | 'vertical';
   format: RenderFormat;
   normalizedCardData: NormalizedCardData;

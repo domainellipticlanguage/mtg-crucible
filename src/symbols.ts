@@ -1,56 +1,45 @@
-import { loadImage, type Image } from '@napi-rs/canvas';
-import * as fs from 'fs';
-import * as path from 'path';
-import { ASSETS_DIR } from './assets-dir';
+import type { CanvasImage } from './platform';
+import { loadAssetImage } from './platform';
+import { SYMBOL_MANIFEST, SYMBOL_PATHS } from './symbol-manifest';
 
-const manaCache = new Map<string, Image | null>();
-const symbolDir = path.join(ASSETS_DIR, 'symbols');
+const manaCache = new Map<string, CanvasImage | null>();
 
-/** Find an SVG by key, searching all subdirectories. */
-function findSymbolPath(key: string): string | null {
-  const dirs = fs.readdirSync(symbolDir, { withFileTypes: true })
-    .filter(d => d.isDirectory())
-    .map(d => d.name);
-  for (const dir of dirs) {
-    const p = path.join(symbolDir, dir, `${key}.svg`);
-    if (fs.existsSync(p)) return p;
-  }
-  // Fallback to flat (in case any stray files remain)
-  const flat = path.join(symbolDir, `${key}.svg`);
-  if (fs.existsSync(flat)) return flat;
-  return null;
+/** Resolve a normalized symbol key to its asset path via the static manifest. */
+function symbolPath(key: string): string | null {
+  return SYMBOL_MANIFEST[key] ?? null;
 }
 
-export async function loadManaSymbol(symbol: string): Promise<Image | null> {
-  const key = symbol.toLowerCase().replace(/\//g, '').replace(/∞|infinity/g, 'inf');
+function normalizeKey(symbol: string): string {
+  return symbol.toLowerCase().replace(/\//g, '').replace(/∞|infinity/g, 'inf');
+}
+
+export async function loadManaSymbol(symbol: string): Promise<CanvasImage | null> {
+  const key = normalizeKey(symbol);
   if (manaCache.has(key)) return manaCache.get(key)!;
-  const svgPath = findSymbolPath(key);
-  if (!svgPath) { manaCache.set(key, null); return null; }
-  const img = await loadImage(svgPath);
+  const rel = symbolPath(key);
+  if (!rel) { manaCache.set(key, null); return null; }
+  const img = await loadAssetImage(rel);
   manaCache.set(key, img);
   return img;
 }
 
-export function getManaSymbolSync(symbol: string): Image | null {
-  const key = symbol.toLowerCase().replace(/\//g, '').replace(/∞|infinity/g, 'inf');
-  return manaCache.get(key) ?? null;
+export function getManaSymbolSync(symbol: string): CanvasImage | null {
+  return manaCache.get(normalizeKey(symbol)) ?? null;
 }
 
+/**
+ * Warm the symbol cache so `getManaSymbolSync` (used while laying out rules text)
+ * can resolve inline mana symbols. There are only a few dozen small SVGs; they
+ * load in parallel and the browser's HTTP cache makes repeats free.
+ */
 export async function preloadAllSymbols(): Promise<void> {
-  const dirs = fs.readdirSync(symbolDir, { withFileTypes: true })
-    .filter(d => d.isDirectory())
-    .map(d => d.name);
-  for (const dir of dirs) {
-    const dirPath = path.join(symbolDir, dir);
-    const files = fs.readdirSync(dirPath).filter(f => f.endsWith('.svg'));
-    for (const f of files) {
-      const key = f.replace('.svg', '');
-      if (!manaCache.has(key)) {
-        const img = await loadImage(path.join(dirPath, f));
-        manaCache.set(key, img);
-      }
-    }
-  }
+  await Promise.all(
+    Object.entries(SYMBOL_MANIFEST).map(async ([key, rel]) => {
+      if (manaCache.has(key)) return;
+      manaCache.set(key, await loadAssetImage(rel));
+    }),
+  );
+  void SYMBOL_PATHS; // (kept exported for tooling/preload manifests)
 }
 
 export function parseManaString(mana: string): string[] {

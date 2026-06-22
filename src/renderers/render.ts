@@ -1,7 +1,6 @@
-import { createCanvas, loadImage, type SKRSContext2D, type Canvas } from '@napi-rs/canvas';
-import * as fs from 'fs';
-import * as path from 'path';
-import type { NormalizedCardData, TemplateName, RenderQuality, RenderFormat } from '../types';
+import type { Ctx, RenderCanvas } from '../platform';
+import { createCanvas, loadAssetImage, encode } from '../platform';
+import type { NormalizedCardData, RenderQuality, RenderFormat } from '../types';
 import {
   STD_W, STD_H, STD_LAYOUT,
   PW_W, PW_H, PW_LAYOUT, PW_TALL_LAYOUT,
@@ -22,7 +21,6 @@ import {
   OMEN_LAYOUT,
   ROOM_LAYOUT,
 } from '../layout';
-import { ASSETS_DIR } from '../assets-dir';
 import { getParsedAbilities, formatTypeLine } from '../parser';
 
 import {
@@ -52,8 +50,8 @@ import { roomHooks } from './room';
 export type AnyLayout = Record<string, any>;
 
 export interface TemplateHooks {
-  preFrame?: (ctx: SKRSContext2D, card: NormalizedCardData, layout: AnyLayout, cw: number, ch: number) => Promise<void>;
-  body?: (ctx: SKRSContext2D, card: NormalizedCardData, layout: AnyLayout, cw: number, ch: number) => Promise<void>;
+  preFrame?: (ctx: Ctx, card: NormalizedCardData, layout: AnyLayout, cw: number, ch: number) => Promise<void>;
+  body?: (ctx: Ctx, card: NormalizedCardData, layout: AnyLayout, cw: number, ch: number) => Promise<void>;
   /** If true, the hook handles ALL text rendering (name, type, mana, rules, P/T). */
   skipStandardText?: boolean;
   /** If true, the hook handles frame rendering. */
@@ -104,10 +102,10 @@ const QUALITY_SCALE: Record<RenderQuality, number> = {
 };
 
 function isDebug(): boolean {
-  return !!process.env.MTG_CRUCIBLE_DEBUG;
+  return typeof process !== 'undefined' && !!process.env?.MTG_CRUCIBLE_DEBUG;
 }
 
-export async function renderCardImage(card: NormalizedCardData, templateOverride?: string, quality: RenderQuality = 'high', format: RenderFormat = 'png', allowUnsafeArtUrls = false): Promise<Buffer> {
+export async function renderCardImage(card: NormalizedCardData, templateOverride?: string, quality: RenderQuality = 'high', format: RenderFormat = 'png', allowUnsafeArtUrls = false): Promise<Blob> {
   const templateKey = templateOverride ?? card.cardTemplate;
   const config = TEMPLATES[templateKey] ?? TEMPLATES.standard;
   // Shallow-clone the layout so hooks (notably preFrame) can mutate top-level
@@ -188,40 +186,39 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
   // Legend crown (planeswalkers use their own frame treatment)
   // Drawn after body hook so it sits above any body overlays (e.g. prepare pinline).
   if (L.crown && card.typeLine.supertypes.includes('legendary') && !templateKey.startsWith('planeswalker')) {
-    const crownBase = crownDir ? path.join(ASSETS_DIR, 'crowns', crownDir) : path.join(ASSETS_DIR, 'crowns');
-    const crownPath = path.join(crownBase, `${crownCodes[0]}.png`);
-    if (fs.existsSync(crownPath)) {
+    const crownBase = crownDir ? `crowns/${crownDir}` : 'crowns';
+    const crownImg = await loadAssetImage(`${crownBase}/${crownCodes[0]}.png`);
+    if (crownImg) {
       ctx.fillStyle = 'black';
       ctx.fillRect(0, 0, cw, (137 / 2814) * ch);
-      const maskPath = path.join(ASSETS_DIR, 'crowns', 'maskCrownPinline.png');
-      const maskImg = fs.existsSync(maskPath) ? await loadImage(maskPath) : null;
+      const maskImg = await loadAssetImage('crowns/maskCrownPinline.png');
       await drawGradientCrowns(ctx, crownCodes, L.crown.x * cw, L.crown.y * ch, L.crown.w * cw, L.crown.h * ch, maskImg, cw, ch, crownBase);
     }
   }
 
   // P/T box image — drawn after body hook so it sits above any body overlays (e.g. prepare panel)
   if (L.ptBox && card.power && card.toughness) {
-    const ptBase = ptDir ? path.join(ASSETS_DIR, 'pt', ptDir) : path.join(ASSETS_DIR, 'pt');
+    const ptBase = ptDir ? `pt/${ptDir}` : 'pt';
     const bx = L.ptBox.x * cw, by = L.ptBox.y * ch, bw = L.ptBox.w * cw, bh = L.ptBox.h * ch;
     if (ptBoxCodes.length === 1) {
-      const ptPath = path.join(ptBase, `${ptBoxCodes[0]}.png`);
-      if (fs.existsSync(ptPath)) {
-        ctx.drawImage(await loadImage(ptPath), bx, by, bw, bh);
+      const ptImg = await loadAssetImage(`${ptBase}/${ptBoxCodes[0]}.png`);
+      if (ptImg) {
+        ctx.drawImage(ptImg, bx, by, bw, bh);
       }
     } else {
       // Gradient blend: draw base, then overlay each subsequent color through a sine-smoothed mask
       const n = ptBoxCodes.length;
-      const basePtPath = path.join(ptBase, `${ptBoxCodes[0]}.png`);
-      if (fs.existsSync(basePtPath)) {
-        ctx.drawImage(await loadImage(basePtPath), bx, by, bw, bh);
+      const basePtImg = await loadAssetImage(`${ptBase}/${ptBoxCodes[0]}.png`);
+      if (basePtImg) {
+        ctx.drawImage(basePtImg, bx, by, bw, bh);
       }
       // The leftmost 39px of the 377px-wide PT asset is drop shadow — skip it when dividing zones
       const shadowFrac = 39 / 377;
       const contentStart = shadowFrac * bw;
       const contentW = bw - contentStart;
       for (let i = 1; i < n; i++) {
-        const ptPath = path.join(ptBase, `${ptBoxCodes[i]}.png`);
-        if (!fs.existsSync(ptPath)) continue;
+        const ptImg = await loadAssetImage(`${ptBase}/${ptBoxCodes[i]}.png`);
+        if (!ptImg) continue;
         // Boundary within the content area, offset by shadow
         const boundary = contentStart + (i / n) * contentW;
         const halfTrans = (contentW / n) * 0.5 * 0.5;
@@ -245,7 +242,7 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
         }
         offCtx.putImageData(imgData, 0, 0);
         offCtx.globalCompositeOperation = 'source-in';
-        offCtx.drawImage(await loadImage(ptPath), 0, 0, bw, bh);
+        offCtx.drawImage(ptImg, 0, 0, bw, bh);
         ctx.drawImage(offscreen, bx, by);
       }
     }
@@ -365,13 +362,11 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
 
 const WEBP_QUALITY: Record<RenderQuality, number> = { low: 60, medium: 70, high: 80 };
 
-function encodeCanvas(canvas: Canvas, format: RenderFormat, quality: RenderQuality): Buffer {
-  if (format === 'jpeg') return canvas.toBuffer('image/jpeg');
-  if (format === 'webp') return (canvas.toBuffer as any)('image/webp', WEBP_QUALITY[quality]);
-  return canvas.toBuffer('image/png');
+function encodeCanvas(canvas: RenderCanvas, format: RenderFormat, quality: RenderQuality): Promise<Blob> {
+  return encode(canvas, format, format === 'webp' ? WEBP_QUALITY[quality] : undefined);
 }
 
-function scaleOutput(source: Canvas, targetW: number, targetH: number, quality: RenderQuality, format: RenderFormat): Buffer {
+function scaleOutput(source: RenderCanvas, targetW: number, targetH: number, quality: RenderQuality, format: RenderFormat): Promise<Blob> {
   const scale = QUALITY_SCALE[quality];
   const outW = Math.round(targetW * scale);
   const outH = Math.round(targetH * scale);
@@ -379,7 +374,7 @@ function scaleOutput(source: Canvas, targetW: number, targetH: number, quality: 
     return encodeCanvas(source, format, quality);
   }
   // Step-down scaling: halve dimensions iteratively for much better resampling
-  let current: Canvas = source;
+  let current: RenderCanvas = source;
   while (current.width / 2 >= outW && current.height / 2 >= outH) {
     const halfW = Math.round(current.width / 2);
     const halfH = Math.round(current.height / 2);

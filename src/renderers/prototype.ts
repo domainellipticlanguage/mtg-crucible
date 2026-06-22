@@ -1,10 +1,7 @@
-import * as fs from 'fs';
-import * as path from 'path';
-import { loadImage, type SKRSContext2D } from '@napi-rs/canvas';
+import { loadAssetImage } from '../platform';
 import type { NormalizedCardData, PrototypeAbilities } from '../types';
 import { drawSingleLineText, drawWrappedText } from '../text';
 import { drawManaCost } from '../helpers';
-import { ASSETS_DIR } from '../assets-dir';
 import { getParsedAbilities } from '../parser';
 import type { TemplateHooks, AnyLayout } from './render';
 
@@ -43,9 +40,9 @@ const protoBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
     `pt${protoColor}.png`,
   ];
   for (const file of overlays) {
-    const p = path.join(ASSETS_DIR, 'frames', 'prototype', file);
-    if (fs.existsSync(p)) {
-      ctx.drawImage(await loadImage(p), 0, 0, cw, ch);
+    const img = await loadAssetImage(`frames/prototype/${file}`);
+    if (img) {
+      ctx.drawImage(img, 0, 0, cw, ch);
     }
   }
 

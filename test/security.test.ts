@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { fetchBuffer } from '../src/helpers';
+import { fetchBuffer } from '../src/platform/node';
 
 describe('fetchBuffer security', () => {
   describe('with allowUnsafe=false (default)', () => {

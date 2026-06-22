@@ -1,4 +1,4 @@
-import { type SKRSContext2D } from '@napi-rs/canvas';
+import type { Ctx } from '../platform';
 import type { NormalizedCardData, MutateAbilities } from '../types';
 import { drawWrappedText } from '../text';
 import { getParsedAbilities } from '../parser';

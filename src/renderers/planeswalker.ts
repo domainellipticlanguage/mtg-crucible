@@ -1,8 +1,6 @@
-import { loadImage, type SKRSContext2D } from '@napi-rs/canvas';
-import * as fs from 'fs';
-import * as path from 'path';
+import type { Ctx } from '../platform';
+import { loadAssetImage } from '../platform';
 import type { NormalizedCardData, PlaneswalkerAbilities } from '../types';
-import { ASSETS_DIR } from '../assets-dir';
 import { getParsedAbilities } from '../parser';
 
 /** Combine unstructured abilities (as cost-less entries) with loyalty abilities. */
@@ -20,7 +18,7 @@ import { drawSingleLineText, drawWrappedText, measureWrappedHeight } from '../te
  * Returns font size and the Y offset + height for each ability box.
  */
 function computeAbilityLayout(
-  ctx: SKRSContext2D, abilities: { cost: string; text: string }[],
+  ctx: Ctx, abilities: { cost: string; text: string }[],
   L: Record<string, any>, cw: number, ch: number,
 ): { fontSize: number; boxes: { y: number; h: number }[] } {
   const totalH = L.totalAbilityH * ch;
@@ -56,7 +54,7 @@ function computeAbilityLayout(
   return { fontSize: 8, boxes };
 }
 
-async function preFrame(ctx: SKRSContext2D, card: NormalizedCardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
+async function preFrame(ctx: Ctx, card: NormalizedCardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
   const abilities = getAllAbilities(card);
   const { boxes } = computeAbilityLayout(ctx, abilities, L, cw, ch);
 
@@ -71,26 +69,28 @@ async function preFrame(ctx: SKRSContext2D, card: NormalizedCardData, L: Record<
 
     // Ability line divider
     if (i > 0) {
-      const lineImg = i % 2 === 0
-        ? path.join(ASSETS_DIR, 'frames', 'planeswalker', 'abilityLineEven.png')
-        : path.join(ASSETS_DIR, 'frames', 'planeswalker', 'abilityLineOdd.png');
-      if (fs.existsSync(lineImg)) {
+      const lineImg = await loadAssetImage(
+        i % 2 === 0
+          ? 'frames/planeswalker/abilityLineEven.png'
+          : 'frames/planeswalker/abilityLineOdd.png',
+      );
+      if (lineImg) {
         const transH = ch * 0.0048;
-        ctx.drawImage(await loadImage(lineImg), x, boxes[i].y - transH, w, transH * 2);
+        ctx.drawImage(lineImg, x, boxes[i].y - transH, w, transH * 2);
       }
     }
   }
 }
 
-async function body(ctx: SKRSContext2D, card: NormalizedCardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
+async function body(ctx: Ctx, card: NormalizedCardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
   const abilities = getAllAbilities(card);
   const { fontSize, boxes } = computeAbilityLayout(ctx, abilities, L, cw, ch);
   const aw = L.ability.w * cw;
 
   // Loyalty cost icons — positioned at the vertical center of each box
-  const plusImg = await loadImage(path.join(ASSETS_DIR, 'frames', 'planeswalker', 'planeswalkerPlus.png'));
-  const minusImg = await loadImage(path.join(ASSETS_DIR, 'frames', 'planeswalker', 'planeswalkerMinus.png'));
-  const neutralImg = await loadImage(path.join(ASSETS_DIR, 'frames', 'planeswalker', 'planeswalkerNeutral.png'));
+  const plusImg = await loadAssetImage('frames/planeswalker/planeswalkerPlus.png');
+  const minusImg = await loadAssetImage('frames/planeswalker/planeswalkerMinus.png');
+  const neutralImg = await loadAssetImage('frames/planeswalker/planeswalkerNeutral.png');
 
   ctx.save();
   ctx.fillStyle = 'white';
@@ -104,15 +104,15 @@ async function body(ctx: SKRSContext2D, card: NormalizedCardData, L: Record<stri
 
     if (cost.includes('+')) {
       const ic = L.plusIcon;
-      ctx.drawImage(plusImg, ic.x * cw, iconY + ic.yOff * ch, ic.w * cw, ic.h * ch);
+      if (plusImg) ctx.drawImage(plusImg, ic.x * cw, iconY + ic.yOff * ch, ic.w * cw, ic.h * ch);
       ctx.fillText(cost, L.iconTextX * cw, iconY + 0.0172 * ch);
     } else if (cost.includes('-')) {
       const ic = L.minusIcon;
-      ctx.drawImage(minusImg, ic.x * cw, iconY + ic.yOff * ch, ic.w * cw, ic.h * ch);
+      if (minusImg) ctx.drawImage(minusImg, ic.x * cw, iconY + ic.yOff * ch, ic.w * cw, ic.h * ch);
       ctx.fillText(cost, L.iconTextX * cw, iconY + 0.0181 * ch);
     } else if (cost !== '') {
       const ic = L.neutralIcon;
-      ctx.drawImage(neutralImg, ic.x * cw, iconY + ic.yOff * ch, ic.w * cw, ic.h * ch);
+      if (neutralImg) ctx.drawImage(neutralImg, ic.x * cw, iconY + ic.yOff * ch, ic.w * cw, ic.h * ch);
       ctx.fillText(cost, L.iconTextX * cw, iconY + 0.0191 * ch);
     }
   }

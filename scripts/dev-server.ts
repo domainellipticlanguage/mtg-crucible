@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as esbuild from 'esbuild';
 import { renderCard, toDisplayCard, formatCard } from '../src';
 import { TEMPLATES } from '../src/renderers/render';
+import { clearAssetImageCache } from '../src/platform';
 import { createCanvas, loadImage } from '@napi-rs/canvas';
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
@@ -269,6 +270,10 @@ const server = http.createServer(async (req, res) => {
       ctx.drawImage(img, 0, 0, width, height);
       const png = canvas.toBuffer('image/png');
       await fs.promises.writeFile(pngPath, png);
+
+      // The render core caches decoded assets by path; drop it so the next
+      // render picks up the freshly-written mask.
+      clearAssetImageCache();
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ svgPath, pngPath }));

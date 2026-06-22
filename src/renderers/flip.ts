@@ -1,9 +1,6 @@
-import * as fs from 'fs';
-import * as path from 'path';
-import { loadImage } from '@napi-rs/canvas';
+import { loadAssetImage } from '../platform';
 import { frameColorCode } from '../helpers';
 import { formatTypeLine, getParsedAbilities } from '../parser';
-import { ASSETS_DIR } from '../assets-dir';
 import type { TemplateHooks } from './render';
 import { drawSingleLineAt, drawWrappedAt, drawRulesAndFlavorAt, drawTypeLineAt } from './element';
 
@@ -24,8 +21,8 @@ const flipBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
   // Draw flip PT image, clipping to only show boxes for sides that have P/T
   if ((hasPt1 || hasPt2) && L.flipPtBounds) {
     const fc = frameColorCode(card.frameColor[0]);
-    const ptImg = path.join(ASSETS_DIR, 'frames', 'flip', `${fc}pt.png`);
-    if (fs.existsSync(ptImg)) {
+    const ptImg = await loadAssetImage(`frames/flip/${fc}pt.png`);
+    if (ptImg) {
       const b = L.flipPtBounds;
       const midY = (b.y + b.h / 2) * ch;
       ctx.save();
@@ -38,7 +35,7 @@ const flipBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
         ctx.rect(b.x * cw, midY, b.w * cw, (b.y + b.h) * ch - midY);
       }
       ctx.clip();
-      ctx.drawImage(await loadImage(ptImg), b.x * cw, b.y * ch, b.w * cw, b.h * ch);
+      ctx.drawImage(ptImg, b.x * cw, b.y * ch, b.w * cw, b.h * ch);
       ctx.restore();
     }
   }

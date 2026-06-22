@@ -1,10 +1,8 @@
-import * as fs from 'fs';
-import * as path from 'path';
-import { loadImage, type SKRSContext2D } from '@napi-rs/canvas';
+import type { Ctx } from '../platform';
+import { loadAssetImage } from '../platform';
 import type { NormalizedCardData, LevelerAbilities } from '../types';
 import { drawSingleLineText, drawWrappedText } from '../text';
 import { frameColorCode } from '../helpers';
-import { ASSETS_DIR } from '../assets-dir';
 import { getParsedAbilities } from '../parser';
 import type { TemplateHooks, AnyLayout } from './render';
 
@@ -21,7 +19,7 @@ import type { TemplateHooks, AnyLayout } from './render';
  */
 
 /** Draw text at an exact font size, centered in a box. No auto-shrinking. Optional vertical squash. */
-function drawFixedText(ctx: SKRSContext2D, text: string, x: number, y: number, w: number, h: number, font: string, size: number, color = 'black', scaleY = 1) {
+function drawFixedText(ctx: Ctx, text: string, x: number, y: number, w: number, h: number, font: string, size: number, color = 'black', scaleY = 1) {
   ctx.font = `${size}px "${font}"`;
   ctx.fillStyle = color;
   ctx.textBaseline = 'alphabetic';
@@ -47,10 +45,10 @@ const levelerBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
 
   // PT box image (single image containing all 3 PT boxes)
   const fc = frameColorCode(card.frameColor[0]);
-  const ptPath = path.join(ASSETS_DIR, 'frames', 'leveler', 'pt', `${fc}.png`);
-  if (fs.existsSync(ptPath)) {
+  const ptImg = await loadAssetImage(`frames/leveler/pt/${fc}.png`);
+  if (ptImg) {
     const ptBounds = { x: 0.7574, y: 0.6415, w: 0.188, h: 0.2667 };
-    ctx.drawImage(await loadImage(ptPath), ptBounds.x * cw, ptBounds.y * ch, ptBounds.w * cw, ptBounds.h * ch);
+    ctx.drawImage(ptImg, ptBounds.x * cw, ptBounds.y * ch, ptBounds.w * cw, ptBounds.h * ch);
   }
 
   // Section 1: Level Up cost + rules

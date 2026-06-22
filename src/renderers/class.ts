@@ -1,15 +1,13 @@
-import { loadImage, type SKRSContext2D } from '@napi-rs/canvas';
-import * as fs from 'fs';
-import * as path from 'path';
+import type { Ctx } from '../platform';
+import { loadAssetImage } from '../platform';
 import type { NormalizedCardData, ClassAbilities } from '../types';
 import { FONT_HEIGHT_RATIO } from '../layout';
-import { ASSETS_DIR } from '../assets-dir';
 import { drawWrappedText, drawRichLine, wrapParagraphs, computeHeight } from '../text';
 import { getParsedAbilities } from '../parser';
 
 /** Measure how tall text would be at a given size without drawing. */
 function measureTextHeight(
-  ctx: SKRSContext2D,
+  ctx: Ctx,
   text: string, boxW: number, textSize: number, font = 'MPlantin',
 ): number {
   ctx.font = `${textSize}px "${font}"`;
@@ -18,14 +16,13 @@ function measureTextHeight(
   return computeHeight(lines, textSize, textSize * 0.35);
 }
 
-async function body(ctx: SKRSContext2D, card: NormalizedCardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
+async function body(ctx: Ctx, card: NormalizedCardData, L: Record<string, any>, cw: number, ch: number): Promise<void> {
   const pa = getParsedAbilities(card);
   const cls = pa.structuredAbilities as ClassAbilities;
   const classLevels = cls.classLevels;
 
   // Header divider image
-  const headerPath = path.join(ASSETS_DIR, 'frames', 'class', 'header.png');
-  const headerImg = fs.existsSync(headerPath) ? await loadImage(headerPath) : null;
+  const headerImg = await loadAssetImage('frames/class/header.png');
 
   // Layout constants — matching CardConjurer's packClass.js / versionClass.js
   const classX = 0.5014 * cw;

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parseCard, formatCard, toScryfallText, inferFrameEffect } from '../src/parser';
-import { renderCard, normalizeCard, parseTypeLine, formatTypeLine } from '../src';
+import { renderCard, normalizeCard, parseTypeLine, formatTypeLine, bytes } from '../src';
 
 describe('parseCard', () => {
   it('parses a simple instant', () => {
@@ -821,11 +821,12 @@ Deal 2 damage to any target.\r
       typeLine: { supertypes: [], types: ['instant'], subtypes: [] },
       abilities: 'Test card.',
     });
-    expect(frontFace).toBeInstanceOf(Buffer);
-    expect(frontFace.length).toBeGreaterThan(1000);
+    expect(frontFace).toBeInstanceOf(Blob);
+    const buf = await bytes(frontFace);
+    expect(buf.length).toBeGreaterThan(1000);
     // PNG magic bytes
-    expect(frontFace[0]).toBe(0x89);
-    expect(frontFace[1]).toBe(0x50);
+    expect(buf[0]).toBe(0x89);
+    expect(buf[1]).toBe(0x50);
   }, 30000);
 });
 
