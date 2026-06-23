@@ -5,8 +5,9 @@
  * platform — the environment entry points do that (src/index.ts for Node,
  * src/index.browser.ts for the browser) before re-exporting everything here.
  */
-import type { CardData, RenderedCard, RenderOptions } from './types';
+import type { CardData, RenderedCard, RenderOptions, RenderFormat } from './types';
 import type { MtgCardDisplayData } from './types';
+import { mimeForFormat } from './platform/types';
 import { ensureInitialized } from './helpers';
 import { renderCardImage } from './renderers/render';
 import { parseCard, normalizeCard, formatCard, computeRotations, resolveTemplate, toScryfallJson, toScryfallText } from './parser';
@@ -28,9 +29,9 @@ export const renderSaga = (card: CardData) => renderCardImage(normalizeCard(card
 export const renderBattle = (card: CardData) => renderCardImage(normalizeCard(card), 'battle');
 export const renderClass = (card: CardData) => renderCardImage(normalizeCard(card), 'class');
 
-/** Read a Blob's bytes. Handy for writing render output to disk / object storage. */
-export async function bytes(blob: Blob): Promise<Uint8Array> {
-  return new Uint8Array(await blob.arrayBuffer());
+/** Wrap raw render bytes in a `Blob` — handy in the browser (`URL.createObjectURL`, fetch body, …). */
+export function toBlob(data: Uint8Array, format: RenderFormat = 'png'): Blob {
+  return new Blob([data as unknown as BlobPart], { type: mimeForFormat(format) });
 }
 
 function base64FromBytes(buf: Uint8Array): string {
@@ -44,16 +45,9 @@ function base64FromBytes(buf: Uint8Array): string {
   return btoa(binary);
 }
 
-async function blobToDataUrl(blob: Blob): Promise<string> {
-  const buf = new Uint8Array(await blob.arrayBuffer());
-  return `data:${blob.type || 'image/png'};base64,${base64FromBytes(buf)}`;
+function toDataUrl(data: Uint8Array, format: RenderFormat): string {
+  return `data:${mimeForFormat(format)};base64,${base64FromBytes(data)}`;
 }
-
-// Blob bytes can't be read synchronously, but `toDisplayCard` is synchronous and
-// must keep emitting data-URL strings. `renderCard` precomputes the data URLs
-// (it's already async) and stashes them here, keyed by the RenderedCard it
-// returns, so `toDisplayCard` can read them without awaiting.
-const dataUrlCache = new WeakMap<RenderedCard, { front: string; back?: string }>();
 
 export async function renderCard(input: CardData | string, options?: RenderOptions): Promise<RenderedCard> {
   const card = typeof input === 'string' ? parseCard(input) : input;
@@ -92,7 +86,7 @@ export async function renderCard(input: CardData | string, options?: RenderOptio
   const frontTemplate = frontTemplateOverride ?? resolveTemplate(normalized);
   const frontFaceOrientation = frontTemplate === 'battle' ? 'horizontal' : 'vertical';
 
-  let backFace: Blob | undefined;
+  let backFace: Uint8Array | undefined;
   let backFaceOrientation: 'horizontal' | 'vertical' | undefined;
   // Adventure, split, fuse, and flip cards render both faces on one image — no separate back face
   const singleImageTypes = new Set(['adventure', 'split', 'fuse', 'flip', 'aftermath', 'prepare', 'omen', 'room']);
@@ -124,26 +118,13 @@ export async function renderCard(input: CardData | string, options?: RenderOptio
     crucibleText: formatCard(card),
   };
 
-  // Precompute data URLs so toDisplayCard can stay synchronous.
-  dataUrlCache.set(result, {
-    front: await blobToDataUrl(frontFace),
-    back: backFace ? await blobToDataUrl(backFace) : undefined,
-  });
-
   return result;
 }
 
 export function toDisplayCard(rendered: RenderedCard): MtgCardDisplayData {
-  const cached = dataUrlCache.get(rendered);
-  if (!cached) {
-    throw new Error(
-      'toDisplayCard: RenderedCard was not produced by renderCard (no cached image data). ' +
-        'Pass the object returned by renderCard directly.',
-    );
-  }
   return {
-    frontFaceImageUrl: cached.front,
-    backFaceImageUrl: cached.back,
+    frontFaceImageUrl: toDataUrl(rendered.frontFace, rendered.format),
+    backFaceImageUrl: rendered.backFace ? toDataUrl(rendered.backFace, rendered.format) : undefined,
     name: rendered.normalizedCardData.name ?? '',
     backFaceName: rendered.normalizedCardData.linkedCard?.name,
     rotations: rendered.rotations,

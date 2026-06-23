@@ -11,7 +11,6 @@ import https from 'https';
 import * as ipaddr from 'ipaddr.js';
 import { ASSETS_DIR } from '../assets-dir';
 import type { Platform, AssetData, CanvasImage, RenderCanvas } from './types';
-import { mimeForFormat } from './types';
 import type { RenderFormat } from '../types';
 
 function isUnsafeIp(ip: string): boolean {
@@ -105,9 +104,9 @@ export const nodePlatform: Platform = {
     return fs.promises.readFile(path.join(ASSETS_DIR, relativePath));
   },
 
-  async encode(canvas, format, quality): Promise<Blob> {
-    const buf = encodeCanvas(canvas, format, quality);
-    return new Blob([buf as unknown as BlobPart], { type: mimeForFormat(format) });
+  async encode(canvas, format, quality): Promise<Uint8Array> {
+    // napi's toBuffer returns a Node Buffer, which is a Uint8Array.
+    return encodeCanvas(canvas, format, quality);
   },
 };
 

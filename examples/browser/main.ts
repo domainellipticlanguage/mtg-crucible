@@ -2,7 +2,7 @@
  * Browser smoke test / example.
  *
  * Renders a single card entirely client-side and asserts the output is a
- * non-empty PNG Blob, then displays it. Bundle with:
+ * non-empty PNG byte array, then displays it. Bundle with:
  *
  *   npm run example:browser
  *
@@ -12,7 +12,7 @@
  * resolve the "browser" export condition automatically. Here we import the
  * in-repo browser entry directly so the example builds from source.
  */
-import { renderCard, toDisplayCard, bytes, setAssetBaseUrl } from '../../src/index.browser';
+import { renderCard, toDisplayCard, setAssetBaseUrl } from '../../src/index.browser';
 
 // Assets default to this package's files on jsDelivr (pinned to the installed
 // version). To self-host — or to run this example before the version is
@@ -47,15 +47,16 @@ Lightning Bolt deals 3 damage to any target.
     { format: 'png' },
   );
 
-  const buf = await bytes(rendered.frontFace);
+  const buf = rendered.frontFace; // Uint8Array
   const isPng = buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47;
-  const ok = rendered.frontFace instanceof Blob && buf.length > 1000 && isPng;
+  const ok = buf instanceof Uint8Array && buf.length > 1000 && isPng;
 
   // toDisplayCard still yields data-URL strings, in the browser too.
+  // (Or wrap the bytes yourself: URL.createObjectURL(toBlob(buf, rendered.format)).)
   imgEl.src = toDisplayCard(rendered).frontFaceImageUrl;
 
   finish(ok, ok
-    ? `PASS — rendered a ${rendered.frontFace.type} Blob of ${buf.length.toLocaleString()} bytes`
+    ? `PASS — rendered ${buf.length.toLocaleString()} bytes of ${rendered.format}`
     : 'FAIL — unexpected render output');
 }
 

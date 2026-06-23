@@ -4,8 +4,6 @@ A TypeScript library for rendering custom Magic: The Gathering card images. Runs
 
 Includes a react component for rendering resulting card images, complete with card rotations for double-faced cards, etc.
 
-> **Upgrading from 0.3.x?** `renderCard` now returns a `Blob` instead of a `Buffer` (uniform across Node and the browser). See [Migration: Buffer → Blob](#migration-buffer--blob).
-
 ## Installation
 
 ```bash
@@ -17,7 +15,7 @@ npm install mtg-crucible
 ### From text
 
 ```typescript
-import { renderCard, bytes } from 'mtg-crucible';
+import { renderCard } from 'mtg-crucible';
 import { writeFileSync } from 'fs';
 
 const result = await renderCard(`
@@ -29,14 +27,15 @@ Rarity: Mythic Rare
 Art URL: https://raw.githubusercontent.com/domainellipticlanguage/mtg-crucible/refs/heads/main/examples/crucible-art.png
 `);
 
-// result.frontFace is a Blob. Write it to disk:
-writeFileSync('crucible-of-legends.png', await bytes(result.frontFace));
+// result.frontFace is a Uint8Array — fs accepts it directly:
+writeFileSync('crucible-of-legends.png', result.frontFace);
 ```
 
 ### From structured data
 
 ```typescript
 import { renderCard } from 'mtg-crucible';
+import { writeFileSync } from 'fs';
 
 const result = await renderCard({
   name: 'Crucible of Legends',
@@ -48,78 +47,10 @@ const result = await renderCard({
   artUrl: 'https://raw.githubusercontent.com/domainellipticlanguage/mtg-crucible/refs/heads/main/examples/crucible-art.png',
 });
 
-writeFileSync('crucible-of-legends.png', Buffer.from(await result.frontFace.arrayBuffer()));
+writeFileSync('crucible-of-legends.png', result.frontFace);
 ```
 
 <img src="https://raw.githubusercontent.com/domainellipticlanguage/mtg-crucible/main/examples/crucible-of-legends.png" alt="Crucible of Legends" width="300">
-
-
-## Browser usage
-
-The **same package** renders cards client-side. Bundlers (Vite, webpack, esbuild, Next.js, …) automatically pick the browser build via the `"browser"` export condition — no extra config, and `@napi-rs/canvas` (a native addon) is never pulled into your bundle.
-
-```typescript
-import { renderCard, toDisplayCard } from 'mtg-crucible';
-
-const result = await renderCard({
-  name: 'Lightning Bolt',
-  manaCost: '{R}',
-  typeLine: 'Instant',
-  abilities: 'Lightning Bolt deals 3 damage to any target.',
-  rarity: 'common',
-});
-
-// result.frontFace is a Blob — show it directly:
-const url = URL.createObjectURL(result.frontFace);
-document.querySelector('img')!.src = url;
-
-// …or use toDisplayCard for a ready-to-render data URL (works with <MtgCard>):
-const display = toDisplayCard(result);
-document.querySelector('img')!.src = display.frontFaceImageUrl;
-```
-
-### Assets (`assetBaseUrl`)
-
-The browser build does **not** bundle the ~190 MB of frame assets. Frames, masks, symbols, and fonts are fetched **on demand** — only the ones a given card needs — and cached by the browser's HTTP cache. By default they come from this package's own assets on jsDelivr, pinned to the installed version:
-
-```
-https://cdn.jsdelivr.net/npm/mtg-crucible@<version>/assets/
-```
-
-To self-host the assets (the `assets/` folder is included in the npm package), override the base URL **before** your first `renderCard`:
-
-```typescript
-import { setAssetBaseUrl } from 'mtg-crucible';
-
-setAssetBaseUrl('https://your-cdn.example.com/mtg-crucible/assets/');
-```
-
-Notes:
-- Fonts are loaded with `FontFace` and awaited before any text is drawn.
-- Non-Chromium browsers may rasterize text slightly differently than the Node (`@napi-rs/canvas`) output; this is expected and acceptable.
-
-A runnable example lives in [`examples/browser/`](examples/browser/) — `npm run example:browser` builds it and serves it (with the repo's own assets) at <http://localhost:5173>.
-
-## Migration: Buffer → Blob
-
-As of **0.4.0**, `renderCard` returns a `Blob` (with the correct MIME type) instead of a Node `Buffer`, so the return type is uniform across Node and the browser. `Blob` is a global in Node 18+.
-
-To write render output to disk or object storage in Node, convert the `Blob` to bytes:
-
-```typescript
-import { renderCard, bytes } from 'mtg-crucible';
-import { writeFileSync } from 'fs';
-
-const { frontFace } = await renderCard(card);
-
-// Option A — the exported helper:
-writeFileSync('card.png', await bytes(frontFace));        // bytes(blob) => Uint8Array
-
-// Option B — plain Web APIs:
-writeFileSync('card.png', Buffer.from(await frontFace.arrayBuffer()));
-```
-
-`toDisplayCard(rendered)` is unchanged — it still returns data-URL strings in both environments, so `<MtgCard>` and any data-URL consumers keep working without modification.
 
 ## Supported Templates
 
@@ -145,16 +76,16 @@ Also supports Snow, Devoid, and Nyx borders, although currently only for Standar
 
 ### `renderCard(input: CardData | string, options?: RenderOptions): Promise<RenderedCard>`
 
-Parse and render a card. Accepts either a text-format string or a `CardData` object. Returns a `RenderedCard` with `frontFace` (a `Blob` with the correct image MIME type), optional `backFace` (also a `Blob`), orientation info, and rotation data for multi-face cards. The same call works in Node and the browser.
+Parse and render a card. Accepts either a text-format string or a `CardData` object. Returns a `RenderedCard` with `frontFace` (raw image bytes as a `Uint8Array`), optional `backFace` (also a `Uint8Array`), `format` (the image type), orientation info, and rotation data for multi-face cards. The same call works in Node and the browser.
 
 Options:
 - `quality` — `'high'` (2010x2814, default), `'medium'` (745x1040), or `'low'` (350x490)
 - `format` — `'png'` (default, lossless with transparency), `'jpeg'` (smaller, no transparency, white corners), or `'webp'` (smallest, with transparency)
 - `allowUnsafeArtUrls` — defaults to `false`. See [Security](#security) below.
 
-### `bytes(blob: Blob): Promise<Uint8Array>`
+### `toBlob(data: Uint8Array, format?: RenderFormat): Blob`
 
-Small helper to read a `Blob`'s raw bytes — handy for writing render output to disk or uploading to object storage in Node.
+Convenience for the browser: wrap render bytes in a `Blob` with the right MIME type (e.g. for `URL.createObjectURL` or a `fetch` upload body). `format` defaults to `'png'`; pass `result.format` to match the render.
 
 #### Output sizes
 
@@ -287,6 +218,69 @@ Projects built with Crucible:
 - **[Obsidian Custom MTG](https://github.com/domainellipticlanguage/obsidian-custom-mtg)** — an [Obsidian](https://obsidian.md) plugin for creating custom cards in plaintext in your vault.
 
 Built something with Crucible? Open a PR to add it here.
+
+
+## Browser usage
+
+### Install
+
+Same package, same install — there's nothing browser-specific to add:
+
+```bash
+npm install mtg-crucible
+```
+
+Bundlers (Vite, webpack, esbuild, Rollup, Parcel, Next.js, …) automatically pick the browser build via the package's `"browser"` export condition. If you'd rather not run a bundler at all, you can load it straight from an ESM CDN in a plain `<script type="module">`:
+
+```html
+<script type="module">
+  import { renderCard, toDisplayCard } from 'https://esm.sh/mtg-crucible';
+  // …
+</script>
+```
+
+### Render
+
+```typescript
+import { renderCard, toDisplayCard } from 'mtg-crucible';
+
+const result = await renderCard({...});
+
+// To display a card, use toDisplayCard — a ready-to-render data URL (also works with <MtgCard>):
+document.querySelector('img')!.src = toDisplayCard(result).frontFaceImageUrl;
+```
+
+`result.frontFace` is the raw bytes (`Uint8Array`). Reach for those when an API wants binary rather than a string — uploading (`fetch(url, { body })`, `FormData`), downloading (`<a download>`), or the clipboard. Wrap them in a `Blob` with `toBlob`:
+
+```typescript
+import { toBlob } from 'mtg-crucible';
+
+const blob = toBlob(result.frontFace, result.format);
+await fetch('/upload', { method: 'POST', body: blob });
+```
+
+### Assets (`assetBaseUrl`)
+
+The browser build does **not** bundle the ~190 MB of frame assets. Frames, masks, symbols, and fonts are fetched **on demand** — only the ones a given card needs — and cached by the browser's HTTP cache. By default they come from this package's own assets on jsDelivr, pinned to the installed version:
+
+```
+https://cdn.jsdelivr.net/npm/mtg-crucible@<version>/assets/
+```
+
+To self-host the assets (the `assets/` folder is included in the npm package), override the base URL **before** your first `renderCard`:
+
+```typescript
+import { setAssetBaseUrl } from 'mtg-crucible';
+
+setAssetBaseUrl('https://your-cdn.example.com/mtg-crucible/assets/');
+```
+
+Notes:
+- Fonts are loaded with `FontFace` and awaited before any text is drawn.
+- Non-Chromium browsers may rasterize text slightly differently than the Node (`@napi-rs/canvas`) output; this is expected and acceptable.
+
+A runnable example lives in [`examples/browser/`](examples/browser/) — `npm run example:browser` builds it and serves it (with the repo's own assets) at <http://localhost:5173>.
+
 
 ## Development
 

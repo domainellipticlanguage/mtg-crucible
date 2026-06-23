@@ -98,21 +98,25 @@ export const browserPlatform: Platform = {
     return assetBaseUrl + relativePath;
   },
 
-  async encode(canvas, format: RenderFormat, quality?: number): Promise<Blob> {
+  async encode(canvas, format: RenderFormat, quality?: number): Promise<Uint8Array> {
     const type = mimeForFormat(format);
+    const q = quality != null ? (quality > 1 ? quality / 100 : quality) : undefined;
     const c = canvas as unknown as OffscreenCanvas | HTMLCanvasElement;
     // OffscreenCanvas → convertToBlob; HTMLCanvasElement → toBlob.
+    let blob: Blob;
     if ('convertToBlob' in c) {
       const opts: ImageEncodeOptions = { type };
-      if (quality != null) opts.quality = quality > 1 ? quality / 100 : quality;
-      return c.convertToBlob(opts);
+      if (q != null) opts.quality = q;
+      blob = await c.convertToBlob(opts);
+    } else {
+      blob = await new Promise<Blob>((resolve, reject) => {
+        (c as HTMLCanvasElement).toBlob(
+          (b) => (b ? resolve(b) : reject(new Error('canvas.toBlob returned null'))),
+          type,
+          q,
+        );
+      });
     }
-    return await new Promise<Blob>((resolve, reject) => {
-      (c as HTMLCanvasElement).toBlob(
-        (blob) => (blob ? resolve(blob) : reject(new Error('canvas.toBlob returned null'))),
-        type,
-        quality != null ? (quality > 1 ? quality / 100 : quality) : undefined,
-      );
-    });
+    return new Uint8Array(await blob.arrayBuffer());
   },
 };

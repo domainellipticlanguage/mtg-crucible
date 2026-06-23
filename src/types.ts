@@ -284,11 +284,11 @@ export interface RenderOptions {
 }
 
 export interface RenderedCard {
-  /** The rendered front face, as a Blob with the correct image MIME type. */
-  frontFace: Blob;
+  /** The rendered front face as raw image bytes (PNG/JPEG/WebP per `format`). */
+  frontFace: Uint8Array;
   frontFaceOrientation: 'horizontal' | 'vertical';
   /** The rendered back face (for two-image multi-face cards), if any. */
-  backFace?: Blob;
+  backFace?: Uint8Array;
   backFaceOrientation?: 'horizontal' | 'vertical';
   format: RenderFormat;
   normalizedCardData: NormalizedCardData;

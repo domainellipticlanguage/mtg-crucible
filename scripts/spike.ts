@@ -12,9 +12,9 @@ import type { CardData, RenderedCard } from '../src';
 
 const OUT = path.resolve(__dirname, '..', '.output', 'spike');
 
-/** renderCard now returns Blobs; write one to disk. */
-async function writeBlob(filePath: string, blob: Blob): Promise<void> {
-  fs.writeFileSync(filePath, Buffer.from(await blob.arrayBuffer()));
+/** renderCard returns raw image bytes (Uint8Array) — write straight to disk. */
+function writeBlob(filePath: string, data: Uint8Array): void {
+  fs.writeFileSync(filePath, data);
 }
 const args = process.argv.slice(2);
 const openFlag = args.includes('--open');

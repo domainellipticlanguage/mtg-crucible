@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { renderCard, toDisplayCard, bytes } from '../src';
+import { renderCard, toDisplayCard } from '../src';
 import type { CardData } from '../src';
 
 // PNG magic bytes: 89 50 4E 47 0D 0A 1A 0A
@@ -18,16 +18,16 @@ function pngDimensions(buf: Uint8Array): { width: number; height: number } {
 }
 
 describe('renderCard', () => {
-  it('renders a standard card as a valid PNG Blob', async () => {
-    const { frontFace } = await renderCard({
+  it('renders a standard card as valid PNG bytes', async () => {
+    const result = await renderCard({
       name: 'Lightning Bolt', manaCost: '{R}',
       typeLine: { supertypes: [], types: ['instant'], subtypes: [] },
       abilities: 'Lightning Bolt deals 3 damage to any target.',
       frameColor: 'red', rarity: 'uncommon',
     });
-    expect(frontFace).toBeInstanceOf(Blob);
-    expect(frontFace.type).toBe('image/png');
-    const buf = await bytes(frontFace);
+    const buf = result.frontFace;
+    expect(buf).toBeInstanceOf(Uint8Array);
+    expect(result.format).toBe('png');
     expect(startsWith(buf, PNG_MAGIC)).toBe(true);
     const { width, height } = pngDimensions(buf);
     expect(width).toBe(2010);
@@ -40,7 +40,7 @@ describe('renderCard', () => {
       typeLine: { supertypes: [], types: ['creature'], subtypes: ['Bear'] },
       power: '2', toughness: '2', frameColor: 'green', rarity: 'common',
     });
-    const buf = await bytes(frontFace);
+    const buf = (frontFace);
     expect(startsWith(buf, PNG_MAGIC)).toBe(true);
     expect(pngDimensions(buf)).toEqual({ width: 2010, height: 2814 });
   });
@@ -52,7 +52,7 @@ describe('renderCard', () => {
       abilities: 'Vigilance, deathtouch, haste',
       power: '4', toughness: '4', frameColor: 'green', rarity: 'mythic',
     });
-    const buf = await bytes(frontFace);
+    const buf = (frontFace);
     expect(startsWith(buf, PNG_MAGIC)).toBe(true);
     expect(buf.length).toBeGreaterThan(10000);
   });
@@ -64,7 +64,7 @@ describe('renderCard', () => {
       abilities: 'Flying\nCrew 1',
       power: '3', toughness: '3', frameColor: 'vehicle', rarity: 'rare',
     });
-    expect(startsWith(await bytes(frontFace), PNG_MAGIC)).toBe(true);
+    expect(startsWith((frontFace), PNG_MAGIC)).toBe(true);
   });
 
   it('renders rules text with inline mana symbols', async () => {
@@ -74,7 +74,7 @@ describe('renderCard', () => {
       abilities: '{T}: Add {C}{C}.',
       frameColor: 'artifact', rarity: 'uncommon',
     });
-    expect(startsWith(await bytes(frontFace), PNG_MAGIC)).toBe(true);
+    expect(startsWith((frontFace), PNG_MAGIC)).toBe(true);
   });
 
   it('renders rules + flavor text with divider', async () => {
@@ -85,7 +85,7 @@ describe('renderCard', () => {
       flavorText: '"The sparkmage shrieked."',
       frameColor: 'red', rarity: 'uncommon',
     });
-    expect(startsWith(await bytes(frontFace), PNG_MAGIC)).toBe(true);
+    expect(startsWith((frontFace), PNG_MAGIC)).toBe(true);
   });
 
   it('renders a planeswalker as a valid PNG', async () => {
@@ -103,7 +103,7 @@ describe('renderCard', () => {
         ],
       } },
     };
-    const buf = await bytes((await renderCard(card)).frontFace);
+    const buf = ((await renderCard(card)).frontFace);
     expect(startsWith(buf, PNG_MAGIC)).toBe(true);
     expect(pngDimensions(buf)).toEqual({ width: 2010, height: 2814 });
   });
@@ -122,7 +122,7 @@ describe('renderCard', () => {
         ],
       } },
     };
-    const buf = await bytes((await renderCard(card)).frontFace);
+    const buf = ((await renderCard(card)).frontFace);
     expect(startsWith(buf, PNG_MAGIC)).toBe(true);
     expect(pngDimensions(buf)).toEqual({ width: 2010, height: 2814 });
   });
@@ -135,7 +135,7 @@ describe('renderCard', () => {
       frameColor: 'white', rarity: 'rare',
       battleDefense: '3',
     };
-    const buf = await bytes((await renderCard(card)).frontFace);
+    const buf = ((await renderCard(card)).frontFace);
     expect(startsWith(buf, PNG_MAGIC)).toBe(true);
     expect(pngDimensions(buf)).toEqual({ width: 2010, height: 2814 });
   });
@@ -156,13 +156,13 @@ describe('renderCard', () => {
       },
     };
     const result = await renderCard(card);
-    expect(startsWith(await bytes(result.frontFace), PNG_MAGIC)).toBe(true);
-    expect(pngDimensions(await bytes(result.frontFace))).toEqual({ width: 2010, height: 2814 });
+    expect(startsWith((result.frontFace), PNG_MAGIC)).toBe(true);
+    expect(pngDimensions((result.frontFace))).toEqual({ width: 2010, height: 2814 });
     expect(result.frontFaceOrientation).toBe('horizontal');
     expect(result.backFace).toBeDefined();
-    expect(result.backFace).toBeInstanceOf(Blob);
-    expect(startsWith(await bytes(result.backFace!), PNG_MAGIC)).toBe(true);
-    expect(pngDimensions(await bytes(result.backFace!))).toEqual({ width: 2010, height: 2814 });
+    expect(result.backFace).toBeInstanceOf(Uint8Array);
+    expect(startsWith((result.backFace!), PNG_MAGIC)).toBe(true);
+    expect(pngDimensions((result.backFace!))).toEqual({ width: 2010, height: 2814 });
     expect(result.backFaceOrientation).toBe('vertical');
     expect(result.rotations).toEqual([{ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 90 }, { x: 0, y: 180, z: 0 }]);
   });
@@ -174,7 +174,7 @@ describe('renderCard', () => {
       abilities: 'Creatures you control have haste.\nCascade, cascade',
       power: '7', toughness: '5', frameColor: 'multicolor', rarity: 'mythic',
     });
-    expect(startsWith(await bytes(frontFace), PNG_MAGIC)).toBe(true);
+    expect(startsWith((frontFace), PNG_MAGIC)).toBe(true);
   });
 
   it('renders phyrexian mana in cost and rules', async () => {
@@ -184,7 +184,7 @@ describe('renderCard', () => {
       abilities: '{1}{G/P}, {T}, Sacrifice a creature: Search your library.',
       frameColor: 'artifact', rarity: 'rare',
     });
-    expect(startsWith(await bytes(frontFace), PNG_MAGIC)).toBe(true);
+    expect(startsWith((frontFace), PNG_MAGIC)).toBe(true);
   });
 
   it('toDisplayCard derives data-URL strings from the Blob output', async () => {

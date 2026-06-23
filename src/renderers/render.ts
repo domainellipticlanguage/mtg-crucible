@@ -105,7 +105,7 @@ function isDebug(): boolean {
   return typeof process !== 'undefined' && !!process.env?.MTG_CRUCIBLE_DEBUG;
 }
 
-export async function renderCardImage(card: NormalizedCardData, templateOverride?: string, quality: RenderQuality = 'high', format: RenderFormat = 'png', allowUnsafeArtUrls = false): Promise<Blob> {
+export async function renderCardImage(card: NormalizedCardData, templateOverride?: string, quality: RenderQuality = 'high', format: RenderFormat = 'png', allowUnsafeArtUrls = false): Promise<Uint8Array> {
   const templateKey = templateOverride ?? card.cardTemplate;
   const config = TEMPLATES[templateKey] ?? TEMPLATES.standard;
   // Shallow-clone the layout so hooks (notably preFrame) can mutate top-level
@@ -362,11 +362,11 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
 
 const WEBP_QUALITY: Record<RenderQuality, number> = { low: 60, medium: 70, high: 80 };
 
-function encodeCanvas(canvas: RenderCanvas, format: RenderFormat, quality: RenderQuality): Promise<Blob> {
+function encodeCanvas(canvas: RenderCanvas, format: RenderFormat, quality: RenderQuality): Promise<Uint8Array> {
   return encode(canvas, format, format === 'webp' ? WEBP_QUALITY[quality] : undefined);
 }
 
-function scaleOutput(source: RenderCanvas, targetW: number, targetH: number, quality: RenderQuality, format: RenderFormat): Promise<Blob> {
+function scaleOutput(source: RenderCanvas, targetW: number, targetH: number, quality: RenderQuality, format: RenderFormat): Promise<Uint8Array> {
   const scale = QUALITY_SCALE[quality];
   const outW = Math.round(targetW * scale);
   const outH = Math.round(targetH * scale);

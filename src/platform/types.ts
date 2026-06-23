@@ -57,8 +57,8 @@ export interface Platform {
    */
   readAsset(relativePath: string): Promise<AssetData>;
 
-  /** Encode a canvas to a Blob with the correct MIME type. */
-  encode(canvas: RenderCanvas, format: RenderFormat, quality?: number): Promise<Blob>;
+  /** Encode a canvas to raw image bytes. */
+  encode(canvas: RenderCanvas, format: RenderFormat, quality?: number): Promise<Uint8Array>;
 }
 
 /** MIME type for a render format. */

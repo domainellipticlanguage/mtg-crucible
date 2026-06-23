@@ -50,7 +50,7 @@ export function readAsset(relativePath: string): Promise<AssetData> {
   return getPlatform().readAsset(relativePath);
 }
 
-export function encode(canvas: RenderCanvas, format: RenderFormat, quality?: number): Promise<Blob> {
+export function encode(canvas: RenderCanvas, format: RenderFormat, quality?: number): Promise<Uint8Array> {
   return getPlatform().encode(canvas, format, quality);
 }
 
