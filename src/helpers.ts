@@ -484,7 +484,7 @@ export function drawColorIndicator(
   return diameter + h * 0.15; // circle width + gap
 }
 
-import { loadManaSymbol, parseManaString, preloadAllSymbols } from './symbols';
+import { loadManaSymbol, parseManaString } from './symbols';
 
 let initialized = false;
 
@@ -497,10 +497,12 @@ async function registerFonts(): Promise<void> {
   ]);
 }
 
+// One-time global setup (fonts). Symbols are warmed per-card by the renderer via
+// collectSymbolKeys/preloadSymbols, so we no longer eagerly load the whole symbol
+// manifest here.
 export async function ensureInitialized(): Promise<void> {
   if (initialized) return;
   await registerFonts();
-  await preloadAllSymbols();
   initialized = true;
 }
 

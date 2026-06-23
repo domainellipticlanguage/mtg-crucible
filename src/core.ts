@@ -8,7 +8,6 @@
 import type { CardData, RenderedCard, RenderOptions, RenderFormat } from './types';
 import type { MtgCardDisplayData } from './types';
 import { mimeForFormat } from './platform/types';
-import { ensureInitialized } from './helpers';
 import { renderCardImage } from './renderers/render';
 import { parseCard, normalizeCard, formatCard, computeRotations, resolveTemplate, toScryfallJson, toScryfallText } from './parser';
 
@@ -56,7 +55,8 @@ export async function renderCard(input: CardData | string, options?: RenderOptio
   const format = options?.format ?? 'png';
   const allowUnsafeArtUrls = options?.allowUnsafeArtUrls ?? false;
 
-  await ensureInitialized();
+  // Note: font/symbol warm-up happens inside renderCardImage (per face), so it
+  // covers every render entry point, not just this one.
 
   // Determine DFC template overrides based on linkType.
   // Only override front template for standard cards — non-standard templates

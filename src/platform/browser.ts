@@ -17,12 +17,16 @@ import { mimeForFormat } from './types';
 import type { RenderFormat } from '../types';
 import { VERSION } from '../version';
 
-let assetBaseUrl = `https://cdn.jsdelivr.net/npm/mtg-crucible@${VERSION}/assets/`;
+// Assets are served from the GitHub repo via jsDelivr, pinned to this release's
+// tag. We deliberately do NOT use jsDelivr's npm mirror: the published package
+// exceeds jsDelivr's per-package size limit (~150 MB with the frame assets) and
+// returns 403. The gh source has no such limit and sends permissive CORS.
+let assetBaseUrl = `https://cdn.jsdelivr.net/gh/domainellipticlanguage/mtg-crucible@v${VERSION}/assets/`;
 
 /**
  * Override the base URL that frame/mask/symbol/font assets are fetched from.
  * Useful for self-hosting. A trailing slash is added if missing. Defaults to
- * this package's assets on jsDelivr, pinned to the installed version.
+ * this package's assets on jsDelivr (GitHub source), pinned to the release tag.
  */
 export function setAssetBaseUrl(url: string): void {
   assetBaseUrl = url.endsWith('/') ? url : url + '/';

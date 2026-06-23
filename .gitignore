@@ -7,3 +7,6 @@ dist
 CLAUDE.md
 TODO.md
 examples/browser/main.js
+# local-only test scaffolding (esbuild bundles + a throwaway test page)
+_local
+index.local.html

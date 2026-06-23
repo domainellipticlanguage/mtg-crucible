@@ -27,7 +27,9 @@ import {
   drawArt, drawCorners, drawSetSymbol, drawBottomInfo,
   frameColorCode,
   drawColorIndicator, drawFrame, drawGradientCrowns,
+  ensureInitialized,
 } from '../helpers';
+import { collectSymbolKeys, preloadSymbols } from '../symbols';
 import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor, type ExclusionRect } from '../text';
 import { drawNameAndMana } from './element';
 import { planeswalkerHooks } from './planeswalker';
@@ -106,6 +108,12 @@ function isDebug(): boolean {
 }
 
 export async function renderCardImage(card: NormalizedCardData, templateOverride?: string, quality: RenderQuality = 'high', format: RenderFormat = 'png', allowUnsafeArtUrls = false): Promise<Uint8Array> {
+  // Register fonts once, then warm only the symbols this card actually uses so the
+  // synchronous rules-text layout can resolve them. Covers every render entry
+  // point (renderCard, the individual renderers, and back-face renders).
+  await ensureInitialized();
+  await preloadSymbols(collectSymbolKeys(card));
+
   const templateKey = templateOverride ?? card.cardTemplate;
   const config = TEMPLATES[templateKey] ?? TEMPLATES.standard;
   // Shallow-clone the layout so hooks (notably preFrame) can mutate top-level

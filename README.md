@@ -261,11 +261,18 @@ await fetch('/upload', { method: 'POST', body: blob });
 
 ### Assets (`assetBaseUrl`)
 
-The browser build does **not** bundle the ~190 MB of frame assets. Frames, masks, symbols, and fonts are fetched **on demand** — only the ones a given card needs — and cached by the browser's HTTP cache. By default they come from this package's own assets on jsDelivr, pinned to the installed version:
+The browser build does **not** bundle the ~190 MB of frame assets. Frames, masks, symbols, and fonts are fetched **on demand** — only the ones a given card needs — and cached by the browser's HTTP cache. By default they come from the GitHub repo via jsDelivr, pinned to the release tag:
 
 ```
-https://cdn.jsdelivr.net/npm/mtg-crucible@<version>/assets/
+https://cdn.jsdelivr.net/gh/domainellipticlanguage/mtg-crucible@v<version>/assets/
 ```
+
+> **Why the GitHub source, not jsDelivr's npm mirror?** jsDelivr rejects packages
+> over ~150 MB, and this package's frame assets push it past that — the npm path
+> (`/npm/mtg-crucible@<version>/assets/`) returns **403**. The `gh` source has no
+> such limit and serves the same files with permissive CORS. (unpkg serves them
+> too, but rate-limits the burst of symbol requests on first render.) This is the
+> recommended base URL.
 
 To self-host the assets (the `assets/` folder is included in the npm package), override the base URL **before** your first `renderCard`:
 
@@ -276,6 +283,7 @@ setAssetBaseUrl('https://your-cdn.example.com/mtg-crucible/assets/');
 ```
 
 Notes:
+- On the first render, the symbols a card uses are fetched on demand (a card-specific set, not the whole symbol manifest) and cached for subsequent renders.
 - Fonts are loaded with `FontFace` and awaited before any text is drawn.
 - Non-Chromium browsers may rasterize text slightly differently than the Node (`@napi-rs/canvas`) output; this is expected and acceptable.
 
