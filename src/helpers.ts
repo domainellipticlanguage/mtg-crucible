@@ -186,14 +186,20 @@ export async function drawFrame(
   cw: number, ch: number,
   nameLineCodes?: string[],
   typeLineCodes?: string[],
-  options?: { horizontal?: boolean; gradientRange?: { start: number; end: number } },
+  options?: { horizontal?: boolean; gradientRange?: { start: number; end: number }; maskTemplate?: string },
 ): Promise<void> {
   const horizontal = options?.horizontal ?? false;
   const gradientRange = options?.gradientRange;
   // Mask paths always use the base template name (e.g. 'standard'), not effect dirs
   // TODO: modal pinline mask is white instead of transparent like others — works but should be made consistent
   const MASK_TEMPLATES = new Set(['standard', 'planeswalker', 'planeswalker_tall', 'saga', 'class', 'battle', 'transformFront', 'transformBack', 'modal', 'adventure']);
-  const rawMaskTemplate = Array.isArray(template) ? template.find(t => MASK_TEMPLATES.has(t) || t === 'modalFront' || t === 'modalBack') : (MASK_TEMPLATES.has(template) ? template : undefined);
+  const isMaskTemplate = (t: string | undefined): boolean =>
+    !!t && (MASK_TEMPLATES.has(t) || t === 'modalFront' || t === 'modalBack');
+  // An effect frame (e.g. nyx/snow) produces a `template` array of effect dirs
+  // with no base-template entry, so fall back to the caller-supplied base
+  // template — masks live under base template names, not effect dirs.
+  let rawMaskTemplate = Array.isArray(template) ? template.find(isMaskTemplate) : (isMaskTemplate(template) ? template : undefined);
+  if (!rawMaskTemplate && isMaskTemplate(options?.maskTemplate)) rawMaskTemplate = options!.maskTemplate;
   const maskTemplate = rawMaskTemplate === 'modalFront' || rawMaskTemplate === 'modalBack' ? 'modal' : rawMaskTemplate;
 
   if (accentCodes) {
@@ -225,7 +231,7 @@ export async function drawFrame(
 
     // Overlay through each available mask region
     const allMasks = ['title', 'type', 'pinline', 'rules', 'pinline-textbox'];
-    for (const maskName of allMasks) {
+    for (const maskName of maskTemplate ? allMasks : []) {
       const maskImg = await loadAssetImage(`masks/${maskTemplate}-${maskName}.png`);
       if (!maskImg) continue;
       const source = maskName === 'title' ? nameCanvas : maskName === 'type' ? typeCanvas : accentCanvas;
@@ -238,7 +244,7 @@ export async function drawFrame(
     }
 
     // Overlay accent colors on banner (N-color vertical split)
-    const bannerMask = await loadAssetImage(`masks/${maskTemplate}-banner.png`);
+    const bannerMask = maskTemplate ? await loadAssetImage(`masks/${maskTemplate}-banner.png`) : null;
     if (bannerMask) {
       const n = accentCodes.length;
 
@@ -301,7 +307,7 @@ export async function drawFrame(
         canvasCache.set(key, c.getContext('2d'));
       }
     }
-    for (const { mask, codes } of overlays) {
+    for (const { mask, codes } of maskTemplate ? overlays : []) {
       const maskImg = await loadAssetImage(`masks/${maskTemplate}-${mask}.png`);
       if (!maskImg) continue;
       const srcCtx = canvasCache.get(codes.join())!;

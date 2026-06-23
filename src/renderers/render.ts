@@ -181,7 +181,9 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
     : typeLineCodes;
 
   if (!hooks?.skipStandardFrame) {
-    await drawFrame(ctx, frameDirs, expandedFrameColor, accentCodes, cw, ch, nameLineCodes, typeLineCodes);
+    // Pass the base template so masks resolve even when frameDirs is all effect
+    // dirs (e.g. nyx/snow) — masks live under base template names.
+    await drawFrame(ctx, frameDirs, expandedFrameColor, accentCodes, cw, ch, nameLineCodes, typeLineCodes, { maskTemplate: frame });
   }
 
   // Template-specific body (abilities, chapters, levels, etc.)
