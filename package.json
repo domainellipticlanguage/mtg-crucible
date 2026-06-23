@@ -42,7 +42,7 @@
     "gen": "tsx scripts/gen-version.ts && tsx scripts/gen-symbol-manifest.ts",
     "build": "rm -rf dist && npx tsx scripts/gen-version.ts && tsc && tsc -p tsconfig.parser.json && tsc -p tsconfig.react.json",
     "build:check-browser": "npx tsx scripts/verify-browser-build.ts",
-    "example:browser": "esbuild examples/browser/main.ts --bundle --format=esm --outfile=examples/browser/main.js --platform=browser && npx tsx examples/browser/serve.ts",
+    "example:browser": "npx tsx scripts/gen-version.ts && esbuild examples/browser/main.ts --bundle --format=esm --outfile=examples/browser/main.js --platform=browser && npx tsx examples/browser/serve.ts",
     "build:parser": "tsc -p tsconfig.parser.json",
     "build:core": "tsc",
     "build:react": "tsc -p tsconfig.react.json",

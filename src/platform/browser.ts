@@ -15,6 +15,11 @@
 import type { Platform, AssetData, CanvasImage, RenderCanvas } from './types';
 import { mimeForFormat } from './types';
 import type { RenderFormat } from '../types';
+// VERSION is generated from package.json (the single source of truth) by
+// scripts/gen-version.ts at build time. src/version.ts is a build artifact and is
+// gitignored — never edit or commit it. We can't import package.json directly: a
+// tsc/CommonJS build lowers any JSON reference to a whole-file require, which would
+// bundle all of package.json (deps included) into the browser build.
 import { VERSION } from '../version';
 
 // Assets are served from the GitHub repo via jsDelivr, pinned to this release's
