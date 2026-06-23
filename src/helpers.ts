@@ -1,6 +1,14 @@
 import type { NormalizedCardData, Color, FrameColor } from './types';
 import type { Ctx, CtxImageData, CanvasImage } from './platform';
 import { createCanvas, loadAssetImage, loadImageBytes, loadArt, loadFont } from './platform';
+import { MASK_MANIFEST } from './mask-manifest';
+
+// Load a frame mask only if it exists (per the manifest). Mask coverage varies
+// per template, so requesting a fixed region list would otherwise 404 on the
+// regions a given template doesn't ship.
+function loadMask(rel: string): Promise<CanvasImage | null> {
+  return MASK_MANIFEST.has(rel) ? loadAssetImage(rel) : Promise.resolve(null);
+}
 
 const FRAME_COLOR_CODES: Record<FrameColor, string> = {
   white: 'w', blue: 'u', black: 'b', red: 'r', green: 'g',
@@ -229,10 +237,10 @@ export async function drawFrame(
       typeCanvas = nameCanvas;
     }
 
-    // Overlay through each available mask region
+    // Overlay through each available mask region (only those this template ships)
     const allMasks = ['title', 'type', 'pinline', 'rules', 'pinline-textbox'];
-    for (const maskName of maskTemplate ? allMasks : []) {
-      const maskImg = await loadAssetImage(`masks/${maskTemplate}-${maskName}.png`);
+    for (const maskName of allMasks) {
+      const maskImg = await loadMask(`masks/${maskTemplate}-${maskName}.png`);
       if (!maskImg) continue;
       const source = maskName === 'title' ? nameCanvas : maskName === 'type' ? typeCanvas : accentCanvas;
       const offscreen = createCanvas(cw, ch);
@@ -244,7 +252,7 @@ export async function drawFrame(
     }
 
     // Overlay accent colors on banner (N-color vertical split)
-    const bannerMask = maskTemplate ? await loadAssetImage(`masks/${maskTemplate}-banner.png`) : null;
+    const bannerMask = await loadMask(`masks/${maskTemplate}-banner.png`);
     if (bannerMask) {
       const n = accentCodes.length;
 
@@ -307,8 +315,8 @@ export async function drawFrame(
         canvasCache.set(key, c.getContext('2d'));
       }
     }
-    for (const { mask, codes } of maskTemplate ? overlays : []) {
-      const maskImg = await loadAssetImage(`masks/${maskTemplate}-${mask}.png`);
+    for (const { mask, codes } of overlays) {
+      const maskImg = await loadMask(`masks/${maskTemplate}-${mask}.png`);
       if (!maskImg) continue;
       const srcCtx = canvasCache.get(codes.join())!;
       const offscreen = createCanvas(cw, ch);
