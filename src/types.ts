@@ -203,6 +203,7 @@ export interface CardData {
   collectorNumber?: string;
   artist?: string;
   setCode?: string;
+  language?: string;
   designer?: string;
 }
 
@@ -246,6 +247,7 @@ export interface NormalizedCardData {
   collectorNumber: string;
   artist: string;
   setCode: string;
+  language: string;
   designer: string;
 }
 

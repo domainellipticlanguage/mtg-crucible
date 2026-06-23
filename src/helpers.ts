@@ -585,7 +585,7 @@ export async function drawSetSymbol(
   return sw;
 }
 
-export async function drawBottomInfo(ctx: Ctx, card: Pick<NormalizedCardData, 'collectorNumber' | 'artist' | 'setCode' | 'designer'>, cw: number, ch: number): Promise<void> {
+export async function drawBottomInfo(ctx: Ctx, card: Pick<NormalizedCardData, 'collectorNumber' | 'artist' | 'setCode' | 'language' | 'designer'>, cw: number, ch: number): Promise<void> {
   const fontSize = ch * 0.0143;
   const y1 = ch * 0.965;
   const y2 = y1 + fontSize * 1.4;
@@ -597,7 +597,7 @@ export async function drawBottomInfo(ctx: Ctx, card: Pick<NormalizedCardData, 'c
   ctx.textBaseline = 'alphabetic';
   ctx.shadowColor = 'black'; ctx.shadowOffsetX = 1; ctx.shadowOffsetY = 1; ctx.shadowBlur = 2;
 
-  const set = (card.setCode || 'CRU * EN').replace(/\s*\*\s*/g, ' • ');
+  const set = `${card.setCode || 'CRU'} • ${card.language || 'EN'}`;
   const artist = card.artist || '';
   const brushPad = fontSize * 0.25;
   const setWidth = ctx.measureText(`${set} `).width;

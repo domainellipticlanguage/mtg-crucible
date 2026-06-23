@@ -30,6 +30,7 @@ const ART_DESCRIPTION_REGEX = /^Art Description:\s*(.+)$/i;
 const RARITY_REGEX = /^Rarity:\s*(common|uncommon|rare|mythic(?:\s+rare)?)$/i;
 const ARTIST_REGEX = /^Artist:\s*(.+)$/i;
 const SET_REGEX = /^Set:\s*([A-Za-z0-9]+)$/i;
+const LANGUAGE_REGEX = /^Lang(?:uage)?:\s*([A-Za-z]+)$/i;
 const COLLECTOR_REGEX = /^Collector(?:\s+(?:Number|No\.?))?:\s*(.+)$/i;
 const DESIGNER_REGEX = /^Designer:\s*(.+)$/i;
 const COLOR_INDICATOR_REGEX = /^Color Indicator:\s*(.+)$/i;
@@ -637,6 +638,7 @@ function parseSingleFace(text: string): CardData {
   let rarity: Rarity | undefined;
   let artist: string | undefined;
   let setCode: string | undefined;
+  let language: string | undefined;
   let collectorNumber: string | undefined;
   let designer: string | undefined;
   let colorIndicator: Color[] | undefined;
@@ -664,6 +666,8 @@ function parseSingleFace(text: string): CardData {
     if (artistMatch) { artist = artistMatch[1].trim(); nextLine++; continue; }
     const setMatch = current.match(SET_REGEX);
     if (setMatch) { setCode = setMatch[1].toUpperCase(); nextLine++; continue; }
+    const languageMatch = current.match(LANGUAGE_REGEX);
+    if (languageMatch) { language = languageMatch[1].toUpperCase(); nextLine++; continue; }
     const collectorMatch = current.match(COLLECTOR_REGEX);
     if (collectorMatch) { collectorNumber = collectorMatch[1].trim(); nextLine++; continue; }
     const designerMatch = current.match(DESIGNER_REGEX);
@@ -757,6 +761,8 @@ function parseSingleFace(text: string): CardData {
       if (artistMatch) { artist = artistMatch[1].trim(); continue; }
       const setMatch = line.match(SET_REGEX);
       if (setMatch) { setCode = setMatch[1].toUpperCase(); continue; }
+      const languageMatch = line.match(LANGUAGE_REGEX);
+      if (languageMatch) { language = languageMatch[1].toUpperCase(); continue; }
       const collectorMatch = line.match(COLLECTOR_REGEX);
       if (collectorMatch) { collectorNumber = collectorMatch[1].trim(); continue; }
       const designerMatch = line.match(DESIGNER_REGEX);
@@ -855,6 +861,7 @@ function parseSingleFace(text: string): CardData {
   if (rarity) card.rarity = rarity;
   if (artist) card.artist = artist;
   if (setCode) card.setCode = setCode;
+  if (language) card.language = language;
   if (collectorNumber) card.collectorNumber = collectorNumber;
   if (designer) card.designer = designer;
   if (colorIndicator && colorIndicator.length > 0) card.colorIndicator = colorIndicator;
@@ -924,6 +931,7 @@ export function formatCard(card: CardData): string {
   }
   if (card.artist) lines.push(`Artist: ${card.artist}`);
   if (card.setCode) lines.push(`Set: ${card.setCode}`);
+  if (card.language) lines.push(`Language: ${card.language}`);
   if (card.collectorNumber) lines.push(`Collector Number: ${card.collectorNumber}`);
   if (card.designer) lines.push(`Designer: ${card.designer}`);
   if (card.frameColor) {
@@ -1108,6 +1116,7 @@ export function toScryfallJson(card: NormalizedCardData): string {
 
   if (card.rarity) obj.rarity = card.rarity;
   if (card.setCode) obj.set = card.setCode.toLowerCase();
+  if (card.language) obj.lang = card.language.toLowerCase();
   if (card.collectorNumber) obj.collector_number = card.collectorNumber;
 
   return JSON.stringify(obj);
@@ -1409,9 +1418,8 @@ function toArray<T>(v: T | T[] | undefined): T[] {
 
 /**
  * Infer a frame effect from the card's types and abilities.
- *   - Nyx: enchantment with another primary type (Sythis = Enchantment Creature, etc.).
- *     Bare Enchantments do NOT get Nyx — modern MTG is shifting to Nyx-for-all but we
- *     don't follow that yet.
+ *   - Nyx: any Enchantment (Enchantment Creature, bare Enchantment, etc.) — following
+ *     modern MTG's Nyx-for-all treatment.
  *   - Devoid: card has the "devoid" keyword AND the derived frame is colored. Pure
  *     colorless devoid cards (Endbringer) skip this — the `devoid/c.png` asset doesn't
  *     exist, and the standard colorless frame already matches Scryfall's Eldrazi look.
@@ -1424,7 +1432,7 @@ export function inferFrameEffect(
   if (typeLine.supertypes.includes('snow')) {
     return 'snow';
   }
-  if (typeLine.types.includes('enchantment') && typeLine.types.length > 1) {
+  if (typeLine.types.includes('enchantment')) {
     return 'nyx';
   }
   const isDevoid = abilitiesText?.toLowerCase().includes('devoid');
@@ -1522,7 +1530,8 @@ export function normalizeCard(card: CardData, parent?: CardData): NormalizedCard
 
     collectorNumber: card.collectorNumber ?? '1/1',
     artist: card.artist ?? '',
-    setCode: card.setCode ?? 'CRU * EN',
+    setCode: card.setCode ?? 'CRU',
+    language: card.language ?? 'EN',
     designer: card.designer ?? '',
   };
 }

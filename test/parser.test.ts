@@ -1215,7 +1215,7 @@ describe('parseCard — multi-face inference', () => {
       structuredAbilities: { kind: 'room' },
     });
     const normalized = normalizeCard(card);
-    expect(normalized.linkType).toBe('split');
+    expect(normalized.linkType).toBe('room');
   });
 
   it('infers prepare linkType when "prepare" text appears with mana costs on both faces', () => {

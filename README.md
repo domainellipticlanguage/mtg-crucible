@@ -127,6 +127,7 @@ Additional metadata fields can appear on any line (order doesn't matter):
 - `Art Description: A fiery landscape`
 - `Artist: Chris Rahn`
 - `Set: MH3`
+- `Language: EN`
 - `Collector Number: 205`
 - `Designer: Mark Rosewater`
 - `Frame Color: Red and Blue`
