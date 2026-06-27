@@ -34,8 +34,7 @@ import flipJson from './layouts/flip.json';
 import mutateJson from './layouts/mutate.json';
 import prototypeJson from './layouts/prototype.json';
 import levelerJson from './layouts/leveler.json';
-import aftermathTopJson from './layouts/aftermath_top.json';
-import aftermathBottomJson from './layouts/aftermath_bottom.json';
+import aftermathJson from './layouts/aftermath.json';
 import prepareJson from './layouts/prepare.json';
 import roomJson from './layouts/room.json';
 import omenJson from './layouts/omen.json';
@@ -63,8 +62,11 @@ export const FLIP_LAYOUT: AnyLayout = flipJson;
 export const MUTATE_LAYOUT: AnyLayout = mutateJson;
 export const PROTO_LAYOUT: AnyLayout = prototypeJson;
 export const LEVELER_LAYOUT: AnyLayout = levelerJson;
-export const AFTERMATH_TOP_LAYOUT: AnyLayout = aftermathTopJson;
-export const AFTERMATH_BOTTOM_LAYOUT: AnyLayout = aftermathBottomJson;
+export const AFTERMATH_LAYOUT: AnyLayout = aftermathJson;
+/** The rotated lower half of an aftermath card. Lives nested in the main layout
+ *  (like room's doors) so the layout editor can move it; the renderer reads it
+ *  off the live template layout, not this convenience alias. */
+export const AFTERMATH_BOTTOM_LAYOUT: AnyLayout = aftermathJson.bottom;
 export const PREPARE_LAYOUT: AnyLayout = prepareJson;
 export const ROOM_LAYOUT: AnyLayout = roomJson;
 export const OMEN_LAYOUT: AnyLayout = omenJson;

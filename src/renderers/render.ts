@@ -16,7 +16,7 @@ import {
   MUTATE_LAYOUT,
   PROTO_LAYOUT,
   LEVELER_LAYOUT,
-  AFTERMATH_TOP_LAYOUT,
+  AFTERMATH_LAYOUT,
   PREPARE_LAYOUT,
   OMEN_LAYOUT,
   ROOM_LAYOUT,
@@ -27,7 +27,7 @@ import {
   drawArt, drawCorners, drawSetSymbol, drawBottomInfo,
   frameColorCode,
   drawColorIndicator, drawFrame, drawGradientCrowns,
-  ensureInitialized,
+  ensureInitialized, resolvePtImage,
 } from '../helpers';
 import { collectSymbolKeys, preloadSymbols } from '../symbols';
 import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor, type ExclusionRect } from '../text';
@@ -90,7 +90,7 @@ export const TEMPLATES: Record<string, TemplateConfig> = {
   mutate:             { layout: MUTATE_LAYOUT, w: PW_W, h: PW_H, frame: 'mutate', hooks: mutateHooks },
   prototype:          { layout: PROTO_LAYOUT, w: PW_W, h: PW_H, frame: 'standard', hooks: prototypeHooks },
   leveler:            { layout: LEVELER_LAYOUT, w: PW_W, h: PW_H, frame: 'leveler', hooks: levelerHooks },
-  aftermath:          { layout: AFTERMATH_TOP_LAYOUT, w: PW_W, h: PW_H, frame: 'aftermath', hooks: aftermathHooks },
+  aftermath:          { layout: AFTERMATH_LAYOUT, w: PW_W, h: PW_H, frame: 'aftermath', hooks: aftermathHooks },
   prepare:            { layout: PREPARE_LAYOUT, w: PW_W, h: PW_H, frame: 'prepare', hooks: prepareHooks },
   omen:               { layout: OMEN_LAYOUT, w: PW_W, h: PW_H, frame: 'omen', hooks: omenHooks },
   room:               { layout: ROOM_LAYOUT, w: PW_W, h: PW_H, frame: 'room', hooks: roomHooks },
@@ -211,14 +211,14 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
     const ptBase = ptDir ? `pt/${ptDir}` : 'pt';
     const bx = L.ptBox.x * cw, by = L.ptBox.y * ch, bw = L.ptBox.w * cw, bh = L.ptBox.h * ch;
     if (ptBoxCodes.length === 1) {
-      const ptImg = await loadAssetImage(`${ptBase}/${ptBoxCodes[0]}.png`);
+      const ptImg = await resolvePtImage(ptBase, ptBoxCodes[0]);
       if (ptImg) {
         ctx.drawImage(ptImg, bx, by, bw, bh);
       }
     } else {
       // Gradient blend: draw base, then overlay each subsequent color through a sine-smoothed mask
       const n = ptBoxCodes.length;
-      const basePtImg = await loadAssetImage(`${ptBase}/${ptBoxCodes[0]}.png`);
+      const basePtImg = await resolvePtImage(ptBase, ptBoxCodes[0]);
       if (basePtImg) {
         ctx.drawImage(basePtImg, bx, by, bw, bh);
       }
@@ -227,7 +227,7 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
       const contentStart = shadowFrac * bw;
       const contentW = bw - contentStart;
       for (let i = 1; i < n; i++) {
-        const ptImg = await loadAssetImage(`${ptBase}/${ptBoxCodes[i]}.png`);
+        const ptImg = await resolvePtImage(ptBase, ptBoxCodes[i]);
         if (!ptImg) continue;
         // Boundary within the content area, offset by shadow
         const boundary = contentStart + (i / n) * contentW;

@@ -2,8 +2,7 @@ import type { Ctx } from '../platform';
 import type { NormalizedCardData } from '../types';
 import { drawArt, drawFrame, frameColorCode } from '../helpers';
 import { getParsedAbilities, formatTypeLine } from '../parser';
-import { AFTERMATH_BOTTOM_LAYOUT } from '../layout';
-import type { TemplateHooks } from './render';
+import type { TemplateHooks, AnyLayout } from './render';
 import { drawSingleLineAt, drawWrappedAt, drawRulesAndFlavorAt, drawNameAndMana } from './element';
 
 /**
@@ -15,10 +14,9 @@ import { drawSingleLineAt, drawWrappedAt, drawRulesAndFlavorAt, drawNameAndMana 
 async function renderBottomText(
   ctx: Ctx,
   card: NormalizedCardData,
+  L: AnyLayout,
   cw: number, ch: number,
 ) {
-  const L = AFTERMATH_BOTTOM_LAYOUT;
-
   await drawNameAndMana(ctx, L.name, L.mana, cw, ch, card.name ?? '', card.manaCost);
   drawSingleLineAt(ctx, L.type, cw, ch, formatTypeLine(card.typeLine));
 
@@ -31,6 +29,7 @@ async function renderBottomText(
 const aftermathBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
   const other = card.linkedCard;
   const frameDir = L._frame ?? 'aftermath';
+  const bottom = L.bottom;
 
   // Overdraw the bottom half frame with the linked card's color.
   if (other && other.frameColor.length > 0) {
@@ -47,8 +46,8 @@ const aftermathBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
   }
 
   if (other) {
-    if (other.artUrl) await drawArt(ctx, other.artUrl, AFTERMATH_BOTTOM_LAYOUT.art, cw, ch, { rotate: 90, allowUnsafe: (L as any)._allowUnsafeArtUrls });
-    await renderBottomText(ctx, other, cw, ch);
+    if (other.artUrl) await drawArt(ctx, other.artUrl, bottom.art, cw, ch, { rotate: 90, allowUnsafe: (L as any)._allowUnsafeArtUrls });
+    await renderBottomText(ctx, other, bottom, cw, ch);
   }
 };
 

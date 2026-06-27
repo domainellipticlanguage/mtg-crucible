@@ -28,7 +28,7 @@ const LAYOUT_JSON_FILES: Record<string, string> = {
   mutate: 'mutate.json',
   prototype: 'prototype.json',
   leveler: 'leveler.json',
-  aftermath: 'aftermath_top.json',
+  aftermath: 'aftermath.json',
   prepare: 'prepare.json',
   omen: 'omen.json',
   room: 'room.json',

@@ -180,13 +180,18 @@ function isRect(entry: any): entry is Rect & Record<string, any> {
     && typeof entry.h === 'number';
 }
 
-/** Mana-style entries have {y, w, size} — `w` is the absolute right-edge x, no height. */
-function isManaLayout(entry: any): entry is { y: number; w: number; size: number } & Record<string, any> {
+/**
+ * Mana-style entries carry the mana-cost shadow offsets and a `size`, but no
+ * font/h (those mark a text rect). Detecting by `shadowX` catches both the
+ * unrotated form ({y, w, size} — `w` is the right-edge x) and the rotated form
+ * ({x, y, size, angle} — `x`/`y` is the right-edge anchor, no `w`).
+ */
+function isManaLayout(entry: any): entry is { y: number; size: number } & Record<string, any> {
   return entry && typeof entry === 'object'
     && typeof entry.y === 'number'
-    && typeof entry.w === 'number'
     && typeof entry.size === 'number'
-    && !('h' in entry);
+    && 'shadowX' in entry
+    && !('font' in entry);
 }
 
 /** Dotted-path read. */
@@ -219,105 +224,39 @@ function findEditablePaths(obj: any, prefix = ''): string[] {
 }
 
 /**
- * If `path` lives inside a container marked `_rotated: true`, return the
- * fractional canvas-y of the rotation origin (the container's name.y).
+ * Element rotation convention (see src/renderers/element.ts).
  *
- * Convention: layout entries inside rotated containers describe rects in the
- * rotated reading frame (sideways). The renderer's renderSplitText / renderDoorText
- * does `translate(0, name.y * ch); rotate(-90°)`, so:
- *   local (lx, ly) → canvas (ly, originY - lx)  where originY = container.name.y * ch
- *
- * Exception: keys named "art" are always canvas-space (drawArt rotates the
- * IMAGE, not the canvas — bounds stay canvas-space).
+ * Every layout element stores `(x, y)` as the canvas position of its local
+ * upper-left (x → cw, y → ch), with an optional `angle` (degrees, clockwise
+ * about that anchor). Its `w`/`h` extents are in the LOCAL post-rotation frame:
+ * for a quarter turn the local-x axis runs along canvas-y and vice-versa, so a
+ * fraction's normalization dimension swaps. The editor therefore draws each box
+ * anchored at (x, y) and CSS-rotates it about that anchor, and converts drag
+ * deltas from screen space into the element's local frame before applying them.
  */
-function getRotationOriginY(layout: any, path: string): number | null {
-  const parts = path.split('.');
-  const lastKey = parts[parts.length - 1];
-  if (lastKey === 'art') return null;
-  for (let i = parts.length - 1; i >= 0; i--) {
-    const containerPath = parts.slice(0, i).join('.');
-    const container = containerPath ? getAtPath(layout, containerPath) : layout;
-    if (container?._rotated) {
-      // Prefer the explicit rotation origin (decoupled from name.y); fall back to name.y for legacy layouts.
-      const originY = container._rotationOriginY ?? container.name?.y;
-      if (typeof originY === 'number') return originY;
-    }
-  }
-  return null;
+function elementAngle(entry: any): number {
+  return (((entry?.angle ?? 0) % 360) + 360) % 360;
 }
 
-/** Convert a Rect entry from rotated-frame coords to canvas-space coords. */
-function rectToCanvas(entry: Rect, originY: number): Rect {
+/** Trig + per-axis display-pixel normalizers for an element at `angle`. */
+function rotationBasis(angle: number, displayW: number, displayH: number) {
+  const rad = (angle * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  const quarter = angle === 90 || angle === 270;
+  // A `w` fraction maps to canvas-y (→ displayH) on a quarter turn, else canvas-x.
   return {
-    x: entry.x,
-    y: 2 * originY - entry.y - entry.w,
-    w: entry.h,
-    h: entry.w,
-  };
-}
-
-/** Inverse of rectToCanvas — used when the editor reports a drag in canvas coords. */
-function rectFromCanvas(canvas: Rect, originY: number): Rect {
-  return {
-    x: canvas.x,
-    y: 2 * originY - canvas.y - canvas.h,
-    w: canvas.h,
-    h: canvas.w,
-  };
-}
-
-/**
- * Convert a Mana-style entry {y, w, size} from rotated frame to canvas display coords.
- * In rotated frame: w is local-x of right-edge (canvas-y, scaled by ch); y is local-y (canvas-x, scaled by cw).
- * size is scaled by cwArg (= ch in swapped call), so visible canvas size differs by cw/ch.
- */
-function manaToCanvas(entry: Record<string, any>, originY: number, cw: number, ch: number): Record<string, any> {
-  return {
-    ...entry,
-    y: originY - entry.w,
-    w: entry.y,
-    size: entry.size * (cw / ch),
-  };
-}
-
-function manaFromCanvas(canvas: Record<string, any>, originY: number, cw: number, ch: number): Record<string, any> {
-  return {
-    ...canvas,
-    y: canvas.w,
-    w: originY - canvas.y,
-    size: canvas.size * (ch / cw),
-  };
-}
-
-/**
- * Convert a SetSymbol entry {x, y, w, h} from rotated frame to canvas. SetSymbol semantics:
- *   x = right-edge (fractional along the cw-axis), y = vertical center (fractional along ch-axis).
- * In rotated context, drawSetSymbol is called with chArg/cwArg swapped, so x scales with ch
- * and y scales with cw locally — after the -90° rotation those swap into canvas dims.
- */
-function setSymbolToCanvas(entry: Rect & Record<string, any>, originY: number): Rect & Record<string, any> {
-  return {
-    ...entry,
-    x: entry.y,
-    y: originY - entry.x,
-    w: entry.h,
-    h: entry.w,
-  };
-}
-
-function setSymbolFromCanvas(canvas: Rect & Record<string, any>, originY: number): Rect & Record<string, any> {
-  return {
-    ...canvas,
-    x: originY - canvas.y,
-    y: canvas.x,
-    w: canvas.h,
-    h: canvas.w,
+    cos: Math.abs(cos) < 1e-9 ? 0 : cos,
+    sin: Math.abs(sin) < 1e-9 ? 0 : sin,
+    wDim: quarter ? displayH : displayW,
+    hDim: quarter ? displayW : displayH,
   };
 }
 
 interface LayoutBoxProps {
   layoutKey: string;
   entry: Record<string, any>;
+  angle: number;
   displayW: number;
   displayH: number;
   selected: boolean;
@@ -325,11 +264,13 @@ interface LayoutBoxProps {
   onChange: (next: Record<string, any>) => void;
 }
 
-function LayoutBox({ layoutKey, entry, displayW, displayH, selected, onSelect, onChange }: LayoutBoxProps) {
+function LayoutBox({ layoutKey, entry, angle, displayW, displayH, selected, onSelect, onChange }: LayoutBoxProps) {
+  const { cos, sin, wDim, hDim } = rotationBasis(angle, displayW, displayH);
+  // Box is anchored at (x, y) — its local upper-left — and CSS-rotated about it.
   const pxX = entry.x * displayW;
   const pxY = entry.y * displayH;
-  const pxW = entry.w * displayW;
-  const pxH = entry.h * displayH;
+  const pxW = entry.w * wDim;
+  const pxH = entry.h * hDim;
 
   const dragRef = useRef<{ startX: number; startY: number; orig: Rect; handle: Handle } | null>(null);
 
@@ -346,17 +287,21 @@ function LayoutBox({ layoutKey, entry, displayW, displayH, selected, onSelect, o
     const onMove = (ev: MouseEvent) => {
       const state = dragRef.current;
       if (!state) return;
-      const dx = (ev.clientX - state.startX) / displayW;
-      const dy = (ev.clientY - state.startY) / displayH;
+      const ddx = ev.clientX - state.startX;
+      const ddy = ev.clientY - state.startY;
       const next = { ...state.orig };
       const { handle: h } = state;
       if (h === 'move') {
-        next.x += dx; next.y += dy;
+        // Move shifts the anchor (rotation-invariant) directly in screen space.
+        next.x += ddx / displayW; next.y += ddy / displayH;
       } else {
-        if (h.includes('w')) { next.x += dx; next.w -= dx; }
-        if (h.includes('e')) { next.w += dx; }
-        if (h.includes('n')) { next.y += dy; next.h -= dy; }
-        if (h.includes('s')) { next.h += dy; }
+        // Project the screen delta onto the element's local axes, then resize.
+        const dLx = ddx * cos + ddy * sin;   // along local-x
+        const dLy = -ddx * sin + ddy * cos;  // along local-y
+        if (h.includes('e')) { next.w += dLx / wDim; }
+        if (h.includes('w')) { next.w -= dLx / wDim; next.x += (dLx * cos) / displayW; next.y += (dLx * sin) / displayH; }
+        if (h.includes('s')) { next.h += dLy / hDim; }
+        if (h.includes('n')) { next.h -= dLy / hDim; next.x += (-dLy * sin) / displayW; next.y += (dLy * cos) / displayH; }
       }
       // Don't allow negative width/height
       if (next.w < 0.005) next.w = 0.005;
@@ -393,6 +338,8 @@ function LayoutBox({ layoutKey, entry, displayW, displayH, selected, onSelect, o
         top: pxY,
         width: pxW,
         height: pxH,
+        transformOrigin: '0 0',
+        transform: angle ? `rotate(${angle}deg)` : undefined,
         border: selected ? '2px solid #00ffff' : '1px solid rgba(255, 80, 80, 0.7)',
         background: selected ? 'rgba(0, 255, 255, 0.08)' : 'transparent',
         cursor: 'move',
@@ -429,6 +376,7 @@ function LayoutBox({ layoutKey, entry, displayW, displayH, selected, onSelect, o
 interface ManaBoxProps {
   layoutKey: string;
   entry: Record<string, any>;
+  angle: number;
   displayW: number;
   displayH: number;
   selected: boolean;
@@ -437,20 +385,23 @@ interface ManaBoxProps {
 }
 
 /**
- * Mana-cost position box. `w` is the absolute right-edge x (not a width) and
- * there's no `h`. We render a fixed-width proxy rectangle anchored at (w, y),
- * extending LEFT and DOWN from that anchor. Dragging moves w/y. The vertical
+ * Mana-cost position box. The anchor is the mana cost's RIGHT edge: unrotated
+ * entries store it as `w` (an absolute x), rotated ones as `x`. `size` is the
+ * symbol height (normalized to ch). We render a fixed-width proxy extending LEFT
+ * and DOWN from the anchor, rotated about it. Dragging moves the anchor; the
  * n/s handles adjust `size`.
  */
-function ManaBox({ layoutKey, entry, displayW, displayH, selected, onSelect, onChange }: ManaBoxProps) {
+function ManaBox({ layoutKey, entry, angle, displayW, displayH, selected, onSelect, onChange }: ManaBoxProps) {
+  const { cos, sin } = rotationBasis(angle, displayW, displayH);
+  const anchorKey = 'x' in entry ? 'x' : 'w'; // which field stores the right-edge x
   // Proxy width represents ~3 mana symbols — just for UX, doesn't affect rendering.
   const PROXY_W_PX = 110;
-  const rightPx = entry.w * displayW;
+  const rightPx = entry[anchorKey] * displayW;
   const topPx = entry.y * displayH;
-  const heightPx = entry.size * displayH;
+  const heightPx = entry.size * displayH; // font size is normalized to ch
   const leftPx = rightPx - PROXY_W_PX;
 
-  const dragRef = useRef<{ startX: number; startY: number; orig: { y: number; w: number; size: number }; handle: 'move' | 'n' | 's' } | null>(null);
+  const dragRef = useRef<{ startX: number; startY: number; orig: { y: number; ax: number; size: number }; handle: 'move' | 'n' | 's' } | null>(null);
 
   const startDrag = (e: React.MouseEvent, handle: 'move' | 'n' | 's') => {
     e.preventDefault();
@@ -459,18 +410,26 @@ function ManaBox({ layoutKey, entry, displayW, displayH, selected, onSelect, onC
     dragRef.current = {
       startX: e.clientX,
       startY: e.clientY,
-      orig: { y: entry.y, w: entry.w, size: entry.size },
+      orig: { y: entry.y, ax: entry[anchorKey], size: entry.size },
       handle,
     };
     const onMove = (ev: MouseEvent) => {
       const state = dragRef.current;
       if (!state) return;
-      const dx = (ev.clientX - state.startX) / displayW;
-      const dy = (ev.clientY - state.startY) / displayH;
-      const next = { ...state.orig };
-      if (state.handle === 'move') { next.w += dx; next.y += dy; }
-      if (state.handle === 'n') { next.y += dy; next.size -= dy; }
-      if (state.handle === 's') { next.size += dy; }
+      const ddx = ev.clientX - state.startX;
+      const ddy = ev.clientY - state.startY;
+      const next: Record<string, any> = { y: state.orig.y, [anchorKey]: state.orig.ax, size: state.orig.size };
+      if (state.handle === 'move') {
+        next[anchorKey] = state.orig.ax + ddx / displayW; next.y = state.orig.y + ddy / displayH;
+      } else {
+        const dLy = -ddx * sin + ddy * cos; // along local-y (size grows down)
+        if (state.handle === 's') { next.size = state.orig.size + dLy / displayH; }
+        if (state.handle === 'n') {
+          next.size = state.orig.size - dLy / displayH;
+          next[anchorKey] = state.orig.ax + (-dLy * sin) / displayW;
+          next.y = state.orig.y + (dLy * cos) / displayH;
+        }
+      }
       if (next.size < 0.005) next.size = 0.005;
       onChange({ ...entry, ...next });
     };
@@ -494,6 +453,8 @@ function ManaBox({ layoutKey, entry, displayW, displayH, selected, onSelect, onC
         top: topPx,
         width: PROXY_W_PX,
         height: heightPx,
+        transformOrigin: '100% 0',
+        transform: angle ? `rotate(${angle}deg)` : undefined,
         border: selected ? '2px dashed #00ffff' : '1px dashed rgba(255, 200, 80, 0.8)',
         background: selected ? 'rgba(0, 255, 255, 0.08)' : 'transparent',
         cursor: 'move',
@@ -527,6 +488,7 @@ function ManaBox({ layoutKey, entry, displayW, displayH, selected, onSelect, onC
 interface SetSymbolBoxProps {
   layoutKey: string;
   entry: Rect & Record<string, any>;
+  angle: number;
   displayW: number;
   displayH: number;
   selected: boolean;
@@ -538,10 +500,12 @@ interface SetSymbolBoxProps {
  * Set symbol box — special coordinates: `x` is the right-edge, `y` is the vertical center.
  * See drawSetSymbol in helpers.ts. `w` is stored but ignored by the renderer (actual width
  * is derived from the SVG aspect ratio at draw time); we use it here as a visual proxy.
+ * The box is anchored at its right-center (x, y) and CSS-rotated about it.
  */
-function SetSymbolBox({ layoutKey, entry, displayW, displayH, selected, onSelect, onChange }: SetSymbolBoxProps) {
-  const pxW = entry.w * displayW;
-  const pxH = entry.h * displayH;
+function SetSymbolBox({ layoutKey, entry, angle, displayW, displayH, selected, onSelect, onChange }: SetSymbolBoxProps) {
+  const { cos, sin, wDim, hDim } = rotationBasis(angle, displayW, displayH);
+  const pxW = entry.w * wDim;
+  const pxH = entry.h * hDim;
   const pxX = entry.x * displayW - pxW;         // x is right-edge
   const pxY = entry.y * displayH - pxH / 2;     // y is center
 
@@ -560,22 +524,23 @@ function SetSymbolBox({ layoutKey, entry, displayW, displayH, selected, onSelect
     const onMove = (ev: MouseEvent) => {
       const state = dragRef.current;
       if (!state) return;
-      const dx = (ev.clientX - state.startX) / displayW;
-      const dy = (ev.clientY - state.startY) / displayH;
+      const ddx = ev.clientX - state.startX;
+      const ddy = ev.clientY - state.startY;
       const next = { ...state.orig };
       const { handle: h } = state;
       // 'move' shifts the anchor (right-edge x, center y) directly
       if (h === 'move') {
-        next.x += dx; next.y += dy;
+        next.x += ddx / displayW; next.y += ddy / displayH;
       } else {
-        // Width: left edge moves (w handle) or right edge moves (e handle).
-        // x = right edge, so w handle keeps x fixed; e handle shifts x by dx.
-        if (h.includes('w')) { next.w -= dx; }
-        if (h.includes('e')) { next.w += dx; next.x += dx; }
-        // Height: y = center. Dragging an edge moves just that edge, so the center
-        // shifts by dy/2 and height changes by ±dy.
-        if (h.includes('n')) { next.h -= dy; next.y += dy / 2; }
-        if (h.includes('s')) { next.h += dy; next.y += dy / 2; }
+        // Project the screen delta onto the element's local axes.
+        const dLx = ddx * cos + ddy * sin;
+        const dLy = -ddx * sin + ddy * cos;
+        // Width: x = right edge, so w handle keeps it fixed; e handle moves it along local-x.
+        if (h.includes('w')) { next.w -= dLx / wDim; }
+        if (h.includes('e')) { next.w += dLx / wDim; next.x += (dLx * cos) / displayW; next.y += (dLx * sin) / displayH; }
+        // Height: y = center, so an edge drag shifts the center by half along local-y.
+        if (h.includes('n')) { next.h -= dLy / hDim; next.x += (-dLy / 2 * sin) / displayW; next.y += (dLy / 2 * cos) / displayH; }
+        if (h.includes('s')) { next.h += dLy / hDim; next.x += (-dLy / 2 * sin) / displayW; next.y += (dLy / 2 * cos) / displayH; }
       }
       if (next.w < 0.005) next.w = 0.005;
       if (next.h < 0.005) next.h = 0.005;
@@ -611,6 +576,8 @@ function SetSymbolBox({ layoutKey, entry, displayW, displayH, selected, onSelect
         top: pxY,
         width: pxW,
         height: pxH,
+        transformOrigin: '100% 50%',
+        transform: angle ? `rotate(${angle}deg)` : undefined,
         border: selected ? '2px solid #00ffff' : '1px dashed rgba(180, 120, 255, 0.8)',
         background: selected ? 'rgba(0, 255, 255, 0.08)' : 'transparent',
         cursor: 'move',
@@ -941,30 +908,17 @@ function EditorApp() {
 
   // Nudge the selected element by (dxPx, dyPx) in on-screen display pixels —
   // same basis as the drag handlers (which divide deltas by displayW/displayH).
-  // Mirrors each box type's drag "move" behavior (rect/setSymbol move x/y, mana
-  // moves its right edge w/y) and routes through the same rotated-frame conversions.
+  // A "move" shifts the element's anchor in screen space, regardless of rotation.
+  // Mana stores its right-edge x in `w` when unrotated; everything else uses `x`.
   const nudgeSelected = useCallback((dxPx: number, dyPx: number) => {
     if (!selectedKey || !effectiveLayout) return;
     const entry = getAtPath(effectiveLayout, selectedKey);
     if (!entry) return;
     const dx = dxPx / displayW;
     const dy = dyPx / displayH;
-    const originY = getRotationOriginY(effectiveLayout, selectedKey);
-
-    if (manaKeys.includes(selectedKey)) {
-      const disp = originY != null ? manaToCanvas(entry, originY, canvasSize.w, canvasSize.h) : entry;
-      const moved = { ...disp, w: disp.w + dx, y: disp.y + dy };
-      updateEntry(selectedKey, originY != null ? manaFromCanvas(moved, originY, canvasSize.w, canvasSize.h) : moved);
-    } else if (setSymbolKeys.includes(selectedKey)) {
-      const disp = originY != null ? setSymbolToCanvas(entry, originY) : entry;
-      const moved = { ...disp, x: disp.x + dx, y: disp.y + dy };
-      updateEntry(selectedKey, originY != null ? setSymbolFromCanvas(moved as Rect & Record<string, any>, originY) : moved);
-    } else {
-      const disp = originY != null ? { ...entry, ...rectToCanvas(entry, originY) } : entry;
-      const moved = { ...disp, x: disp.x + dx, y: disp.y + dy };
-      updateEntry(selectedKey, originY != null ? { ...entry, ...rectFromCanvas(moved as Rect, originY) } : moved);
-    }
-  }, [selectedKey, effectiveLayout, displayW, displayH, canvasSize, manaKeys, setSymbolKeys]);
+    const anchorKey = 'x' in entry ? 'x' : 'w';
+    updateEntry(selectedKey, { ...entry, [anchorKey]: entry[anchorKey] + dx, y: entry.y + dy });
+  }, [selectedKey, effectiveLayout, displayW, displayH]);
 
   // Focus the canvas when an element is selected so arrow keys reach our handler
   // (clicking a box calls preventDefault, so focus would otherwise stay in the
@@ -1066,63 +1020,49 @@ function EditorApp() {
         )}
         {effectiveLayout && rectKeys.map(key => {
           const entry = getAtPath(effectiveLayout, key);
-          const originY = getRotationOriginY(effectiveLayout, key);
-          // For rotated entries, show the bbox in canvas-space so it lines up with the rendered text;
-          // when the user drags, convert the canvas-space change back to rotated-frame storage.
-          const displayEntry = originY != null ? { ...entry, ...rectToCanvas(entry, originY) } : entry;
-          const handleChange = originY != null
-            ? (next: Record<string, any>) => updateEntry(key, { ...entry, ...rectFromCanvas(next as Rect, originY) })
-            : (next: Record<string, any>) => updateEntry(key, next);
           return (
             <LayoutBox
               key={key}
               layoutKey={key}
-              entry={displayEntry}
+              entry={entry}
+              angle={elementAngle(entry)}
               displayW={displayW}
               displayH={displayH}
               selected={selectedKey === key}
               onSelect={() => setSelectedKey(key)}
-              onChange={handleChange}
+              onChange={(next) => updateEntry(key, next)}
             />
           );
         })}
         {effectiveLayout && manaKeys.map(key => {
           const entry = getAtPath(effectiveLayout, key);
-          const originY = getRotationOriginY(effectiveLayout, key);
-          const displayEntry = originY != null ? manaToCanvas(entry, originY, canvasSize.w, canvasSize.h) : entry;
-          const handleChange = originY != null
-            ? (next: Record<string, any>) => updateEntry(key, manaFromCanvas(next, originY, canvasSize.w, canvasSize.h))
-            : (next: Record<string, any>) => updateEntry(key, next);
           return (
             <ManaBox
               key={key}
               layoutKey={key}
-              entry={displayEntry}
+              entry={entry}
+              angle={elementAngle(entry)}
               displayW={displayW}
               displayH={displayH}
               selected={selectedKey === key}
               onSelect={() => setSelectedKey(key)}
-              onChange={handleChange}
+              onChange={(next) => updateEntry(key, next)}
             />
           );
         })}
         {effectiveLayout && setSymbolKeys.map(key => {
           const entry = getAtPath(effectiveLayout, key);
-          const originY = getRotationOriginY(effectiveLayout, key);
-          const displayEntry = originY != null ? setSymbolToCanvas(entry, originY) : entry;
-          const handleChange = originY != null
-            ? (next: Record<string, any>) => updateEntry(key, setSymbolFromCanvas(next as Rect & Record<string, any>, originY))
-            : (next: Record<string, any>) => updateEntry(key, next);
           return (
             <SetSymbolBox
               key={key}
               layoutKey={key}
-              entry={displayEntry as Rect & Record<string, any>}
+              entry={entry as Rect & Record<string, any>}
+              angle={elementAngle(entry)}
               displayW={displayW}
               displayH={displayH}
               selected={selectedKey === key}
               onSelect={() => setSelectedKey(key)}
-              onChange={handleChange}
+              onChange={(next) => updateEntry(key, next)}
             />
           );
         })}
