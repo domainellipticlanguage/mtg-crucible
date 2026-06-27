@@ -1,13 +1,13 @@
 import type { NormalizedCardData, Color, FrameColor } from './types';
 import type { Ctx, CtxImageData, CanvasImage } from './platform';
 import { createCanvas, loadAssetImage, loadImageBytes, loadArt, loadFont } from './platform';
-import { MASK_MANIFEST } from './mask-manifest';
+import { assetExists } from './asset-manifest';
 
 // Load a frame mask only if it exists (per the manifest). Mask coverage varies
 // per template, so requesting a fixed region list would otherwise 404 on the
 // regions a given template doesn't ship.
 function loadMask(rel: string): Promise<CanvasImage | null> {
-  return MASK_MANIFEST.has(rel) ? loadAssetImage(rel) : Promise.resolve(null);
+  return assetExists(rel) ? loadAssetImage(rel) : Promise.resolve(null);
 }
 
 const FRAME_COLOR_CODES: Record<FrameColor, string> = {
@@ -81,9 +81,21 @@ function createGradientMask(
 
 /** Resolve a frame image, falling back to artifact for colorless when c.png doesn't exist. */
 async function resolveFrameImage(dir: string, code: string): Promise<CanvasImage | null> {
-  const primary = await loadAssetImage(`frames/${dir}/${code}.png`);
-  if (primary) return primary;
-  if (code === 'c') return loadAssetImage(`frames/${dir}/a.png`);
+  if (assetExists(`frames/${dir}/${code}.png`)) return loadAssetImage(`frames/${dir}/${code}.png`);
+  // Colorless has no variant in many specialized dirs (transform, modal, …) — fall
+  // back to the standard colorless frame rather than 404 then guess at artifact.
+  if (code === 'c' && dir !== 'standard') return loadAssetImage('frames/standard/c.png');
+  return null;
+}
+
+/**
+ * Resolve a P/T box image. `ptBase` is the box dir (e.g. 'pt' or 'pt/transform').
+ * Colorless has no variant in the specialized 'pt/transform' dir, so fall back to
+ * the base colorless P/T box rather than 404 / draw nothing.
+ */
+export async function resolvePtImage(ptBase: string, code: string): Promise<CanvasImage | null> {
+  if (assetExists(`${ptBase}/${code}.png`)) return loadAssetImage(`${ptBase}/${code}.png`);
+  if (code === 'c' && ptBase !== 'pt') return loadAssetImage('pt/c.png');
   return null;
 }
 
