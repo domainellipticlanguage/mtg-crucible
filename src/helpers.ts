@@ -99,6 +99,60 @@ export async function resolvePtImage(ptBase: string, code: string): Promise<Canv
   return null;
 }
 
+/** Resolve the existing frame-image path for (dir, code), mirroring
+ *  `resolveFrameImage`'s fallback. Returns null when nothing exists. */
+function frameImagePath(dir: string, code: string): string | null {
+  if (assetExists(`frames/${dir}/${code}.png`)) return `frames/${dir}/${code}.png`;
+  if (code === 'c' && dir !== 'standard' && assetExists('frames/standard/c.png')) return 'frames/standard/c.png';
+  return null;
+}
+
+/**
+ * Enumerate the frame + mask asset paths a standard `drawFrame` pass will load,
+ * for warming the cache in parallel up front (see `prefetchAssets`). Mirrors the
+ * resolution logic in `drawGradientFrames`/`drawFrame`; it's best-effort, so any
+ * drift just means an asset loads on demand as before rather than rendering wrong.
+ * `frameDirs` is the per-segment frame-dir list passed to `drawFrame`; each code
+ * array maps code i → frameDirs[i % frameDirs.length], matching `drawGradientFrames`.
+ */
+export function collectFrameAssetPaths(opts: {
+  frameDirs: string[];
+  frameCodes: string[];
+  accentCodes?: string[];
+  nameLineCodes: string[];
+  typeLineCodes: string[];
+  maskTemplate: string;
+}): string[] {
+  const { frameDirs, frameCodes, accentCodes, nameLineCodes, typeLineCodes, maskTemplate } = opts;
+  const paths = new Set<string>();
+  const addCodes = (codes: string[]) => {
+    codes.forEach((code, i) => {
+      const p = frameImagePath(frameDirs[i % frameDirs.length], code);
+      if (p) paths.add(p);
+    });
+  };
+  addCodes(frameCodes);
+  if (accentCodes) addCodes(accentCodes);
+  addCodes(nameLineCodes);
+  addCodes(typeLineCodes);
+
+  // Masks drawFrame overlays — match its conditions to avoid fetching unused ones:
+  // with an accent it overlays title/type/pinline/rules/pinline-textbox + banner;
+  // without one, only title/type and only when those line colors differ.
+  const mt = maskTemplate === 'modalFront' || maskTemplate === 'modalBack' ? 'modal' : maskTemplate;
+  const addMask = (region: string) => {
+    const m = `masks/${mt}-${region}.png`;
+    if (assetExists(m)) paths.add(m);
+  };
+  if (accentCodes) {
+    for (const region of ['title', 'type', 'pinline', 'rules', 'pinline-textbox', 'banner']) addMask(region);
+  } else {
+    if (nameLineCodes.join() !== frameCodes.join()) addMask('title');
+    if (typeLineCodes.join() !== frameCodes.join()) addMask('type');
+  }
+  return [...paths];
+}
+
 /**
  * Draw multiple frame colors with gradient blending.
  * colorCodes[0] is drawn as the base; each subsequent code is overlaid
@@ -117,8 +171,13 @@ export async function drawGradientFrames(
   // Ensure dirs covers all colorCodes by cycling
   const dirs = colorCodes.map((_, i) => rawDirs[i % rawDirs.length]);
 
+  // Load every frame image in parallel before the sequential draw loop below, so
+  // multi-color frames issue one concurrent burst of fetches instead of N serial
+  // round-trips (matters in the browser, where each is a CDN request).
+  const frameImgs = await Promise.all(dirs.map((dir, i) => resolveFrameImage(dir, colorCodes[i])));
+
   // Draw base frame
-  const baseImg = await resolveFrameImage(dirs[0], colorCodes[0]);
+  const baseImg = frameImgs[0];
   if (baseImg) {
     ctx.drawImage(baseImg, 0, 0, cw, ch);
   }
@@ -142,7 +201,7 @@ export async function drawGradientFrames(
   // work ~O(cw·ch) total instead of O(n·cw·ch) — the alpha=0 left and the
   // overwritten alpha=255 right of every strip are skipped. Output is identical.
   for (let i = 1; i < n; i++) {
-    const frameImg = await resolveFrameImage(dirs[i], colorCodes[i]);
+    const frameImg = frameImgs[i];
     if (!frameImg) continue;
 
     const tStart = transStartOf(i);
@@ -249,11 +308,18 @@ export async function drawFrame(
       typeCanvas = nameCanvas;
     }
 
-    // Overlay through each available mask region (only those this template ships)
+    // Overlay through each available mask region (only those this template ships).
+    // Fetch every region mask plus the banner mask in one parallel burst, then
+    // composite sequentially (draw order matters).
     const allMasks = ['title', 'type', 'pinline', 'rules', 'pinline-textbox'];
-    for (const maskName of allMasks) {
-      const maskImg = await loadMask(`masks/${maskTemplate}-${maskName}.png`);
+    const [maskImgs, bannerMask] = await Promise.all([
+      Promise.all(allMasks.map(m => loadMask(`masks/${maskTemplate}-${m}.png`))),
+      loadMask(`masks/${maskTemplate}-banner.png`),
+    ]);
+    for (let mi = 0; mi < allMasks.length; mi++) {
+      const maskImg = maskImgs[mi];
       if (!maskImg) continue;
+      const maskName = allMasks[mi];
       const source = maskName === 'title' ? nameCanvas : maskName === 'type' ? typeCanvas : accentCanvas;
       const offscreen = createCanvas(cw, ch);
       const offCtx = offscreen.getContext('2d');
@@ -264,7 +330,6 @@ export async function drawFrame(
     }
 
     // Overlay accent colors on banner (N-color vertical split)
-    const bannerMask = await loadMask(`masks/${maskTemplate}-banner.png`);
     if (bannerMask) {
       const n = accentCodes.length;
 
@@ -327,9 +392,11 @@ export async function drawFrame(
         canvasCache.set(key, c.getContext('2d'));
       }
     }
-    for (const { mask, codes } of overlays) {
-      const maskImg = await loadMask(`masks/${maskTemplate}-${mask}.png`);
+    const overlayMasks = await Promise.all(overlays.map(o => loadMask(`masks/${maskTemplate}-${o.mask}.png`)));
+    for (let oi = 0; oi < overlays.length; oi++) {
+      const maskImg = overlayMasks[oi];
       if (!maskImg) continue;
+      const { codes } = overlays[oi];
       const srcCtx = canvasCache.get(codes.join())!;
       const offscreen = createCanvas(cw, ch);
       const offCtx = offscreen.getContext('2d');
@@ -358,21 +425,20 @@ export async function drawGradientCrowns(
 ): Promise<void> {
   if (colorCodes.length === 0) return;
 
-  const drawCrown = async (crownCtx: Ctx, code: string) => {
-    const crownImg = await loadAssetImage(`${baseDir}/${code}.png`);
-    if (crownImg) crownCtx.drawImage(crownImg, x, y, w, h);
-  };
+  // Load all crown images in parallel before the sequential composite below.
+  const crownImgs = await Promise.all(colorCodes.map(code => loadAssetImage(`${baseDir}/${code}.png`)));
 
   // Build composite crown on offscreen canvas
   const crownCanvas = createCanvas(cw, ch);
   const crownCtx = crownCanvas.getContext('2d');
 
   // Draw base crown
-  await drawCrown(crownCtx, colorCodes[0]);
+  const baseCrown = crownImgs[0];
+  if (baseCrown) crownCtx.drawImage(baseCrown, x, y, w, h);
 
   // Overlay subsequent crowns through gradient masks
   for (let i = 1; i < colorCodes.length; i++) {
-    const crownImg = await loadAssetImage(`${baseDir}/${colorCodes[i]}.png`);
+    const crownImg = crownImgs[i];
     if (!crownImg) continue;
 
     const mask = createGradientMask(cw, ch, i, colorCodes.length);

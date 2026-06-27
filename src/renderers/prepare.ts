@@ -65,4 +65,7 @@ async function body(ctx: Ctx, card: NormalizedCardData, L: Record<string, any>, 
   }
 }
 
-export const prepareHooks = { body };
+export const prepareHooks = {
+  body,
+  prefetch: () => ['masks/prepare-main-pinline.png', 'masks/prepare-mask.png'],
+};

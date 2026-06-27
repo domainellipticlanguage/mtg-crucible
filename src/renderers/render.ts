@@ -1,5 +1,6 @@
 import type { Ctx, RenderCanvas } from '../platform';
-import { createCanvas, loadAssetImage, encode } from '../platform';
+import { createCanvas, loadAssetImage, encode, prefetchAssets } from '../platform';
+import { assetExists } from '../asset-manifest';
 import type { NormalizedCardData, RenderQuality, RenderFormat } from '../types';
 import {
   STD_W, STD_H, STD_LAYOUT,
@@ -28,7 +29,7 @@ import {
   drawArt, drawCorners, drawSetSymbol, drawBottomInfo,
   frameColorCode,
   drawColorIndicator, drawFrame, drawGradientCrowns,
-  ensureInitialized, resolvePtImage,
+  ensureInitialized, resolvePtImage, collectFrameAssetPaths,
 } from '../helpers';
 import { collectSymbolKeys, preloadSymbols } from '../symbols';
 import { drawSingleLineText, drawWrappedText, drawRulesAndFlavor, type ExclusionRect } from '../text';
@@ -59,6 +60,13 @@ export interface TemplateHooks {
   skipStandardText?: boolean;
   /** If true, the hook handles frame rendering. */
   skipStandardFrame?: boolean;
+  /**
+   * Return the asset paths this hook's `body` will load, so the renderer can warm
+   * them in parallel up front (see `prefetchAssets`) alongside the standard frame.
+   * Best-effort: paths not actually used just load and sit in cache; omissions
+   * fall back to on-demand loading. Keep co-located with the hook's load logic.
+   */
+  prefetch?: (card: NormalizedCardData, layout: AnyLayout, frame: string) => string[];
 }
 
 interface TemplateConfig {
@@ -138,14 +146,6 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
   ctx.fillStyle = '#1a1a1a';
   ctx.fillRect(0, 0, cw, ch);
 
-  // Art (colorless and devoid frames are full-bleed)
-  const isFullBleed = card.frameColor[0] === 'colorless' || card.frameEffect.includes('devoid');
-  const artBounds = isFullBleed ? { x: 0, y: 0, w: 1, h: 1 } : L.art;
-  if (card.artUrl) await drawArt(ctx, card.artUrl, artBounds, cw, ch, { allowUnsafe: allowUnsafeArtUrls });
-
-  // Pre-frame hook (e.g. planeswalker ability backgrounds)
-  if (hooks?.preFrame) await hooks.preFrame(ctx, card, L, cw, ch);
-
   // Frame — resolve per-color directories based on frame effects
   // When effects and colors aren't 1:1, compute LCM to split into enough segments.
   const effects = card.frameEffect;
@@ -180,6 +180,45 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
   const ptBoxCodes = card.ptBoxColor.length > 0
     ? card.ptBoxColor.map(c => frameColorCode(c))
     : typeLineCodes;
+
+  // Warm the asset cache: fire every frame/mask/crown/PT/set fetch this card will
+  // need in parallel now, so the sequential draw phase below joins in-flight loads
+  // instead of serializing CDN round-trips. Best-effort — see `prefetchAssets`.
+  const prefetch: string[] = [];
+  if (!hooks?.skipStandardFrame) {
+    prefetch.push(...collectFrameAssetPaths({
+      frameDirs, frameCodes: expandedFrameColor, accentCodes,
+      nameLineCodes, typeLineCodes, maskTemplate: frame,
+    }));
+  }
+  if (L.crown && card.typeLine.supertypes.includes('legendary') && !templateKey.startsWith('planeswalker')) {
+    const crownBase = crownDir ? `crowns/${crownDir}` : 'crowns';
+    for (const code of crownCodes) {
+      if (assetExists(`${crownBase}/${code}.png`)) prefetch.push(`${crownBase}/${code}.png`);
+    }
+    if (assetExists('crowns/maskCrownPinline.png')) prefetch.push('crowns/maskCrownPinline.png');
+  }
+  if (L.ptBox && card.power && card.toughness) {
+    const ptBase = ptDir ? `pt/${ptDir}` : 'pt';
+    for (const code of ptBoxCodes) {
+      if (assetExists(`${ptBase}/${code}.png`)) prefetch.push(`${ptBase}/${code}.png`);
+      else if (code === 'c' && ptBase !== 'pt') prefetch.push('pt/c.png');
+    }
+  }
+  const isBackFaceSym = templateKey === 'transform_back' || templateKey === 'mdfc_back';
+  if (L.setSymbol && !isBackFaceSym) prefetch.push(`symbols/set/set-${card.rarity || 'common'}.svg`);
+  if (hooks?.prefetch) prefetch.push(...hooks.prefetch(card, L, frame));
+  // Fire before drawing art so frame/mask/etc. fetches overlap with the (often
+  // remote) art fetch and are warm by the time preFrame/drawFrame await them.
+  prefetchAssets(prefetch);
+
+  // Art (colorless and devoid frames are full-bleed)
+  const isFullBleed = card.frameColor[0] === 'colorless' || card.frameEffect.includes('devoid');
+  const artBounds = isFullBleed ? { x: 0, y: 0, w: 1, h: 1 } : L.art;
+  if (card.artUrl) await drawArt(ctx, card.artUrl, artBounds, cw, ch, { allowUnsafe: allowUnsafeArtUrls });
+
+  // Pre-frame hook (e.g. planeswalker ability backgrounds)
+  if (hooks?.preFrame) await hooks.preFrame(ctx, card, L, cw, ch);
 
   if (!hooks?.skipStandardFrame) {
     // Pass the base template so masks resolve even when frameDirs is all effect

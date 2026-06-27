@@ -107,4 +107,7 @@ const levelerBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
   }
 };
 
-export const levelerHooks: TemplateHooks = { body: levelerBody };
+export const levelerHooks: TemplateHooks = {
+  body: levelerBody,
+  prefetch: (card) => [`frames/leveler/pt/${frameColorCode(card.frameColor[0])}.png`],
+};

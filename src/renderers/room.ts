@@ -2,6 +2,7 @@ import type { Ctx } from '../platform';
 import { createCanvas, loadAssetImage } from '../platform';
 import type { NormalizedCardData } from '../types';
 import { drawArt, drawFrame, frameColorCode } from '../helpers';
+import { assetExists } from '../asset-manifest';
 import { getParsedAbilities, formatTypeLine } from '../parser';
 import type { TemplateHooks, AnyLayout } from './render';
 import { drawSingleLineAt, drawWrappedAt, drawRulesAndFlavorAt, drawNameAndMana, drawSetSymbolAt } from './element';
@@ -93,4 +94,22 @@ const roomBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
   }
 };
 
-export const roomHooks: TemplateHooks = { body: roomBody, skipStandardText: true, skipStandardFrame: true };
+export const roomHooks: TemplateHooks = {
+  body: roomBody,
+  skipStandardText: true,
+  skipStandardFrame: true,
+  prefetch: (card) => {
+    const codes = new Set<string>(card.frameColor.map(c => frameColorCode(c)));
+    card.accentColor.forEach(c => codes.add(frameColorCode(c)));
+    const door2 = card.linkedCard;
+    if (door2) {
+      door2.frameColor.forEach(c => codes.add(frameColorCode(c)));
+      door2.accentColor.forEach(c => codes.add(frameColorCode(c)));
+    }
+    const paths = ['masks/room-mask.png'];
+    for (const code of codes) {
+      if (assetExists(`frames/room/${code}.png`)) paths.push(`frames/room/${code}.png`);
+    }
+    return paths;
+  },
+};

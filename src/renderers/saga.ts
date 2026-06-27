@@ -59,8 +59,10 @@ async function body(ctx: Ctx, card: NormalizedCardData, L: Record<string, any>, 
   const scale = totalAvailableH / totalNatural;
   const chapterHeights = naturalHeights.map(h => h * scale);
 
-  const chapterImg = await loadAssetImage('frames/saga/sagaChapter.png');
-  const dividerImg = await loadAssetImage('frames/saga/sagaDivider.png');
+  const [chapterImg, dividerImg] = await Promise.all([
+    loadAssetImage('frames/saga/sagaChapter.png'),
+    loadAssetImage('frames/saga/sagaDivider.png'),
+  ]);
 
   const chapterFontSize = ch * L.chapterFont;
   ctx.textAlign = 'center';
@@ -125,4 +127,7 @@ async function body(ctx: Ctx, card: NormalizedCardData, L: Record<string, any>, 
   }
 }
 
-export const sagaHooks = { body };
+export const sagaHooks = {
+  body,
+  prefetch: () => ['frames/saga/sagaChapter.png', 'frames/saga/sagaDivider.png'],
+};

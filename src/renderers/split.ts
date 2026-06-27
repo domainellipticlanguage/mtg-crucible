@@ -2,6 +2,7 @@ import type { Ctx } from '../platform';
 import { createCanvas, loadAssetImage } from '../platform';
 import type { NormalizedCardData } from '../types';
 import { drawArt, drawFrame, frameColorCode } from '../helpers';
+import { assetExists } from '../asset-manifest';
 import { getParsedAbilities, formatTypeLine } from '../parser';
 import { SPLIT_RIGHT_LAYOUT, SPLIT_LEFT_LAYOUT } from '../layout';
 import type { TemplateHooks } from './render';
@@ -117,4 +118,23 @@ const splitBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
   }
 };
 
-export const splitHooks: TemplateHooks = { body: splitBody, skipStandardText: true, skipStandardFrame: true };
+export const splitHooks: TemplateHooks = {
+  body: splitBody,
+  skipStandardText: true,
+  skipStandardFrame: true,
+  prefetch: (card, _L, frame) => {
+    const codes = new Set<string>(card.frameColor.map(c => frameColorCode(c)));
+    card.accentColor.forEach(c => codes.add(frameColorCode(c)));
+    const other = card.linkedCard;
+    if (other) {
+      other.frameColor.forEach(c => codes.add(frameColorCode(c)));
+      other.accentColor.forEach(c => codes.add(frameColorCode(c)));
+    }
+    const paths: string[] = [];
+    if (frame === 'fuse') paths.push('masks/fuse-top.png');
+    for (const code of codes) {
+      if (assetExists(`frames/${frame}/${code}.png`)) paths.push(`frames/${frame}/${code}.png`);
+    }
+    return paths;
+  },
+};

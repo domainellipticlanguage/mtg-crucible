@@ -33,17 +33,16 @@ const protoBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
   const proto = (pa.structuredAbilities as PrototypeAbilities).prototype;
   const protoColor = protoColorFromCost(proto.manaCost);
 
-  // Full-card overlay images (rules box, mana cost bar, PT box)
+  // Full-card overlay images (rules box, mana cost bar, PT box) — fetch in
+  // parallel, then draw in order (stacking matters).
   const overlays = [
     `rules${protoColor}.png`,
     `${manaCostVariant(proto.manaCost)}${protoColor}.png`,
     `pt${protoColor}.png`,
   ];
-  for (const file of overlays) {
-    const img = await loadAssetImage(`frames/prototype/${file}`);
-    if (img) {
-      ctx.drawImage(img, 0, 0, cw, ch);
-    }
+  const overlayImgs = await Promise.all(overlays.map(file => loadAssetImage(`frames/prototype/${file}`)));
+  for (const img of overlayImgs) {
+    if (img) ctx.drawImage(img, 0, 0, cw, ch);
   }
 
   // Prototype mana cost (right-aligned in the prototype mana bar)

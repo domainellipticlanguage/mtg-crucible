@@ -1,6 +1,7 @@
 import type { Ctx } from '../platform';
 import type { NormalizedCardData } from '../types';
 import { drawArt, drawFrame, frameColorCode } from '../helpers';
+import { assetExists } from '../asset-manifest';
 import { getParsedAbilities, formatTypeLine } from '../parser';
 import type { TemplateHooks, AnyLayout } from './render';
 import { drawSingleLineAt, drawWrappedAt, drawRulesAndFlavorAt, drawNameAndMana } from './element';
@@ -51,4 +52,17 @@ const aftermathBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
   }
 };
 
-export const aftermathHooks: TemplateHooks = { body: aftermathBody };
+export const aftermathHooks: TemplateHooks = {
+  body: aftermathBody,
+  prefetch: (card, _L, frame) => {
+    const other = card.linkedCard;
+    if (!other) return [];
+    const codes = new Set<string>(other.frameColor.map(c => frameColorCode(c)));
+    other.accentColor.forEach(c => codes.add(frameColorCode(c)));
+    const paths: string[] = [];
+    for (const code of codes) {
+      if (assetExists(`frames/${frame}/${code}.png`)) paths.push(`frames/${frame}/${code}.png`);
+    }
+    return paths;
+  },
+};

@@ -61,4 +61,7 @@ async function body(ctx: Ctx, card: NormalizedCardData, L: Record<string, any>, 
   }
 }
 
-export const omenHooks = { body };
+export const omenHooks = {
+  body,
+  prefetch: () => ['masks/omen-main-pinline.png', 'masks/omen-mask.png'],
+};

@@ -84,6 +84,20 @@ export function loadAssetImage(relativePath: string): Promise<CanvasImage | null
   return pending;
 }
 
+/**
+ * Best-effort: kick off parallel loads to warm the decoded-asset cache, then
+ * return immediately (does NOT await). Each path's fetch is started concurrently
+ * and parked in `assetImageCache`, so a later `await loadAssetImage(path)` during
+ * the (sequential) draw phase joins the in-flight promise instead of starting a
+ * fresh round-trip. Purely additive: callers still load normally, so a missing or
+ * wrong prefetch path just degrades to on-demand loading. Critical in the browser,
+ * where each asset is a 1–3s CDN fetch and the draw phase would otherwise serialize
+ * them; a no-op cost in Node (assets are local).
+ */
+export function prefetchAssets(relativePaths: Iterable<string>): void {
+  for (const path of relativePaths) void loadAssetImage(path);
+}
+
 /** Clear the decoded-asset cache (used by the dev server after editing masks). */
 export function clearAssetImageCache(): void {
   assetImageCache.clear();

@@ -141,4 +141,7 @@ async function body(ctx: Ctx, card: NormalizedCardData, L: Record<string, any>, 
   }
 }
 
-export const classHooks = { body };
+export const classHooks = {
+  body,
+  prefetch: () => ['frames/class/header.png'],
+};

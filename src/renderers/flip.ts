@@ -77,4 +77,8 @@ const flipPreFrame: TemplateHooks['preFrame'] = async (_ctx, card, L, _cw, _ch) 
   }
 };
 
-export const flipHooks: TemplateHooks = { preFrame: flipPreFrame, body: flipBody };
+export const flipHooks: TemplateHooks = {
+  preFrame: flipPreFrame,
+  body: flipBody,
+  prefetch: (card) => [`frames/flip/${frameColorCode(card.frameColor[0])}pt.png`],
+};

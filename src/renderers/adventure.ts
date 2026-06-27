@@ -100,4 +100,7 @@ async function body(ctx: Ctx, card: NormalizedCardData, L: Record<string, any>, 
   }
 }
 
-export const adventureHooks = { body };
+export const adventureHooks = {
+  body,
+  prefetch: () => ['frames/adventure/bookLeft.png'],
+};
