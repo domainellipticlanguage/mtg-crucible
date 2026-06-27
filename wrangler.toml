@@ -1,0 +1,11 @@
+# Cloudflare Pages project that hosts the frame/mask/symbol/font assets.
+#
+# One project per asset MAJOR version (see src/asset-version.ts). The project
+# name encodes the version so each major is an independent, frozen deployment:
+# bump ASSET_VERSION + create `mtg-crucible-assets-v2` for breaking asset
+# changes; redeploy this same project for additive ones.
+#
+# This is a static deploy (no Pages Functions). Cache-Control lives in
+# assets/_headers (immutable, 1yr). Deploy with `npm run deploy:assets`.
+name = "mtg-crucible-assets-v1"
+pages_build_output_dir = "assets"

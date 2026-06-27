@@ -49,6 +49,7 @@
     "dev": "npx tsx watch scripts/dev-server.ts",
     "spike": "npx tsx scripts/spike.ts",
     "generate-assets": "npx tsx logo/generate-assets.ts",
+    "deploy:assets": "npx wrangler pages deploy assets --project-name mtg-crucible-assets-v1 --branch main --commit-dirty=true",
     "prepublishOnly": "npm run build",
     "release": "npm run build && npm login && npm version patch && npm publish && git push --follow-tags"
   },

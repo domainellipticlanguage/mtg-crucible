@@ -4,10 +4,11 @@
  * (via image/font URLs) for assets, and FontFace for fonts.
  *
  * Frame/mask/symbol/font assets are NOT bundled — they're fetched on demand
- * from `assetBaseUrl`, which defaults to this package's own assets on jsDelivr,
- * pinned to the installed version. Override it with `setAssetBaseUrl` to
- * self-host. Only the assets a given card needs are fetched; the browser's HTTP
- * cache handles repeats.
+ * from `assetBaseUrl`, which defaults to this package's assets hosted on
+ * Cloudflare Pages, pinned to the asset major version. Override it with
+ * `setAssetBaseUrl` to self-host. Only the assets a given card needs are
+ * fetched; the browser's HTTP cache (assets are served `immutable`) handles
+ * repeats.
  *
  * This module must never import @napi-rs/canvas at runtime (it's a native addon
  * that breaks browser bundlers). It only uses type-only platform types.
@@ -15,23 +16,19 @@
 import type { Platform, AssetData, CanvasImage, RenderCanvas } from './types';
 import { mimeForFormat } from './types';
 import type { RenderFormat } from '../types';
-// VERSION is generated from package.json (the single source of truth) by
-// scripts/gen-version.ts at build time. src/version.ts is a build artifact and is
-// gitignored — never edit or commit it. We can't import package.json directly: a
-// tsc/CommonJS build lowers any JSON reference to a whole-file require, which would
-// bundle all of package.json (deps included) into the browser build.
-import { VERSION } from '../version';
+import { ASSET_VERSION } from '../asset-version';
 
-// Assets are served from the GitHub repo via jsDelivr, pinned to this release's
-// tag. We deliberately do NOT use jsDelivr's npm mirror: the published package
-// exceeds jsDelivr's per-package size limit (~150 MB with the frame assets) and
-// returns 403. The gh source has no such limit and sends permissive CORS.
-let assetBaseUrl = `https://cdn.jsdelivr.net/gh/domainellipticlanguage/mtg-crucible@v${VERSION}/assets/`;
+// Assets are served from a per-major Cloudflare Pages project (see
+// src/asset-version.ts), NOT pinned to the package version, so consumers across
+// package versions share one warm edge cache. Pages serves them from its own
+// edge (no slow GitHub-origin hop like jsDelivr's gh source had), with permissive
+// CORS and a 1-year `immutable` Cache-Control (see assets/_headers).
+let assetBaseUrl = `https://mtg-crucible-assets-v${ASSET_VERSION}.pages.dev/`;
 
 /**
  * Override the base URL that frame/mask/symbol/font assets are fetched from.
  * Useful for self-hosting. A trailing slash is added if missing. Defaults to
- * this package's assets on jsDelivr (GitHub source), pinned to the release tag.
+ * this package's assets on Cloudflare Pages, pinned to the asset major version.
  */
 export function setAssetBaseUrl(url: string): void {
   assetBaseUrl = url.endsWith('/') ? url : url + '/';

@@ -1,0 +1,7 @@
+// Cloudflare Pages headers rules. Consumed by Pages at deploy time; NOT served
+// as an asset. Asset URLs are version-pinned by the per-major Pages project name
+// (mtg-crucible-assets-vN), so their bytes never change — safe to cache forever
+// in the browser with `immutable` (no revalidation round-trips).
+/*
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
