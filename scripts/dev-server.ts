@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as esbuild from 'esbuild';
 import { renderCard, toDisplayCard, formatCard } from '../src';
 import { TEMPLATES } from '../src/renderers/render';
+import { FOOTER_LAYOUT } from '../src/layout';
 import { clearAssetImageCache } from '../src/platform';
 import { createCanvas, loadImage } from '@napi-rs/canvas';
 
@@ -211,6 +212,35 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Return the shared footer layout (collector number, set/artist, copyright, designer)
+  if (req.method === 'GET' && req.url === '/footer-layout') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ footer: FOOTER_LAYOUT }));
+    return;
+  }
+
+  // Save the shared footer layout back to src/layouts/footer.json
+  if (req.method === 'POST' && req.url === '/save-footer') {
+    const chunks: Buffer[] = [];
+    for await (const chunk of req) chunks.push(chunk as Buffer);
+    const body = JSON.parse(Buffer.concat(chunks).toString());
+    const { footer } = body as { footer: Record<string, any> };
+    try {
+      const filePath = path.resolve(__dirname, '..', 'src', 'layouts', 'footer.json');
+      await fs.promises.writeFile(filePath, JSON.stringify(footer, null, 2) + '\n', 'utf-8');
+      // Mutate the live FOOTER_LAYOUT object in place so subsequent renders pick
+      // up the change without a server restart (renderers hold this reference).
+      for (const k of Object.keys(FOOTER_LAYOUT)) delete FOOTER_LAYOUT[k];
+      Object.assign(FOOTER_LAYOUT, footer);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+    } catch (err: any) {
+      res.writeHead(500, { 'Content-Type': 'text/plain' });
+      res.end(err.message || 'Internal server error');
+    }
+    return;
+  }
+
   // List existing mask SVGs in assets/masks/originals/
   if (req.method === 'GET' && req.url === '/masks') {
     const dir = path.resolve(__dirname, '..', 'assets', 'masks', 'originals');
@@ -319,10 +349,11 @@ const server = http.createServer(async (req, res) => {
     const chunks: Buffer[] = [];
     for await (const chunk of req) chunks.push(chunk as Buffer);
     const body = JSON.parse(Buffer.concat(chunks).toString());
-    const { text, templateName, layoutOverride, quality, format } = body as {
+    const { text, templateName, layoutOverride, footerOverride, quality, format } = body as {
       text: string;
       templateName: string;
       layoutOverride: Record<string, any>;
+      footerOverride?: Record<string, any>;
       quality?: 'low' | 'medium' | 'high';
       format?: 'png' | 'jpeg';
     };
@@ -337,6 +368,14 @@ const server = http.createServer(async (req, res) => {
     const originalLayout = tmpl.layout;
     // Merge override on top of original so missing keys fall back to defaults
     tmpl.layout = { ...originalLayout, ...layoutOverride };
+
+    // Temporarily patch the shared footer layout in place (renderers hold a
+    // reference to FOOTER_LAYOUT); restore it after rendering.
+    const footerSnapshot = footerOverride ? JSON.parse(JSON.stringify(FOOTER_LAYOUT)) : null;
+    if (footerOverride) {
+      for (const k of Object.keys(FOOTER_LAYOUT)) delete FOOTER_LAYOUT[k];
+      Object.assign(FOOTER_LAYOUT, footerOverride);
+    }
 
     try {
       let input: any = text;
@@ -360,6 +399,10 @@ const server = http.createServer(async (req, res) => {
       res.end(err.message || 'Internal server error');
     } finally {
       tmpl.layout = originalLayout;
+      if (footerSnapshot) {
+        for (const k of Object.keys(FOOTER_LAYOUT)) delete FOOTER_LAYOUT[k];
+        Object.assign(FOOTER_LAYOUT, footerSnapshot);
+      }
     }
     return;
   }

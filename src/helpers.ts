@@ -611,12 +611,48 @@ export async function drawSetSymbol(
   return sw;
 }
 
-export async function drawBottomInfo(ctx: Ctx, card: Pick<NormalizedCardData, 'collectorNumber' | 'artist' | 'setCode' | 'language' | 'designer'>, cw: number, ch: number): Promise<void> {
-  const fontSize = ch * 0.0143;
-  const y1 = ch * 0.965;
-  const y2 = y1 + fontSize * 1.4;
-  const leftX = cw * 0.0647;
-  const rightX = cw * 0.935;
+/** A two-line footer column: anchor (x, y = line-1 baseline) plus a line gap (h)
+ *  to the second line. w is the box extent (used for right-edge anchoring). */
+interface FooterColumn { x: number; y: number; w: number; h: number; }
+export interface FooterLayout {
+  fontSize: number;
+  left: FooterColumn;
+  notForSale: FooterColumn;
+  right: FooterColumn;
+}
+
+/** Default footer geometry — matches the historical hardcoded positions. Used
+ *  when no footer layout is supplied (and as a fallback for missing fields). */
+export const DEFAULT_FOOTER: FooterLayout = {
+  fontSize: 0.0143,
+  left: { x: 0.0647, y: 0.965, w: 0.4, h: 0.02 },
+  notForSale: { x: 0.21, y: 0.965, w: 0.14, h: 0.02 },
+  right: { x: 0.535, y: 0.965, w: 0.4, h: 0.02 },
+};
+
+export async function drawBottomInfo(
+  ctx: Ctx,
+  card: Pick<NormalizedCardData, 'collectorNumber' | 'artist' | 'setCode' | 'language' | 'designer'>,
+  cw: number,
+  ch: number,
+  footer: Partial<FooterLayout> = DEFAULT_FOOTER,
+): Promise<void> {
+  const left = footer.left ?? DEFAULT_FOOTER.left;
+  const right = footer.right ?? DEFAULT_FOOTER.right;
+  const nfs = footer.notForSale ?? DEFAULT_FOOTER.notForSale;
+  const fontSize = (footer.fontSize ?? DEFAULT_FOOTER.fontSize) * ch;
+
+  // Left column is left-aligned to its x; right column is right-aligned to its
+  // right edge (x + w). Each column's two lines sit at y and y + h.
+  const leftX = left.x * cw;
+  const leftY1 = left.y * ch;
+  const leftY2 = (left.y + left.h) * ch;
+  const rightEdge = (right.x + right.w) * cw;
+  const rightY1 = right.y * ch;
+  const rightY2 = (right.y + right.h) * ch;
+  const nfsX = nfs.x * cw;
+  const nfsY = nfs.y * ch;
+
   ctx.save();
   ctx.font = `${fontSize}px "MPlantin"`;
   ctx.fillStyle = 'white';
@@ -631,30 +667,35 @@ export async function drawBottomInfo(ctx: Ctx, card: Pick<NormalizedCardData, 'c
   const brushWidth = brushHeight * (202 / 118);
   const artistX = leftX + setWidth + brushPad + brushWidth + brushPad;
 
-  // Top line: collector number (left), Not For Sale (aligned above artist), WotC copyright (right)
+  // Left column, line 1: collector number
   const num = card.collectorNumber || '1 / 1';
-  ctx.fillText(num, leftX, y1);
-  const notForSaleX = cw * 0.21;
-  ctx.fillText('Not For Sale', notForSaleX, y1);
+  ctx.fillText(num, leftX, leftY1);
+
+  // "Not For Sale"
+  ctx.fillText('Not For Sale', nfsX, nfsY);
+
+  // Right column, line 1: WotC copyright (right-aligned)
   ctx.textAlign = 'right';
-  ctx.fillText(`™ & © ${new Date().getFullYear()} Wizards of the Coast`, rightX, y1);
+  ctx.fillText(`™ & © ${new Date().getFullYear()} Wizards of the Coast`, rightEdge, rightY1);
   ctx.textAlign = 'left';
 
-  // Bottom line: set • lang + artist brush + artist (left), designer (right)
-  ctx.fillText(`${set} `, leftX, y2);
+  // Left column, line 2: set • lang + artist brush + artist
+  ctx.fillText(`${set} `, leftX, leftY2);
   if (artist) {
     const brushImg = await loadAssetImage('symbols/misc/artistbrush.svg');
     if (brushImg) {
-      ctx.drawImage(brushImg, leftX + setWidth + brushPad, y2 - brushHeight * 0.85, brushWidth, brushHeight);
+      ctx.drawImage(brushImg, leftX + setWidth + brushPad, leftY2 - brushHeight * 0.85, brushWidth, brushHeight);
     }
-    drawSmallCaps(ctx, artist, artistX, y2, fontSize, 'Beleren Bold');
+    drawSmallCaps(ctx, artist, artistX, leftY2, fontSize, 'Beleren Bold');
     ctx.font = `${fontSize}px "MPlantin"`;
   }
+
+  // Right column, line 2: designer (right-aligned, slightly larger)
   if (card.designer) {
     const designerFontSize = fontSize * 1.2;
     ctx.textAlign = 'right';
     ctx.font = `${designerFontSize}px "Beleren Bold"`;
-    ctx.fillText(card.designer, rightX, y2);
+    ctx.fillText(card.designer, rightEdge, rightY2);
   }
 
   ctx.restore();

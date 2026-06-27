@@ -797,6 +797,10 @@ function EditorApp() {
   const [cardText, setCardText] = useState<string>(TEMPLATE_SAMPLES.standard);
   const [baseLayout, setBaseLayout] = useState<Record<string, any> | null>(null);
   const [overrides, setOverrides] = useState<Record<string, any>>({});
+  // Shared footer layout (not template-specific). Overrides are keyed by sub-path
+  // within the footer object (e.g. 'left', 'right', 'notForSale').
+  const [footerBase, setFooterBase] = useState<Record<string, any> | null>(null);
+  const [footerOverrides, setFooterOverrides] = useState<Record<string, any>>({});
   const [rendered, setRendered] = useState<RenderResult | null>(null);
   const [displaySize, setDisplaySize] = useState<{ w: number; h: number }>({ w: 600, h: 840 });
   const [canvasSize, setCanvasSize] = useState<{ w: number; h: number }>({ w: 1500, h: 2100 });
@@ -804,11 +808,15 @@ function EditorApp() {
   const [loading, setLoading] = useState(false);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
-  // Fetch list of templates once
+  // Fetch list of templates + the shared footer layout once
   useEffect(() => {
     fetch('/layout-templates')
       .then(r => r.json())
       .then(j => setTemplates(j.templates))
+      .catch(e => setError(String(e)));
+    fetch('/footer-layout')
+      .then(r => r.json())
+      .then(j => setFooterBase(j.footer))
       .catch(e => setError(String(e)));
   }, []);
 
@@ -835,6 +843,24 @@ function EditorApp() {
     return result;
   }, [baseLayout, overrides]);
 
+  const effectiveFooter = useMemo(() => {
+    if (!footerBase) return null;
+    let result: any = footerBase;
+    for (const [path, value] of Object.entries(footerOverrides)) {
+      result = setAtPath(result, path, value);
+    }
+    return result;
+  }, [footerBase, footerOverrides]);
+
+  // The footer is a shared layout edited on top of whatever template is shown.
+  // We fold it into the layout under a `footer` key so its columns surface as
+  // editable boxes (footer.left / footer.right / footer.notForSale) alongside
+  // the template's own elements.
+  const canvasLayout = useMemo(() => {
+    if (!effectiveLayout) return null;
+    return effectiveFooter ? { ...effectiveLayout, footer: effectiveFooter } : effectiveLayout;
+  }, [effectiveLayout, effectiveFooter]);
+
   // Debounced re-render when text or overrides change
   const renderTimer = useRef<number | null>(null);
   const doRender = useCallback(async () => {
@@ -849,6 +875,7 @@ function EditorApp() {
           text: cardText,
           templateName,
           layoutOverride: effectiveLayout,
+          footerOverride: effectiveFooter ?? undefined,
           format: 'jpeg',
           quality: 'medium',
         }),
@@ -868,7 +895,7 @@ function EditorApp() {
     } finally {
       setLoading(false);
     }
-  }, [cardText, templateName, effectiveLayout]);
+  }, [cardText, templateName, effectiveLayout, effectiveFooter]);
 
   useEffect(() => {
     if (renderTimer.current) window.clearTimeout(renderTimer.current);
@@ -879,25 +906,32 @@ function EditorApp() {
   }, [doRender]);
 
   const rectKeys = useMemo(() => {
-    if (!effectiveLayout) return [];
-    return findEditablePaths(effectiveLayout)
-      .filter(p => isRect(getAtPath(effectiveLayout, p)) && !p.endsWith('setSymbol'));
-  }, [effectiveLayout]);
+    if (!canvasLayout) return [];
+    return findEditablePaths(canvasLayout)
+      .filter(p => isRect(getAtPath(canvasLayout, p)) && !p.endsWith('setSymbol'));
+  }, [canvasLayout]);
 
   const setSymbolKeys = useMemo(() => {
-    if (!effectiveLayout) return [];
-    return findEditablePaths(effectiveLayout)
-      .filter(p => isRect(getAtPath(effectiveLayout, p)) && p.endsWith('setSymbol'));
-  }, [effectiveLayout]);
+    if (!canvasLayout) return [];
+    return findEditablePaths(canvasLayout)
+      .filter(p => isRect(getAtPath(canvasLayout, p)) && p.endsWith('setSymbol'));
+  }, [canvasLayout]);
 
   const manaKeys = useMemo(() => {
-    if (!effectiveLayout) return [];
-    return findEditablePaths(effectiveLayout)
-      .filter(p => isManaLayout(getAtPath(effectiveLayout, p)));
-  }, [effectiveLayout]);
+    if (!canvasLayout) return [];
+    return findEditablePaths(canvasLayout)
+      .filter(p => isManaLayout(getAtPath(canvasLayout, p)));
+  }, [canvasLayout]);
 
+  // Footer edits (paths under the synthetic `footer.` prefix) flow into the
+  // shared footer overrides; everything else patches the template layout.
+  const FOOTER_PREFIX = 'footer.';
   const updateEntry = (key: string, next: Record<string, any>) => {
-    setOverrides(prev => ({ ...prev, [key]: next }));
+    if (key.startsWith(FOOTER_PREFIX)) {
+      setFooterOverrides(prev => ({ ...prev, [key.slice(FOOTER_PREFIX.length)]: next }));
+    } else {
+      setOverrides(prev => ({ ...prev, [key]: next }));
+    }
   };
 
   // Apply display scale — fit within a fixed height
@@ -911,14 +945,14 @@ function EditorApp() {
   // A "move" shifts the element's anchor in screen space, regardless of rotation.
   // Mana stores its right-edge x in `w` when unrotated; everything else uses `x`.
   const nudgeSelected = useCallback((dxPx: number, dyPx: number) => {
-    if (!selectedKey || !effectiveLayout) return;
-    const entry = getAtPath(effectiveLayout, selectedKey);
+    if (!selectedKey || !canvasLayout) return;
+    const entry = getAtPath(canvasLayout, selectedKey);
     if (!entry) return;
     const dx = dxPx / displayW;
     const dy = dyPx / displayH;
     const anchorKey = 'x' in entry ? 'x' : 'w';
     updateEntry(selectedKey, { ...entry, [anchorKey]: entry[anchorKey] + dx, y: entry.y + dy });
-  }, [selectedKey, effectiveLayout, displayW, displayH]);
+  }, [selectedKey, canvasLayout, displayW, displayH]);
 
   // Focus the canvas when an element is selected so arrow keys reach our handler
   // (clicking a box calls preventDefault, so focus would otherwise stay in the
@@ -976,35 +1010,54 @@ function EditorApp() {
           }}>
             {JSON.stringify(effectiveLayout, null, 2)}
           </pre>
+          <strong>Footer JSON (shared across templates):</strong>
+          <pre style={{
+            background: '#16213e', padding: 8, borderRadius: 4, fontSize: 11,
+            maxHeight: 160, overflow: 'auto',
+            width: '100%', boxSizing: 'border-box',
+          }}>
+            {JSON.stringify(effectiveFooter, null, 2)}
+          </pre>
           <button onClick={() => {
             if (effectiveLayout) navigator.clipboard.writeText(JSON.stringify(effectiveLayout, null, 2));
           }}>Copy layout JSON</button>
           &nbsp;
-          <button onClick={() => setOverrides({})}>Reset to base</button>
+          <button onClick={() => { setOverrides({}); setFooterOverrides({}); }}>Reset to base</button>
           &nbsp;
           <button
-            disabled={!effectiveLayout || Object.keys(overrides).length === 0}
+            disabled={Object.keys(overrides).length === 0 && Object.keys(footerOverrides).length === 0}
             onClick={async () => {
-              if (!effectiveLayout) return;
-              const res = await fetch('/save-layout', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ templateName, layoutOverride: effectiveLayout }),
-              });
-              if (!res.ok) {
-                setError(await res.text());
-                return;
+              try {
+                // Template layout — only persisted if it was actually touched.
+                if (effectiveLayout && Object.keys(overrides).length > 0) {
+                  const res = await fetch('/save-layout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ templateName, layoutOverride: effectiveLayout }),
+                  });
+                  if (!res.ok) { setError(await res.text()); return; }
+                  setOverrides({});
+                  const lay = await fetch(`/layout/${templateName}`).then(r => r.json());
+                  setBaseLayout(lay.layout);
+                }
+                // Shared footer — written to its own footer.json.
+                if (effectiveFooter && Object.keys(footerOverrides).length > 0) {
+                  const res = await fetch('/save-footer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ footer: effectiveFooter }),
+                  });
+                  if (!res.ok) { setError(await res.text()); return; }
+                  setFooterOverrides({});
+                  const f = await fetch('/footer-layout').then(r => r.json());
+                  setFooterBase(f.footer);
+                }
+                setError(null);
+              } catch (e: any) {
+                setError(e.message);
               }
-              const j = await res.json();
-              // Clear overrides — they're now the base layout on disk and in memory
-              setOverrides({});
-              // Refetch base layout so the UI reflects the new on-disk state
-              const lay = await fetch(`/layout/${templateName}`).then(r => r.json());
-              setBaseLayout(lay.layout);
-              setError(null);
-              console.log('Saved:', j);
             }}
-          >Save to layout.ts</button>
+          >Save *.json</button>
         </div>
         {error && <pre className="error">{error}</pre>}
       </div>
@@ -1018,8 +1071,8 @@ function EditorApp() {
             style={{ position: 'absolute', left: 0, top: 0, width: displayW, height: displayH, pointerEvents: 'none' }}
           />
         )}
-        {effectiveLayout && rectKeys.map(key => {
-          const entry = getAtPath(effectiveLayout, key);
+        {canvasLayout && rectKeys.map(key => {
+          const entry = getAtPath(canvasLayout, key);
           return (
             <LayoutBox
               key={key}
@@ -1034,8 +1087,8 @@ function EditorApp() {
             />
           );
         })}
-        {effectiveLayout && manaKeys.map(key => {
-          const entry = getAtPath(effectiveLayout, key);
+        {canvasLayout && manaKeys.map(key => {
+          const entry = getAtPath(canvasLayout, key);
           return (
             <ManaBox
               key={key}
@@ -1050,8 +1103,8 @@ function EditorApp() {
             />
           );
         })}
-        {effectiveLayout && setSymbolKeys.map(key => {
-          const entry = getAtPath(effectiveLayout, key);
+        {canvasLayout && setSymbolKeys.map(key => {
+          const entry = getAtPath(canvasLayout, key);
           return (
             <SetSymbolBox
               key={key}

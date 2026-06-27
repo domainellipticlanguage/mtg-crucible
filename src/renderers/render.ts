@@ -20,6 +20,7 @@ import {
   PREPARE_LAYOUT,
   OMEN_LAYOUT,
   ROOM_LAYOUT,
+  FOOTER_LAYOUT,
 } from '../layout';
 import { getParsedAbilities, formatTypeLine } from '../parser';
 
@@ -336,10 +337,10 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
     ctx.save();
     ctx.translate(cw, 0);
     ctx.rotate(Math.PI / 2);
-    await drawBottomInfo(ctx, card, ch, cw);
+    await drawBottomInfo(ctx, card, ch, cw, FOOTER_LAYOUT);
     ctx.restore();
   } else {
-    await drawBottomInfo(ctx, card, cw, ch);
+    await drawBottomInfo(ctx, card, cw, ch, FOOTER_LAYOUT);
   }
 
   // Corners

@@ -38,6 +38,7 @@ import aftermathJson from './layouts/aftermath.json';
 import prepareJson from './layouts/prepare.json';
 import roomJson from './layouts/room.json';
 import omenJson from './layouts/omen.json';
+import footerJson from './layouts/footer.json';
 
 // Re-export each layout. The JSON imports are inferred as their literal types,
 // which is too strict for runtime mutation by the dev-server's editor. Cast to
@@ -70,3 +71,10 @@ export const AFTERMATH_BOTTOM_LAYOUT: AnyLayout = aftermathJson.bottom;
 export const PREPARE_LAYOUT: AnyLayout = prepareJson;
 export const ROOM_LAYOUT: AnyLayout = roomJson;
 export const OMEN_LAYOUT: AnyLayout = omenJson;
+
+/** Shared footer layout (collector number, set/lang/artist, copyright, designer).
+ *  Not template-specific — every template's bottom info reads from this one object.
+ *  The left column (collector number, set·lang, artist) and the right column
+ *  (copyright, designer) are positioned independently so they can be nudged
+ *  separately. See drawBottomInfo in helpers.ts. */
+export const FOOTER_LAYOUT: AnyLayout = footerJson;
