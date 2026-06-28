@@ -1218,10 +1218,11 @@ export function resolveTemplate(card: CardData): TemplateName {
 function getArtDimensionsForFace(card: CardData, templateKey: TemplateName, linked: boolean): { width: number; height: number } | null {
   const config = TEMPLATE_CONFIGS[templateKey] ?? TEMPLATE_CONFIGS.standard;
   const { w: cw, h: ch } = config;
-  // The linked face only has its own art when the template defines a separate
-  // layout for it (split/fuse/aftermath, transform/mdfc). Templates like
-  // adventure/prepare/omen/flip share the primary face's single art, so there
-  // is no secondary art to size — don't fall back to the primary layout.
+  // The linked face only has its own art on this canvas when the template packs
+  // both faces into one image (split/fuse/aftermath). Separate-image DFCs
+  // (transform/mdfc/battle) size their back face via its own template instead —
+  // see getArtDimensions. Templates like adventure/prepare/omen/flip share the
+  // primary face's single art, so there is no secondary art to size.
   if (linked && !config.linkedLayout) return null;
   const L = linked ? config.linkedLayout! : config.layout;
 
@@ -1248,6 +1249,22 @@ function isRoomCard(card: CardData): boolean {
   return !!tl?.subtypes.some(s => s.toLowerCase() === 'room');
 }
 
+/**
+ * The template a DFC face actually renders with, mirroring the front/back frame
+ * overrides core.ts applies: a transform/mdfc face whose natural template is
+ * 'standard' renders with the *_front (front) or *_back (back) frame — which has
+ * its own art box. A face with any other natural template (saga, battle,
+ * planeswalker, ...) keeps that template even when it's part of a DFC.
+ */
+function dfcFaceTemplate(card: CardData, linkType: CardData['linkType'], isBack: boolean): TemplateName {
+  const base = resolveTemplate(card);
+  if (base === 'standard') {
+    if (linkType === 'transform') return isBack ? 'transform_back' : 'transform_front';
+    if (linkType === 'modal_dfc') return isBack ? 'mdfc_back' : 'mdfc_front';
+  }
+  return base;
+}
+
 export function getArtDimensions(card: CardData): { primaryArtDimensions: { width: number; height: number }; secondaryArtDimensions?: { width: number; height: number } } {
   // Rooms have a single landscape "panorama" art covering both doors, no secondary.
   // After rotate=-90, source landscape dims are (canvas_h_span × canvas_w_span) — derived from L.art.
@@ -1255,17 +1272,36 @@ export function getArtDimensions(card: CardData): { primaryArtDimensions: { widt
     const a = ROOM_LAYOUT.art;
     return { primaryArtDimensions: { width: Math.round(a.h * PW_H), height: Math.round(a.w * PW_W) } };
   }
-  const templateKey = resolveTemplate(card);
-  const primary = getArtDimensionsForFace(card, templateKey, false)!;
-  const secondary = card.linkedCard
-    ? getArtDimensionsForFace(card.linkedCard, templateKey, true) ?? undefined
-    : undefined;
+  const linkType = card.linkType;
+  const primary = getArtDimensionsForFace(card, dfcFaceTemplate(card, linkType, false), false)!;
+
+  let secondary: { width: number; height: number } | undefined;
+  if (card.linkedCard) {
+    if (linkType === 'transform' || linkType === 'modal_dfc') {
+      // Separate-image DFC (incl. battle, whose linkType is transform): the back
+      // is its own full image, so size it from the back's own rendered template —
+      // independent of whatever template the front uses.
+      const backTemplate = dfcFaceTemplate(card.linkedCard, linkType, true);
+      secondary = getArtDimensionsForFace(card.linkedCard, backTemplate, false) ?? undefined;
+    } else {
+      // Single-image dual-art template (split/fuse/aftermath): the linked art is a
+      // region of the front's canvas, sized via the front template's linkedLayout.
+      const frontTemplate = dfcFaceTemplate(card, linkType, false);
+      secondary = getArtDimensionsForFace(card.linkedCard, frontTemplate, true) ?? undefined;
+    }
+  }
   return { primaryArtDimensions: primary, secondaryArtDimensions: secondary };
 }
 
 export function inferLinkType(card: CardData, frontTypeLine: ParsedTypeLine, backTypeLine: ParsedTypeLine): CardData['linkType'] {
   if (!card.linkedCard) return undefined;
   if (card.linkType) return card.linkType;
+
+  // Battles always transform. The "battle" type is a definitive structural
+  // signal, so it must take precedence over the wording-based inference below —
+  // e.g. a battle whose text happens to contain "prepared" must not be inferred
+  // as a prepare card.
+  if (frontTypeLine.types.includes('battle')) return 'transform';
 
   const frontText = getOracleText(card);
   const backText = getOracleText(card.linkedCard);
@@ -1296,8 +1332,6 @@ export function inferLinkType(card: CardData, frontTypeLine: ParsedTypeLine, bac
     if (isSpell(frontTypeLine) && isSpell(backTypeLine)) return 'split';
     return 'modal_dfc';
   }
-  // Battles always transform
-  if (frontTypeLine.types.includes('battle') || card.battleDefense) return 'transform';
   if (/\bflip\b/i.test(frontText)) return 'flip';
   const fullText = frontText + '\n' + backText;
   if (/\btransforms?\b/i.test(fullText)) return 'transform';
