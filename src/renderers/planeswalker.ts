@@ -71,8 +71,8 @@ async function preFrame(ctx: Ctx, card: NormalizedCardData, L: Record<string, an
     if (i > 0) {
       const lineImg = await loadAssetImage(
         i % 2 === 0
-          ? 'frames/planeswalker/abilityLineEven.png'
-          : 'frames/planeswalker/abilityLineOdd.png',
+          ? 'frames/planeswalker/abilityLineEven.webp'
+          : 'frames/planeswalker/abilityLineOdd.webp',
       );
       if (lineImg) {
         const transH = ch * 0.0048;
@@ -89,9 +89,9 @@ async function body(ctx: Ctx, card: NormalizedCardData, L: Record<string, any>, 
 
   // Loyalty cost icons — positioned at the vertical center of each box
   const [plusImg, minusImg, neutralImg] = await Promise.all([
-    loadAssetImage('frames/planeswalker/planeswalkerPlus.png'),
-    loadAssetImage('frames/planeswalker/planeswalkerMinus.png'),
-    loadAssetImage('frames/planeswalker/planeswalkerNeutral.png'),
+    loadAssetImage('frames/planeswalker/planeswalkerPlus.webp'),
+    loadAssetImage('frames/planeswalker/planeswalkerMinus.webp'),
+    loadAssetImage('frames/planeswalker/planeswalkerNeutral.webp'),
   ]);
 
   ctx.save();
@@ -136,10 +136,10 @@ export const planeswalkerHooks = {
   preFrame,
   body,
   prefetch: () => [
-    'frames/planeswalker/abilityLineEven.png',
-    'frames/planeswalker/abilityLineOdd.png',
-    'frames/planeswalker/planeswalkerPlus.png',
-    'frames/planeswalker/planeswalkerMinus.png',
-    'frames/planeswalker/planeswalkerNeutral.png',
+    'frames/planeswalker/abilityLineEven.webp',
+    'frames/planeswalker/abilityLineOdd.webp',
+    'frames/planeswalker/planeswalkerPlus.webp',
+    'frames/planeswalker/planeswalkerMinus.webp',
+    'frames/planeswalker/planeswalkerNeutral.webp',
   ],
 };

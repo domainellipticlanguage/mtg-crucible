@@ -21,7 +21,7 @@ const flipBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
   // Draw flip PT image, clipping to only show boxes for sides that have P/T
   if ((hasPt1 || hasPt2) && L.flipPtBounds) {
     const fc = frameColorCode(card.frameColor[0]);
-    const ptImg = await loadAssetImage(`frames/flip/${fc}pt.png`);
+    const ptImg = await loadAssetImage(`frames/flip/${fc}pt.webp`);
     if (ptImg) {
       const b = L.flipPtBounds;
       const midY = (b.y + b.h / 2) * ch;
@@ -80,5 +80,5 @@ const flipPreFrame: TemplateHooks['preFrame'] = async (_ctx, card, L, _cw, _ch) 
 export const flipHooks: TemplateHooks = {
   preFrame: flipPreFrame,
   body: flipBody,
-  prefetch: (card) => [`frames/flip/${frameColorCode(card.frameColor[0])}pt.png`],
+  prefetch: (card) => [`frames/flip/${frameColorCode(card.frameColor[0])}pt.webp`],
 };

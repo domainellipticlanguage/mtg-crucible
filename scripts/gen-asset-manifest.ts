@@ -21,7 +21,7 @@ function walk(dir: string): string[] {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, e.name);
     if (e.isDirectory()) out.push(...walk(full));
-    else if (e.isFile() && e.name.endsWith('.png')) out.push(path.relative(root, full));
+    else if (e.isFile() && e.name.endsWith('.webp')) out.push(path.relative(root, full));
   }
   return out;
 }

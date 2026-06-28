@@ -32,12 +32,12 @@ async function body(ctx: Ctx, card: NormalizedCardData, L: Record<string, any>, 
   // Main card's accent color through the omen-main pinline mask
   if (card.accentColor.length > 0) {
     const accentCodes = card.accentColor.map(c => frameColorCode(c));
-    await drawMaskedOmenFrame(ctx, accentCodes, 'omen-main-pinline.png', cw, ch);
+    await drawMaskedOmenFrame(ctx, accentCodes, 'omen-main-pinline.webp', cw, ch);
   }
 
   // Omen spell's frame color(s) in the omen region
   const omenCodes = omen.frameColor.map(c => frameColorCode(c));
-  await drawMaskedOmenFrame(ctx, omenCodes, 'omen-mask.png', cw, ch);
+  await drawMaskedOmenFrame(ctx, omenCodes, 'omen-mask.webp', cw, ch);
 
   await drawNameAndMana(ctx, L.omenName, L.omenMana, cw, ch, omen.name ?? '', omen.manaCost, { color: 'white' });
 
@@ -63,5 +63,5 @@ async function body(ctx: Ctx, card: NormalizedCardData, L: Record<string, any>, 
 
 export const omenHooks = {
   body,
-  prefetch: () => ['masks/omen-main-pinline.png', 'masks/omen-mask.png'],
+  prefetch: () => ['masks/omen-main-pinline.webp', 'masks/omen-mask.webp'],
 };

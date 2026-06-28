@@ -60,8 +60,8 @@ async function body(ctx: Ctx, card: NormalizedCardData, L: Record<string, any>, 
   const chapterHeights = naturalHeights.map(h => h * scale);
 
   const [chapterImg, dividerImg] = await Promise.all([
-    loadAssetImage('frames/saga/sagaChapter.png'),
-    loadAssetImage('frames/saga/sagaDivider.png'),
+    loadAssetImage('frames/saga/sagaChapter.webp'),
+    loadAssetImage('frames/saga/sagaDivider.webp'),
   ]);
 
   const chapterFontSize = ch * L.chapterFont;
@@ -129,5 +129,5 @@ async function body(ctx: Ctx, card: NormalizedCardData, L: Record<string, any>, 
 
 export const sagaHooks = {
   body,
-  prefetch: () => ['frames/saga/sagaChapter.png', 'frames/saga/sagaDivider.png'],
+  prefetch: () => ['frames/saga/sagaChapter.webp', 'frames/saga/sagaDivider.webp'],
 };

@@ -61,7 +61,7 @@ export const aftermathHooks: TemplateHooks = {
     other.accentColor.forEach(c => codes.add(frameColorCode(c)));
     const paths: string[] = [];
     for (const code of codes) {
-      if (assetExists(`frames/${frame}/${code}.png`)) paths.push(`frames/${frame}/${code}.png`);
+      if (assetExists(`frames/${frame}/${code}.webp`)) paths.push(`frames/${frame}/${code}.webp`);
     }
     return paths;
   },

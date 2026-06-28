@@ -32,12 +32,12 @@ async function body(ctx: Ctx, card: NormalizedCardData, L: Record<string, any>, 
   // Main card's accent color through the prepare-main pinline mask
   if (card.accentColor.length > 0) {
     const accentCodes = card.accentColor.map(c => frameColorCode(c));
-    await drawMaskedPrepareFrame(ctx, accentCodes, 'prepare-main-pinline.png', cw, ch);
+    await drawMaskedPrepareFrame(ctx, accentCodes, 'prepare-main-pinline.webp', cw, ch);
   }
 
   // Prepare spell's frame color(s) in the prepare region
   const prepCodes = prep.frameColor.map(c => frameColorCode(c));
-  await drawMaskedPrepareFrame(ctx, prepCodes, 'prepare-mask.png', cw, ch);
+  await drawMaskedPrepareFrame(ctx, prepCodes, 'prepare-mask.webp', cw, ch);
 
   await drawNameAndMana(ctx, L.prepName, L.prepMana, cw, ch, prep.name ?? '', prep.manaCost, { color: 'white' });
 
@@ -67,5 +67,5 @@ async function body(ctx: Ctx, card: NormalizedCardData, L: Record<string, any>, 
 
 export const prepareHooks = {
   body,
-  prefetch: () => ['masks/prepare-main-pinline.png', 'masks/prepare-mask.png'],
+  prefetch: () => ['masks/prepare-main-pinline.webp', 'masks/prepare-mask.webp'],
 };

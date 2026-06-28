@@ -45,7 +45,7 @@ const levelerBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
 
   // PT box image (single image containing all 3 PT boxes)
   const fc = frameColorCode(card.frameColor[0]);
-  const ptImg = await loadAssetImage(`frames/leveler/pt/${fc}.png`);
+  const ptImg = await loadAssetImage(`frames/leveler/pt/${fc}.webp`);
   if (ptImg) {
     const ptBounds = { x: 0.7574, y: 0.6415, w: 0.188, h: 0.2667 };
     ctx.drawImage(ptImg, ptBounds.x * cw, ptBounds.y * ch, ptBounds.w * cw, ptBounds.h * ch);
@@ -109,5 +109,5 @@ const levelerBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
 
 export const levelerHooks: TemplateHooks = {
   body: levelerBody,
-  prefetch: (card) => [`frames/leveler/pt/${frameColorCode(card.frameColor[0])}.png`],
+  prefetch: (card) => [`frames/leveler/pt/${frameColorCode(card.frameColor[0])}.webp`],
 };

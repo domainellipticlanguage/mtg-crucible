@@ -71,7 +71,7 @@ const roomBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
   // door1 (front, bottom half) is the base; door2 (back, top half) is masked on top.
   ctx.drawImage(door1Canvas, 0, 0);
 
-  const roomMask = await loadAssetImage('masks/room-mask.png');
+  const roomMask = await loadAssetImage('masks/room-mask.webp');
   if (roomMask) {
     const masked = createCanvas(cw, ch);
     const mCtx = masked.getContext('2d');
@@ -106,9 +106,9 @@ export const roomHooks: TemplateHooks = {
       door2.frameColor.forEach(c => codes.add(frameColorCode(c)));
       door2.accentColor.forEach(c => codes.add(frameColorCode(c)));
     }
-    const paths = ['masks/room-mask.png'];
+    const paths = ['masks/room-mask.webp'];
     for (const code of codes) {
-      if (assetExists(`frames/room/${code}.png`)) paths.push(`frames/room/${code}.png`);
+      if (assetExists(`frames/room/${code}.webp`)) paths.push(`frames/room/${code}.webp`);
     }
     return paths;
   },

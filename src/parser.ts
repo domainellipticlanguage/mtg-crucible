@@ -1421,7 +1421,7 @@ function toArray<T>(v: T | T[] | undefined): T[] {
  *   - Nyx: any Enchantment (Enchantment Creature, bare Enchantment, etc.) — following
  *     modern MTG's Nyx-for-all treatment.
  *   - Devoid: card has the "devoid" keyword AND the derived frame is colored. Pure
- *     colorless devoid cards (Endbringer) skip this — the `devoid/c.png` asset doesn't
+ *     colorless devoid cards (Endbringer) skip this — the `devoid/c.webp` asset doesn't
  *     exist, and the standard colorless frame already matches Scryfall's Eldrazi look.
  */
 export function inferFrameEffect(

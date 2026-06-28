@@ -37,7 +37,7 @@ function bookXFraction(img: CanvasImage): { start: number; end: number } {
  * books — in the creature's color; here we overdraw just the left book through
  * the bookLeft mask so the adventure half can differ from the creature.
  *
- * The mask is Card Conjurer's `bookLeft.png` (alpha covers x≈0.05–0.50,
+ * The mask is Card Conjurer's `bookLeft.webp` (alpha covers x≈0.05–0.50,
  * y≈0.63–0.92). When the adventure color matches the creature this redraws the
  * identical book and is a no-op visually. For a multi-color adventure spell the
  * gradient is confined to the book's own x-extent (measured from the mask) so a
@@ -47,7 +47,7 @@ async function drawAdventureBookFrame(
   ctx: Ctx, colorCodes: string[], cw: number, ch: number,
 ): Promise<void> {
   if (colorCodes.length === 0) return;
-  const maskImg = await loadAssetImage('frames/adventure/bookLeft.png');
+  const maskImg = await loadAssetImage('frames/adventure/bookLeft.webp');
   if (!maskImg) return;
 
   // Confine a multi-color blend to the book's horizontal span.
@@ -102,5 +102,5 @@ async function body(ctx: Ctx, card: NormalizedCardData, L: Record<string, any>, 
 
 export const adventureHooks = {
   body,
-  prefetch: () => ['frames/adventure/bookLeft.png'],
+  prefetch: () => ['frames/adventure/bookLeft.webp'],
 };

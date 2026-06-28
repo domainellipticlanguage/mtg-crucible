@@ -194,15 +194,15 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
   if (L.crown && card.typeLine.supertypes.includes('legendary') && !templateKey.startsWith('planeswalker')) {
     const crownBase = crownDir ? `crowns/${crownDir}` : 'crowns';
     for (const code of crownCodes) {
-      if (assetExists(`${crownBase}/${code}.png`)) prefetch.push(`${crownBase}/${code}.png`);
+      if (assetExists(`${crownBase}/${code}.webp`)) prefetch.push(`${crownBase}/${code}.webp`);
     }
-    if (assetExists('crowns/maskCrownPinline.png')) prefetch.push('crowns/maskCrownPinline.png');
+    if (assetExists('crowns/maskCrownPinline.webp')) prefetch.push('crowns/maskCrownPinline.webp');
   }
   if (L.ptBox && card.power && card.toughness) {
     const ptBase = ptDir ? `pt/${ptDir}` : 'pt';
     for (const code of ptBoxCodes) {
-      if (assetExists(`${ptBase}/${code}.png`)) prefetch.push(`${ptBase}/${code}.png`);
-      else if (code === 'c' && ptBase !== 'pt') prefetch.push('pt/c.png');
+      if (assetExists(`${ptBase}/${code}.webp`)) prefetch.push(`${ptBase}/${code}.webp`);
+      else if (code === 'c' && ptBase !== 'pt') prefetch.push('pt/c.webp');
     }
   }
   const isBackFaceSym = templateKey === 'transform_back' || templateKey === 'mdfc_back';
@@ -237,11 +237,11 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
   // Drawn after body hook so it sits above any body overlays (e.g. prepare pinline).
   if (L.crown && card.typeLine.supertypes.includes('legendary') && !templateKey.startsWith('planeswalker')) {
     const crownBase = crownDir ? `crowns/${crownDir}` : 'crowns';
-    const crownImg = await loadAssetImage(`${crownBase}/${crownCodes[0]}.png`);
+    const crownImg = await loadAssetImage(`${crownBase}/${crownCodes[0]}.webp`);
     if (crownImg) {
       ctx.fillStyle = 'black';
       ctx.fillRect(0, 0, cw, (137 / 2814) * ch);
-      const maskImg = await loadAssetImage('crowns/maskCrownPinline.png');
+      const maskImg = await loadAssetImage('crowns/maskCrownPinline.webp');
       await drawGradientCrowns(ctx, crownCodes, L.crown.x * cw, L.crown.y * ch, L.crown.w * cw, L.crown.h * ch, maskImg, cw, ch, crownBase);
     }
   }

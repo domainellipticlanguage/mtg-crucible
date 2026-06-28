@@ -79,12 +79,12 @@ function createGradientMask(
   return imgData;
 }
 
-/** Resolve a frame image, falling back to artifact for colorless when c.png doesn't exist. */
+/** Resolve a frame image, falling back to artifact for colorless when c.webp doesn't exist. */
 async function resolveFrameImage(dir: string, code: string): Promise<CanvasImage | null> {
-  if (assetExists(`frames/${dir}/${code}.png`)) return loadAssetImage(`frames/${dir}/${code}.png`);
+  if (assetExists(`frames/${dir}/${code}.webp`)) return loadAssetImage(`frames/${dir}/${code}.webp`);
   // Colorless has no variant in many specialized dirs (transform, modal, …) — fall
   // back to the standard colorless frame rather than 404 then guess at artifact.
-  if (code === 'c' && dir !== 'standard') return loadAssetImage('frames/standard/c.png');
+  if (code === 'c' && dir !== 'standard') return loadAssetImage('frames/standard/c.webp');
   return null;
 }
 
@@ -94,16 +94,16 @@ async function resolveFrameImage(dir: string, code: string): Promise<CanvasImage
  * the base colorless P/T box rather than 404 / draw nothing.
  */
 export async function resolvePtImage(ptBase: string, code: string): Promise<CanvasImage | null> {
-  if (assetExists(`${ptBase}/${code}.png`)) return loadAssetImage(`${ptBase}/${code}.png`);
-  if (code === 'c' && ptBase !== 'pt') return loadAssetImage('pt/c.png');
+  if (assetExists(`${ptBase}/${code}.webp`)) return loadAssetImage(`${ptBase}/${code}.webp`);
+  if (code === 'c' && ptBase !== 'pt') return loadAssetImage('pt/c.webp');
   return null;
 }
 
 /** Resolve the existing frame-image path for (dir, code), mirroring
  *  `resolveFrameImage`'s fallback. Returns null when nothing exists. */
 function frameImagePath(dir: string, code: string): string | null {
-  if (assetExists(`frames/${dir}/${code}.png`)) return `frames/${dir}/${code}.png`;
-  if (code === 'c' && dir !== 'standard' && assetExists('frames/standard/c.png')) return 'frames/standard/c.png';
+  if (assetExists(`frames/${dir}/${code}.webp`)) return `frames/${dir}/${code}.webp`;
+  if (code === 'c' && dir !== 'standard' && assetExists('frames/standard/c.webp')) return 'frames/standard/c.webp';
   return null;
 }
 
@@ -141,7 +141,7 @@ export function collectFrameAssetPaths(opts: {
   // without one, only title/type and only when those line colors differ.
   const mt = maskTemplate === 'modalFront' || maskTemplate === 'modalBack' ? 'modal' : maskTemplate;
   const addMask = (region: string) => {
-    const m = `masks/${mt}-${region}.png`;
+    const m = `masks/${mt}-${region}.webp`;
     if (assetExists(m)) paths.add(m);
   };
   if (accentCodes) {
@@ -313,8 +313,8 @@ export async function drawFrame(
     // composite sequentially (draw order matters).
     const allMasks = ['title', 'type', 'pinline', 'rules', 'pinline-textbox'];
     const [maskImgs, bannerMask] = await Promise.all([
-      Promise.all(allMasks.map(m => loadMask(`masks/${maskTemplate}-${m}.png`))),
-      loadMask(`masks/${maskTemplate}-banner.png`),
+      Promise.all(allMasks.map(m => loadMask(`masks/${maskTemplate}-${m}.webp`))),
+      loadMask(`masks/${maskTemplate}-banner.webp`),
     ]);
     for (let mi = 0; mi < allMasks.length; mi++) {
       const maskImg = maskImgs[mi];
@@ -392,7 +392,7 @@ export async function drawFrame(
         canvasCache.set(key, c.getContext('2d'));
       }
     }
-    const overlayMasks = await Promise.all(overlays.map(o => loadMask(`masks/${maskTemplate}-${o.mask}.png`)));
+    const overlayMasks = await Promise.all(overlays.map(o => loadMask(`masks/${maskTemplate}-${o.mask}.webp`)));
     for (let oi = 0; oi < overlays.length; oi++) {
       const maskImg = overlayMasks[oi];
       if (!maskImg) continue;
@@ -426,7 +426,7 @@ export async function drawGradientCrowns(
   if (colorCodes.length === 0) return;
 
   // Load all crown images in parallel before the sequential composite below.
-  const crownImgs = await Promise.all(colorCodes.map(code => loadAssetImage(`${baseDir}/${code}.png`)));
+  const crownImgs = await Promise.all(colorCodes.map(code => loadAssetImage(`${baseDir}/${code}.webp`)));
 
   // Build composite crown on offscreen canvas
   const crownCanvas = createCanvas(cw, ch);

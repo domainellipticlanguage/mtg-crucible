@@ -60,7 +60,7 @@ const splitBody: TemplateHooks['body'] = async (ctx, card, L, cw, ch) => {
   // For non-fuse split, rect-clip is fine — the frame art has its own pinline at topH.
   const topH = Math.round(splitY);
   const isFuse = frameDir === 'fuse';
-  const fuseTopMask = isFuse ? await loadAssetImage('masks/fuse-top.png') : null;
+  const fuseTopMask = isFuse ? await loadAssetImage('masks/fuse-top.webp') : null;
 
   if (fuseTopMask) {
     // Bottom half (card/left card) as full-canvas base
@@ -131,9 +131,9 @@ export const splitHooks: TemplateHooks = {
       other.accentColor.forEach(c => codes.add(frameColorCode(c)));
     }
     const paths: string[] = [];
-    if (frame === 'fuse') paths.push('masks/fuse-top.png');
+    if (frame === 'fuse') paths.push('masks/fuse-top.webp');
     for (const code of codes) {
-      if (assetExists(`frames/${frame}/${code}.png`)) paths.push(`frames/${frame}/${code}.png`);
+      if (assetExists(`frames/${frame}/${code}.webp`)) paths.push(`frames/${frame}/${code}.webp`);
     }
     return paths;
   },

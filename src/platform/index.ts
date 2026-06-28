@@ -55,7 +55,7 @@ export function encode(canvas: RenderCanvas, format: RenderFormat, quality?: num
 }
 
 // Decoded assets are immutable and reused across renders, so cache them by path.
-// Misses (a non-existent optional mask, a colorless frame with no `c.png`) resolve
+// Misses (a non-existent optional mask, a colorless frame with no `c.webp`) resolve
 // to `null` and are cached too, so repeated renders don't re-attempt the fetch.
 const assetImageCache = new Map<string, Promise<CanvasImage | null>>();
 

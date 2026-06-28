@@ -276,7 +276,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Save a mask: writes SVG to assets/masks/originals/{name}.svg AND rasterizes to assets/masks/{name}.png
+  // Save a mask: writes SVG to assets/masks/originals/{name}.svg AND rasterizes to assets/masks/{name}.webp
   if (req.method === 'POST' && req.url === '/save-mask') {
     const chunks: Buffer[] = [];
     for await (const chunk of req) chunks.push(chunk as Buffer);
@@ -290,23 +290,24 @@ const server = http.createServer(async (req, res) => {
     }
     try {
       const svgPath = path.resolve(__dirname, '..', 'assets', 'masks', 'originals', `${name}.svg`);
-      const pngPath = path.resolve(__dirname, '..', 'assets', 'masks', `${name}.png`);
+      const webpPath = path.resolve(__dirname, '..', 'assets', 'masks', `${name}.webp`);
       await fs.promises.writeFile(svgPath, svg, 'utf-8');
 
-      // Rasterize SVG to PNG. @napi-rs/canvas's loadImage handles SVG via librsvg.
+      // Rasterize SVG to WebP (assets are q80 webp; masks keep alpha losslessly).
+      // @napi-rs/canvas's loadImage handles SVG via librsvg.
       const img = await loadImage(Buffer.from(svg, 'utf-8'));
       const canvas = createCanvas(width, height);
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, width, height);
-      const png = canvas.toBuffer('image/png');
-      await fs.promises.writeFile(pngPath, png);
+      const webp = canvas.toBuffer('image/webp');
+      await fs.promises.writeFile(webpPath, webp);
 
       // The render core caches decoded assets by path; drop it so the next
       // render picks up the freshly-written mask.
       clearAssetImageCache();
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ svgPath, pngPath }));
+      res.end(JSON.stringify({ svgPath, webpPath }));
     } catch (err: any) {
       res.writeHead(500, { 'Content-Type': 'text/plain' });
       res.end(err.message || 'Internal server error');

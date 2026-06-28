@@ -22,7 +22,7 @@ async function body(ctx: Ctx, card: NormalizedCardData, L: Record<string, any>, 
   const classLevels = cls.classLevels;
 
   // Header divider image
-  const headerImg = await loadAssetImage('frames/class/header.png');
+  const headerImg = await loadAssetImage('frames/class/header.webp');
 
   // Layout constants — matching CardConjurer's packClass.js / versionClass.js
   const classX = 0.5014 * cw;
@@ -143,5 +143,5 @@ async function body(ctx: Ctx, card: NormalizedCardData, L: Record<string, any>, 
 
 export const classHooks = {
   body,
-  prefetch: () => ['frames/class/header.png'],
+  prefetch: () => ['frames/class/header.webp'],
 };
