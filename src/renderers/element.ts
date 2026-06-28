@@ -231,7 +231,15 @@ export async function drawNameAndMana(
     manaAnchor = (manaEl.w ?? 0) * cw; // unrotated: right edge at w
   }
 
-  const nameW = Math.max(0, manaAnchor - manaW - nameStart - NAME_MANA_GAP * cw);
+  // The name fills the space up to the mana cost, but never past its own box
+  // width. The mana bound matters when a long cost would crowd the title; the
+  // box-width bound matters when the cost is short or absent (e.g. a transform
+  // back face), keeping the name from running into art baked into the frame
+  // (like the transform indicator). min() picks whichever is more restrictive.
+  const advDim = (angle === 90 || angle === 270) ? ch : cw;
+  const spaceToMana = manaAnchor - manaW - nameStart - NAME_MANA_GAP * cw;
+  const boxWidth = nameEl.w != null ? nameEl.w * advDim : Infinity;
+  const nameW = Math.max(0, Math.min(spaceToMana, boxWidth));
 
   placeElement(ctx, nameEl, cw, ch, ({ hDim }) => {
     drawSingleLineText(ctx, name, 0, 0, nameW, nameEl.h * hDim,
