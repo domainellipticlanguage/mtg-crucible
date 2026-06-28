@@ -2,6 +2,12 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { createRoot } from 'react-dom/client';
 import { MtgCard } from '../src/react/MtgCard';
 import type { MtgCardDisplayData } from '../src/types';
+// Browser build of the render API — same import a real consumer's bundler would
+// resolve via the "browser" export condition. Importing it registers the browser
+// platform (OffscreenCanvas/Image + fetch), so client-side renders pull frames,
+// masks and fonts straight from the CDN (assetBaseUrl). Lets the dev preview
+// dogfood the exact browser path, toggled against the Node server render.
+import { renderCard, toDisplayCard, formatCard } from '../src/index.browser';
 
 interface RenderResult {
   display: MtgCardDisplayData;
@@ -51,33 +57,48 @@ function PreviewApp() {
   const [timing, setTiming] = useState('');
   const [quality, setQuality] = useState<'low' | 'medium' | 'high'>('high');
   const [format, setFormat] = useState<'png' | 'jpeg'>('jpeg');
+  const [mode, setMode] = useState<'server' | 'client'>('server');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Render in-browser using the library's browser build. Frames/masks/fonts are
+  // fetched from the CDN on demand (first render is cold, then HTTP-cached).
+  const renderClientSide = async (t0: number) => {
+    let input: any = cardText;
+    try { input = JSON.parse(cardText); } catch {}
+    const rendered = await renderCard(input, { format, quality, allowUnsafeArtUrls: true });
+    setResult({
+      display: toDisplayCard(rendered),
+      cardData: rendered.normalizedCardData,
+      crucibleTextNormalized: formatCard(rendered.normalizedCardData),
+    });
+    setTiming(`Total: ${Math.round(performance.now() - t0)}ms (client)`);
+  };
+
+  // Render on the Node dev server (@napi-rs/canvas, assets from disk).
+  const renderServerSide = async (t0: number) => {
+    const res = await fetch('/render', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: cardText, quality, format }),
+    });
+    const serverMs = res.headers.get('X-Render-Time-Ms');
+    if (!res.ok) {
+      setError(await res.text());
+      return;
+    }
+    const json = await res.json();
+    setResult({ display: json.display, cardData: json.cardData, crucibleTextNormalized: json.crucibleTextNormalized });
+    setTiming(`Total: ${Math.round(performance.now() - t0)}ms${serverMs ? ` (server: ${serverMs}ms)` : ''}`);
+  };
 
   const doRender = async () => {
     setLoading(true);
     setError(null);
     setTiming('');
     const t0 = performance.now();
-
     try {
-      const res = await fetch('/render', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: cardText, quality, format }),
-      });
-      const serverMs = res.headers.get('X-Render-Time-Ms');
-
-      if (!res.ok) {
-        const err = await res.text();
-        setError(err);
-        return;
-      }
-
-      const json = await res.json();
-      setResult({ display: json.display, cardData: json.cardData, crucibleTextNormalized: json.crucibleTextNormalized });
-
-      const totalMs = Math.round(performance.now() - t0);
-      setTiming(`Total: ${totalMs}ms${serverMs ? ` (server: ${serverMs}ms)` : ''}`);
+      if (mode === 'client') await renderClientSide(t0);
+      else await renderServerSide(t0);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -127,6 +148,13 @@ function PreviewApp() {
         />
         <div className="controls">
           <button onClick={doRender} disabled={loading}>Render</button>
+          <label style={{ marginLeft: 12, fontSize: 13 }}>
+            Render via:&nbsp;
+            <select value={mode} onChange={(e) => setMode(e.target.value as any)}>
+              <option value="server">server (Node)</option>
+              <option value="client">client (browser + CDN)</option>
+            </select>
+          </label>
           <label style={{ marginLeft: 12, fontSize: 13 }}>
             Quality:&nbsp;
             <select value={quality} onChange={(e) => setQuality(e.target.value as any)}>
