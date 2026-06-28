@@ -385,12 +385,19 @@ function LayoutBox({ layoutKey, entry, angle, displayW, displayH, selected, onSe
         boxSizing: 'border-box',
       }}
     >
-      <span style={{
-        position: 'absolute', top: -18, left: 0,
-        fontSize: 10, color: selected ? '#00ffff' : '#ff8080',
-        background: 'rgba(0,0,0,0.7)', padding: '1px 4px', borderRadius: 2,
-        whiteSpace: 'nowrap', pointerEvents: 'none',
-      }}>
+      {/* Label doubles as a click target: overlapping boxes make the body
+          ambiguous to click, but the labels rarely overlap, so clicking a name
+          reliably selects that box. zIndex keeps every label above all box
+          bodies regardless of DOM order. */}
+      <span
+        onMouseDown={(e) => { e.stopPropagation(); onSelect(); }}
+        title="Click to select this box"
+        style={{
+          position: 'absolute', top: -18, left: 0,
+          fontSize: 10, color: selected ? '#00ffff' : '#ff8080',
+          background: 'rgba(0,0,0,0.7)', padding: '1px 4px', borderRadius: 2,
+          whiteSpace: 'nowrap', cursor: 'pointer', zIndex: 30,
+        }}>
         {layoutKey}
       </span>
       {selected && handles.map((h) => (
@@ -404,6 +411,7 @@ function LayoutBox({ layoutKey, entry, angle, displayW, displayH, selected, onSe
             background: '#00ffff',
             border: '1px solid #000',
             cursor: h.cursor,
+            zIndex: 20,
             ...h.style,
           }}
         />
@@ -500,23 +508,26 @@ function ManaBox({ layoutKey, entry, angle, displayW, displayH, selected, onSele
         boxSizing: 'border-box',
       }}
     >
-      <span style={{
-        position: 'absolute', top: -18, right: 0,
-        fontSize: 10, color: selected ? '#00ffff' : '#ffc850',
-        background: 'rgba(0,0,0,0.7)', padding: '1px 4px', borderRadius: 2,
-        whiteSpace: 'nowrap', pointerEvents: 'none',
-      }}>
+      <span
+        onMouseDown={(e) => { e.stopPropagation(); onSelect(); }}
+        title="Click to select this box"
+        style={{
+          position: 'absolute', top: -18, right: 0,
+          fontSize: 10, color: selected ? '#00ffff' : '#ffc850',
+          background: 'rgba(0,0,0,0.7)', padding: '1px 4px', borderRadius: 2,
+          whiteSpace: 'nowrap', cursor: 'pointer', zIndex: 30,
+        }}>
         {layoutKey} (right-anchored)
       </span>
       {selected && (
         <>
           <div
             onMouseDown={(e) => startDrag(e, 'n')}
-            style={{ position: 'absolute', left: '50%', top: -handleSize/2, transform: 'translateX(-50%)', width: handleSize, height: handleSize, background: '#00ffff', border: '1px solid #000', cursor: 'ns-resize' }}
+            style={{ position: 'absolute', left: '50%', top: -handleSize/2, transform: 'translateX(-50%)', width: handleSize, height: handleSize, background: '#00ffff', border: '1px solid #000', cursor: 'ns-resize', zIndex: 20 }}
           />
           <div
             onMouseDown={(e) => startDrag(e, 's')}
-            style={{ position: 'absolute', left: '50%', bottom: -handleSize/2, transform: 'translateX(-50%)', width: handleSize, height: handleSize, background: '#00ffff', border: '1px solid #000', cursor: 'ns-resize' }}
+            style={{ position: 'absolute', left: '50%', bottom: -handleSize/2, transform: 'translateX(-50%)', width: handleSize, height: handleSize, background: '#00ffff', border: '1px solid #000', cursor: 'ns-resize', zIndex: 20 }}
           />
         </>
       )}
@@ -623,12 +634,15 @@ function SetSymbolBox({ layoutKey, entry, angle, displayW, displayH, selected, o
         boxSizing: 'border-box',
       }}
     >
-      <span style={{
-        position: 'absolute', top: -18, right: 0,
-        fontSize: 10, color: selected ? '#00ffff' : '#b478ff',
-        background: 'rgba(0,0,0,0.7)', padding: '1px 4px', borderRadius: 2,
-        whiteSpace: 'nowrap', pointerEvents: 'none',
-      }}>
+      <span
+        onMouseDown={(e) => { e.stopPropagation(); onSelect(); }}
+        title="Click to select this box"
+        style={{
+          position: 'absolute', top: -18, right: 0,
+          fontSize: 10, color: selected ? '#00ffff' : '#b478ff',
+          background: 'rgba(0,0,0,0.7)', padding: '1px 4px', borderRadius: 2,
+          whiteSpace: 'nowrap', cursor: 'pointer', zIndex: 30,
+        }}>
         {layoutKey} (right-anchored, y-centered)
       </span>
       {selected && handles.map((h) => (
@@ -642,6 +656,7 @@ function SetSymbolBox({ layoutKey, entry, angle, displayW, displayH, selected, o
             background: '#00ffff',
             border: '1px solid #000',
             cursor: h.cursor,
+            zIndex: 20,
             ...h.style,
           }}
         />
