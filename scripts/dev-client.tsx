@@ -7,7 +7,7 @@ import type { MtgCardDisplayData } from '../src/types';
 // platform (OffscreenCanvas/Image + fetch), so client-side renders pull frames,
 // masks and fonts straight from the CDN (assetBaseUrl). Lets the dev preview
 // dogfood the exact browser path, toggled against the Node server render.
-import { renderCard, toDisplayCard, formatCard } from '../src/index.browser';
+import { renderCard, toDisplayCard, formatCard, getArtDimensions } from '../src/index.browser';
 
 interface RenderResult {
   display: MtgCardDisplayData;
@@ -15,7 +15,7 @@ interface RenderResult {
   crucibleTextNormalized: string;
 }
 
-type Tab = 'card' | 'cardData' | 'scryfallJson' | 'scryfallText' | 'crucibleText' | 'crucibleTextNormalized' | 'rotations';
+type Tab = 'card' | 'cardData' | 'scryfallJson' | 'scryfallText' | 'crucibleText' | 'crucibleTextNormalized' | 'rotations' | 'artDimensions';
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'card', label: 'Card' },
@@ -25,6 +25,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'crucibleText', label: 'Crucible Text' },
   { key: 'crucibleTextNormalized', label: 'Crucible Text Normalized' },
   { key: 'rotations', label: 'Rotations' },
+  { key: 'artDimensions', label: 'Art Dimensions' },
 ];
 
 const DEFAULT_TEXT = `{
@@ -134,6 +135,16 @@ function PreviewApp() {
         return <pre>{result.crucibleTextNormalized}</pre>;
       case 'rotations':
         return <pre>{JSON.stringify(result.display.rotations, null, 2)}</pre>;
+      case 'artDimensions': {
+        // getArtDimensions(<the card>) — the dimensions a consumer should make
+        // their art image(s). Computed from the normalized card data.
+        try {
+          const dims = getArtDimensions(result.cardData);
+          return <pre>{JSON.stringify(dims, null, 2)}</pre>;
+        } catch (e: any) {
+          return <pre className="error">{e?.message ?? String(e)}</pre>;
+        }
+      }
     }
   };
 
@@ -730,16 +741,19 @@ Insectile Aberration
 Creature — Human Insect
 Flying
 3/2`,
-  transform_back: `Insectile Aberration
-Creature — Human Insect
-Flying
-3/2
+  // Primary = front (Delver, with mana cost), linked = back (Insectile, no cost).
+  // The Editor shows the BACK face for *_back templates, so the no-cost night side
+  // is what's previewed/edited — matching a real transform back.
+  transform_back: `Delver of Secrets {U}
+Creature — Human Wizard
+At the beginning of your upkeep, look at the top card of your library. You may reveal that card. If an instant or sorcery card is revealed this way, transform Delver of Secrets.
+1/1
 Rarity: Common
 --transform--
-Delver of Secrets {U}
-Creature — Human Wizard
-At the beginning of your upkeep, look at the top card of your library. You may reveal that card.
-1/1`,
+Insectile Aberration
+Creature — Human Insect
+Flying
+3/2`,
   mdfc_front: `Emeria's Call {4}{W}{W}
 Sorcery
 Create two 4/4 white Angel Warrior creature tokens with flying. Non-Angel creatures you control gain indestructible until your next turn.
@@ -749,15 +763,17 @@ Emeria, Shattered Skyclave
 Land
 ({T}: Add {W}.)
 Emeria, Shattered Skyclave enters tapped unless you pay 3 life.`,
-  mdfc_back: `Emeria, Shattered Skyclave
-Land
-({T}: Add {W}.)
-Emeria, Shattered Skyclave enters tapped unless you pay 3 life.
+  // Primary = front (Emeria's Call), linked = back (the land). The Editor shows the
+  // BACK face for *_back templates, so the land side is what's previewed/edited.
+  mdfc_back: `Emeria's Call {4}{W}{W}
+Sorcery
+Create two 4/4 white Angel Warrior creature tokens with flying. Non-Angel creatures you control gain indestructible until your next turn.
 Rarity: Mythic Rare
 --modal--
-Emeria's Call {4}{W}{W}
-Sorcery
-Create two 4/4 white Angel Warrior creature tokens with flying.`,
+Emeria, Shattered Skyclave
+Land
+({T}: Add {W}.)
+Emeria, Shattered Skyclave enters tapped unless you pay 3 life.`,
   split: `Fire {1}{R}
 Instant
 Fire deals 2 damage divided as you choose among one or two targets.
@@ -818,6 +834,16 @@ Sorcery
 Aftermath
 Tap up to two target creatures.`,
 };
+
+// Two-image DFC "back" templates render the *linked* (back) face as the thing being
+// edited: renderCard always applies the front template to the primary card and the
+// back template to the linked card. So the face matching a `_back` template is the
+// back face, not the front. Pick the right reference image for the layout/mask editors.
+const BACK_FACE_TEMPLATES = new Set(['transform_back', 'mdfc_back']);
+const referenceImageUrl = (display: any, templateName: string): string | undefined =>
+  BACK_FACE_TEMPLATES.has(templateName)
+    ? (display?.backFaceImageUrl ?? display?.frontFaceImageUrl)
+    : display?.frontFaceImageUrl;
 
 function EditorApp() {
   const [templates, setTemplates] = useState<string[]>([]);
@@ -1094,7 +1120,7 @@ function EditorApp() {
            onMouseDown={() => setSelectedKey(null)}>
         {rendered && (
           <img
-            src={rendered.display.frontFaceImageUrl}
+            src={referenceImageUrl(rendered.display, templateName)}
             alt="card"
             style={{ position: 'absolute', left: 0, top: 0, width: displayW, height: displayH, pointerEvents: 'none' }}
           />
@@ -1314,7 +1340,8 @@ function MaskEditorApp() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: sample, format: 'jpeg', quality: 'medium' }),
     }).then(r => r.ok ? r.json() : null).then(j => {
-      if (j?.display?.frontFaceImageUrl) setBgImageUrl(j.display.frontFaceImageUrl);
+      const url = j?.display ? referenceImageUrl(j.display, templateName) : undefined;
+      if (url) setBgImageUrl(url);
     });
   }, [templateName]);
 
