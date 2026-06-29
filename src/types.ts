@@ -283,6 +283,12 @@ export interface RenderOptions {
    * See: https://owasp.org/www-community/attacks/Server_Side_Request_Forgery
    */
   allowUnsafeArtUrls?: boolean;
+
+  /**
+   * Suppress the small "Powered by mtg-crucible" credit in the footer (drawn on
+   * the designer's baseline). Defaults to `false` — the credit is shown.
+   */
+  suppressAttribution?: boolean;
 }
 
 export interface RenderedCard {

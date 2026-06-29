@@ -54,6 +54,7 @@ export async function renderCard(input: CardData | string, options?: RenderOptio
   const quality = options?.quality ?? 'high';
   const format = options?.format ?? 'png';
   const allowUnsafeArtUrls = options?.allowUnsafeArtUrls ?? false;
+  const suppressAttribution = options?.suppressAttribution ?? false;
 
   // Note: font/symbol warm-up happens inside renderCardImage (per face), so it
   // covers every render entry point, not just this one.
@@ -82,7 +83,7 @@ export async function renderCard(input: CardData | string, options?: RenderOptio
     frontTemplateOverride = 'omen';
   }
 
-  const frontFace = await renderCardImage(normalized, frontTemplateOverride, quality, format, allowUnsafeArtUrls);
+  const frontFace = await renderCardImage(normalized, frontTemplateOverride, quality, format, allowUnsafeArtUrls, suppressAttribution);
   const frontTemplate = frontTemplateOverride ?? resolveTemplate(normalized);
   const frontFaceOrientation = frontTemplate === 'battle' ? 'horizontal' : 'vertical';
 
@@ -100,7 +101,7 @@ export async function renderCard(input: CardData | string, options?: RenderOptio
     // Only apply DFC back template override for standard cards
     const backIsStandard = STANDARD_TEMPLATES.has(normalizedBack.cardTemplate);
     const effectiveBackOverride = backIsStandard ? backTemplateOverride : undefined;
-    backFace = await renderCardImage(normalizedBack, effectiveBackOverride, quality, format, allowUnsafeArtUrls);
+    backFace = await renderCardImage(normalizedBack, effectiveBackOverride, quality, format, allowUnsafeArtUrls, suppressAttribution);
     const backTemplate = effectiveBackOverride ?? resolveTemplate(normalizedBack);
     backFaceOrientation = backTemplate === 'battle' ? 'horizontal' : 'vertical';
   }

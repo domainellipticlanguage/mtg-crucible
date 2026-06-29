@@ -116,7 +116,7 @@ function isDebug(): boolean {
   return typeof process !== 'undefined' && !!process.env?.MTG_CRUCIBLE_DEBUG;
 }
 
-export async function renderCardImage(card: NormalizedCardData, templateOverride?: string, quality: RenderQuality = 'high', format: RenderFormat = 'png', allowUnsafeArtUrls = false): Promise<Uint8Array> {
+export async function renderCardImage(card: NormalizedCardData, templateOverride?: string, quality: RenderQuality = 'high', format: RenderFormat = 'png', allowUnsafeArtUrls = false, suppressAttribution = false): Promise<Uint8Array> {
   // Register fonts once, then warm only the symbols this card actually uses so the
   // synchronous rules-text layout can resolve them. Covers every render entry
   // point (renderCard, the individual renderers, and back-face renders).
@@ -376,10 +376,10 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
     ctx.save();
     ctx.translate(cw, 0);
     ctx.rotate(Math.PI / 2);
-    await drawBottomInfo(ctx, card, ch, cw, FOOTER_LAYOUT);
+    await drawBottomInfo(ctx, card, ch, cw, FOOTER_LAYOUT, suppressAttribution);
     ctx.restore();
   } else {
-    await drawBottomInfo(ctx, card, cw, ch, FOOTER_LAYOUT);
+    await drawBottomInfo(ctx, card, cw, ch, FOOTER_LAYOUT, suppressAttribution);
   }
 
   // Corners

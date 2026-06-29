@@ -685,6 +685,8 @@ export interface FooterLayout {
   left: FooterColumn;
   notForSale: FooterColumn;
   right: FooterColumn;
+  /** "Powered by mtg-crucible" credit anchor (x, y = baseline; w/h for editor box). */
+  poweredBy: FooterColumn;
 }
 
 /** Default footer geometry — matches the historical hardcoded positions. Used
@@ -694,6 +696,7 @@ export const DEFAULT_FOOTER: FooterLayout = {
   left: { x: 0.0647, y: 0.965, w: 0.4, h: 0.02 },
   notForSale: { x: 0.21, y: 0.965, w: 0.14, h: 0.02 },
   right: { x: 0.535, y: 0.965, w: 0.4, h: 0.02 },
+  poweredBy: { x: 0.0647, y: 0.985, w: 0.4, h: 0.02 },
 };
 
 export async function drawBottomInfo(
@@ -702,10 +705,12 @@ export async function drawBottomInfo(
   cw: number,
   ch: number,
   footer: Partial<FooterLayout> = DEFAULT_FOOTER,
+  suppressAttribution = false,
 ): Promise<void> {
   const left = footer.left ?? DEFAULT_FOOTER.left;
   const right = footer.right ?? DEFAULT_FOOTER.right;
   const nfs = footer.notForSale ?? DEFAULT_FOOTER.notForSale;
+  const pb = footer.poweredBy ?? DEFAULT_FOOTER.poweredBy;
   const fontSize = (footer.fontSize ?? DEFAULT_FOOTER.fontSize) * ch;
 
   // Left column is left-aligned to its x; right column is right-aligned to its
@@ -762,6 +767,14 @@ export async function drawBottomInfo(
     ctx.textAlign = 'right';
     ctx.font = `${designerFontSize}px "Beleren Bold"`;
     ctx.fillText(card.designer, rightEdge, rightY2);
+  }
+
+  // "Powered by mtg-crucible" credit — own footer anchor (editable in the layout
+  // editor), defaulting to the bottom-left on the designer's baseline.
+  if (!suppressAttribution) {
+    ctx.textAlign = 'left';
+    ctx.font = `${fontSize}px "MPlantin"`;
+    ctx.fillText('Powered by mtg-crucible', pb.x * cw, pb.y * ch);
   }
 
   ctx.restore();
