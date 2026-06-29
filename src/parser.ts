@@ -158,6 +158,13 @@ function parseColorIndicator(raw: string): Color[] | undefined {
   return colors.length > 0 ? colors : undefined;
 }
 
+/** Coerce a CardData colorIndicator (a Color[] or a raw "white, blue" / "WU"
+ *  string) to a Color[]. NormalizedCardData always holds the array form. */
+function colorIndicatorArray(ci: Color[] | string | undefined): Color[] {
+  if (!ci) return [];
+  return typeof ci === 'string' ? (parseColorIndicator(ci) ?? []) : ci;
+}
+
 
 function romanToNumber(roman: string): number {
   switch (roman.trim()) {
@@ -266,10 +273,11 @@ type DerivedFrame = { frameColor: FrameColor | FrameColor[]; accentColor?: Accen
 export function deriveFrameColor(typeLine: ParsedTypeLine, card: Pick<CardData, 'manaCost' | 'colorIndicator'> & { abilitiesText?: string }): DerivedFrame {
   // Effective colors: from mana cost, or fall back to color indicator
   const colors = extractManaColors(card.manaCost);
-  const fromIndicator = colors.size === 0 && card.colorIndicator && card.colorIndicator.length > 0;
+  const ci = colorIndicatorArray(card.colorIndicator);
+  const fromIndicator = colors.size === 0 && ci.length > 0;
   if (fromIndicator) {
     for (const [letter, name] of Object.entries(MANA_COLOR_MAP)) {
-      if (name !== 'colorless' && card.colorIndicator!.includes(name as Color)) colors.add(letter);
+      if (name !== 'colorless' && ci.includes(name as Color)) colors.add(letter);
     }
   }
 
@@ -890,8 +898,9 @@ export function formatCard(card: CardData): string {
   let nameLine = card.name ?? '';
   if (card.manaCost) nameLine += ` ${card.manaCost}`;
   lines.push(nameLine);
-  if (card.colorIndicator && card.colorIndicator.length > 0) {
-    lines.push(`Color Indicator: ${formatList(card.colorIndicator)}`);
+  const fmtCi = colorIndicatorArray(card.colorIndicator);
+  if (fmtCi.length > 0) {
+    lines.push(`Color Indicator: ${formatList(fmtCi)}`);
   }
 
   // Type line
@@ -1408,9 +1417,10 @@ export function deriveTitleColors(
   // gradient; render the name/type as 'artifact' (neutral silver) to match Scryfall.
   const wasFullyHybridSmall = nonHybrid.size === 0 && hybrid.size > 0 && hybrid.size < 3;
 
-  if (colors.size === 0 && !wasFullyHybridSmall && card.colorIndicator) {
+  const titleCi = colorIndicatorArray(card.colorIndicator);
+  if (colors.size === 0 && !wasFullyHybridSmall && titleCi.length > 0) {
     const COLOR_MAP: Record<string, string> = { white: 'W', blue: 'U', black: 'B', red: 'R', green: 'G' };
-    for (const c of card.colorIndicator) if (COLOR_MAP[c]) colors.add(COLOR_MAP[c]);
+    for (const c of titleCi) if (COLOR_MAP[c]) colors.add(COLOR_MAP[c]);
   }
 
   let result: FrameColor;
@@ -1542,7 +1552,7 @@ export function normalizeCard(card: CardData, parent?: CardData): NormalizedCard
     typeLine,
     rarity: card.rarity ?? parent?.rarity ?? 'rare',
 
-    colorIndicator: card.colorIndicator ?? [],
+    colorIndicator: colorIndicatorArray(card.colorIndicator),
 
     abilities,
 

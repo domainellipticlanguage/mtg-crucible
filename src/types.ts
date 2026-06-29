@@ -180,7 +180,11 @@ export interface CardData {
   // Todo move to cardgrouping?
   rarity?: Rarity;
 
-  colorIndicator?: Color[];
+  /**
+   * Card colors, as an array of color names or a raw string (e.g. "white, blue"
+   * or "WU"). Normalizes to `Color[]` on `NormalizedCardData`.
+   */
+  colorIndicator?: Color[] | string;
 
   abilities?: string | ParsedAbilities;
 
@@ -220,6 +224,8 @@ export interface NormalizedCardData {
   ptBoxColor: FrameColor[];
 
   name: string;
+  // TODO: make this a structured `ParsedManaCost` (CardData.manaCost stays a
+  // string for backward compat). Full design in TODO.md → "ParsedManaCost".
   manaCost: string;
   typeLine: ParsedTypeLine;
   rarity: Rarity;
