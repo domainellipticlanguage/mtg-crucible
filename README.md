@@ -4,6 +4,8 @@ A TypeScript library for rendering custom Magic: The Gathering card images. Runs
 
 Includes a react component for rendering resulting card images, complete with card rotations for double-faced cards, etc.
 
+**▶ Try it in your browser:** the [MTG Crucible Playground](https://domainellipticlanguage.com/project/mtg-crucible-playground/) renders cards live — edit via a structured UI, the plaintext format, or raw JSON.
+
 ## Installation
 
 ```bash
@@ -82,6 +84,7 @@ Options:
 - `quality` — `'high'` (2010x2814, default), `'medium'` (745x1040), or `'low'` (350x490)
 - `format` — `'png'` (default, lossless with transparency), `'jpeg'` (smaller, no transparency, white corners), or `'webp'` (smallest, with transparency)
 - `allowUnsafeArtUrls` — defaults to `false`. See [Security](#security) below.
+- `suppressAttribution` — defaults to `false`. When `true`, omits the small "Powered by mtg-crucible" credit from the footer.
 
 ### `toBlob(data: Uint8Array, format?: RenderFormat): Blob`
 
@@ -217,6 +220,7 @@ Projects built with Crucible:
 
 - **[This Magic Card Does Not Exist](https://thismagiccarddoesnotexist.com/)** — A website for creating custom cards with AI.
 - **[Obsidian Custom MTG](https://github.com/domainellipticlanguage/obsidian-custom-mtg)** — an [Obsidian](https://obsidian.md) plugin for creating custom cards in plaintext in your vault.
+- **[Command Tower MCP](https://github.com/domainellipticlanguage/command-tower-mcp)** — an MCP server for vibe-brewing Magic: The Gathering decks on Archidekt, with support for custom card creation.
 
 Built something with Crucible? Open a PR to add it here.
 
