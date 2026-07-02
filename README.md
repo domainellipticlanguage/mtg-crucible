@@ -29,7 +29,6 @@ Rarity: Mythic Rare
 Art URL: https://raw.githubusercontent.com/domainellipticlanguage/mtg-crucible/refs/heads/main/examples/crucible-art.png
 `);
 
-// result.frontFace is a Uint8Array — fs accepts it directly:
 writeFileSync('crucible-of-legends.png', result.frontFace);
 ```
 
@@ -100,7 +99,7 @@ Front-face image size for a typical card:
 | medium (745×1040) | 1167 KB | 233 KB | 86 KB |
 | high (2010×2814) | 5529 KB | 1013 KB | 355 KB |
 
-WebP uses lossy quality 60/70/80 for low/medium/high. Generate fresh numbers with `npx tsx scripts/sizes.ts`.
+WebP uses lossy quality 60/70/80 for low/medium/high.
 
 ### `parseCard(text: string): CardData`
 
@@ -199,11 +198,15 @@ Instead of `----`, you can use one of `--transform--`, `--mdfc--`, `--split--`, 
 Crucible provides a React component for rendering cards.
 
 ```tsx
+import { renderCard, toDisplayCard } from 'mtg-crucible';
 import { MtgCard } from 'mtg-crucible/react';
+
+const result = await renderCard(...);
+const renderedCardDisplay = toDisplayCard(result);
 
 <MtgCard
   card={renderedCardDisplay}
-  cardText="Crucible of Legends"           // will be invisible, but searchable with ctrl+f
+  cardText={renderedCardDisplay.scryfallText}   // invisible overlay, searchable with Ctrl+F
 />
 ```
 
@@ -266,18 +269,13 @@ await fetch('/upload', { method: 'POST', body: blob });
 
 ### Assets (`assetBaseUrl`)
 
-The browser build does **not** bundle the ~190 MB of frame assets. Frames, masks, symbols, and fonts are fetched **on demand** — only the ones a given card needs — and cached by the browser's HTTP cache. By default they come from the GitHub repo via jsDelivr, pinned to the release tag:
+The browser build does **not** bundle the ~14 MB of frame assets. Frames, masks, symbols, and fonts are fetched **on demand** — only the ones a given card needs — and cached by the browser's HTTP cache. By default they come from a Cloudflare Pages CDN, versioned by *asset* major version (decoupled from the package version, so consumers across package versions share one warm cache):
 
 ```
-https://cdn.jsdelivr.net/gh/domainellipticlanguage/mtg-crucible@v<version>/assets/
+https://mtg-crucible-assets-v<N>.pages.dev/
 ```
 
-> **Why the GitHub source, not jsDelivr's npm mirror?** jsDelivr rejects packages
-> over ~150 MB, and this package's frame assets push it past that — the npm path
-> (`/npm/mtg-crucible@<version>/assets/`) returns **403**. The `gh` source has no
-> such limit and serves the same files with permissive CORS. (unpkg serves them
-> too, but rate-limits the burst of symbol requests on first render.) This is the
-> recommended base URL.
+Assets are served with permissive CORS and a one-year `immutable` cache, so each file is fetched at most once and reused across renders, sessions, and every site on the CDN.
 
 To self-host the assets (the `assets/` folder is included in the npm package), override the base URL **before** your first `renderCard`:
 
@@ -292,7 +290,6 @@ Notes:
 - Fonts are loaded with `FontFace` and awaited before any text is drawn.
 - Non-Chromium browsers may rasterize text slightly differently than the Node (`@napi-rs/canvas`) output; this is expected and acceptable.
 
-A runnable example lives in [`examples/browser/`](examples/browser/) — `npm run example:browser` builds it and serves it (with the repo's own assets) at <http://localhost:5173>.
 
 
 ## Development
