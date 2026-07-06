@@ -1520,9 +1520,20 @@ export function normalizeCard(card: CardData, parent?: CardData): NormalizedCard
   const derivedTitle = (card.nameLineColor && card.typeLineColor)
     ? undefined
     : deriveTitleColors(typeLine, { manaCost: card.manaCost, colorIndicator: card.colorIndicator, abilitiesText });
+  // Land name/type boxes follow the produced-color count, matching Scryfall:
+  //   1 color  -> that color (basic Forest = green box; Castle Vantress = blue)
+  //   3+ colors -> gold (arrives pre-collapsed as a single 'multicolor' accent entry)
+  //   2 colors -> neutral 'land' silver (shocklands: the 2-color split lives only in
+  //               the pinline, NOT the title boxes — so DON'T mirror the accent here)
+  //   0 colors -> neutral 'land' silver (Wastes, Ancient Tomb)
+  // deriveTitleColors already returns 'land' for every land, which covers the 0/2 cases;
+  // only override when there's exactly one accent entry (a single color or 'multicolor').
+  const landSingleAccent = typeLine.types.includes('land') && accentColor.length === 1;
+  const titleName = landSingleAccent ? accentColor : derivedTitle?.name;
+  const titleType = landSingleAccent ? accentColor : derivedTitle?.type;
   // If only one of name/type is set explicitly, mirror it to the other (preserves prior behavior).
-  const nameDefault = card.typeLineColor ?? derivedTitle?.name;
-  const typeDefault = card.nameLineColor ?? derivedTitle?.type;
+  const nameDefault = card.typeLineColor ?? titleName;
+  const typeDefault = card.nameLineColor ?? titleType;
   const nameLineColor = toArray<FrameColor>(card.nameLineColor ?? nameDefault);
   const typeLineColor = toArray<FrameColor>(card.typeLineColor ?? typeDefault);
 

@@ -282,6 +282,78 @@ describe('parseCard', () => {
     });
   });
 
+  it('tints name/type line with the accent color for a colored basic land', () => {
+    // Regression: colored lands used to flatten name/type boxes to the colorless
+    // 'land' silver while the accent tinted only the pinline. They should match.
+    const card = normalizeCard(parseCard(`
+      Forest
+      Basic Land — Forest
+    `));
+    expect(card).toMatchObject({
+      frameColor: ['land'],
+      accentColor: ['green'],
+      nameLineColor: ['green'],
+      typeLineColor: ['green'],
+    });
+  });
+
+  it('keeps a 2-color land name/type line neutral (split lives in the pinline only)', () => {
+    // Shocklands (Temple Garden etc.): Scryfall renders the 2-color split on the
+    // pinline but leaves the name/type boxes the neutral 'land' silver.
+    const card = normalizeCard(parseCard(`
+      Super Cool Island
+      Land — Island
+      {T}: Add {R} or {U}.
+    `));
+    expect(card).toMatchObject({
+      frameColor: ['land'],
+      accentColor: ['blue', 'red'], // pinline split preserved
+      nameLineColor: ['land'],
+      typeLineColor: ['land'],
+    });
+  });
+
+  it('gives a 3-color land (triome) gold name/type boxes', () => {
+    const card = normalizeCard(parseCard(`
+      Raugrin Triome
+      Land — Island Mountain Plains
+      {T}: Add {U}, {R}, or {W}.
+    `));
+    expect(card).toMatchObject({
+      frameColor: ['land'],
+      accentColor: ['multicolor'],
+      nameLineColor: ['multicolor'],
+      typeLineColor: ['multicolor'],
+    });
+  });
+
+  it('keeps a colorless land name/type line flat (no accent to tint with)', () => {
+    const card = normalizeCard(parseCard(`
+      Wastes
+      Basic Land
+    `));
+    expect(card).toMatchObject({
+      frameColor: ['land'],
+      accentColor: [],
+      nameLineColor: ['land'],
+      typeLineColor: ['land'],
+    });
+  });
+
+  it('lets an explicit name/type line color override the land accent', () => {
+    const card = normalizeCard(parseCard(`
+      Forest
+      Name Line Color: red
+      Basic Land — Forest
+    `));
+    expect(card).toMatchObject({
+      accentColor: ['green'],
+      nameLineColor: ['red'],
+      // type mirrors the one explicit title color (preserves prior behavior)
+      typeLineColor: ['red'],
+    });
+  });
+
   it('parses explicit Accent: metadata line', () => {
     const card = parseCard(`
       Mystic Sanctuary
