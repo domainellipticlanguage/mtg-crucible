@@ -2,7 +2,6 @@ node_modules
 dist
 # generated from package.json by scripts/gen-version.ts (build artifact)
 src/version.ts
-.sst
 .output
 .local
 .claude
