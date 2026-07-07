@@ -1,5 +1,9 @@
 # <img src="https://raw.githubusercontent.com/domainellipticlanguage/mtg-crucible/main/logo/logo-256.png" height="40"> MTG Crucible
 
+[![npm version](https://img.shields.io/npm/v/mtg-crucible.svg)](https://www.npmjs.com/package/mtg-crucible)
+[![npm downloads](https://img.shields.io/npm/dm/mtg-crucible.svg)](https://www.npmjs.com/package/mtg-crucible)
+[![license](https://img.shields.io/npm/l/mtg-crucible.svg)](https://github.com/domainellipticlanguage/mtg-crucible/blob/main/README.md)
+
 A TypeScript library for rendering custom Magic: The Gathering card images. Runs in **both Node and the browser** from a single package — the right build is selected automatically via conditional `exports`.
 
 Includes a react component for rendering resulting card images, complete with card rotations for double-faced cards, etc.
@@ -151,6 +155,7 @@ Whenever you cast an instant or sorcery spell, choose one —
 Art URL: https://raw.githubusercontent.com/domainellipticlanguage/mtg-crucible/refs/heads/main/examples/conduit-art.png
 Frame Effect: Nyx, Snow
 Frame Color: Red, Blue
+Accent Color: Red, Blue
 ```
 <img src="https://raw.githubusercontent.com/domainellipticlanguage/mtg-crucible/main/examples/conduit-of-fire-and-ice.png" alt="Crucible of Legends" width="300">
 

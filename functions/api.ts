@@ -6,7 +6,20 @@ const HTML = `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MTG Crucible</title>
+<title>MTG Crucible — custom Magic: The Gathering card renderer</title>
+<meta name="description" content="Render custom Magic: The Gathering card images from plain text or structured data. Runs in Node and the browser.">
+<!-- Open Graph / social link previews -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="MTG Crucible">
+<meta property="og:description" content="Render custom Magic: The Gathering card images from plain text or structured data. Runs in Node and the browser.">
+<meta property="og:image" content="https://raw.githubusercontent.com/domainellipticlanguage/mtg-crucible/main/logo/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://domainellipticlanguage.com/project/mtg-crucible-playground/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="MTG Crucible">
+<meta name="twitter:description" content="Render custom Magic: The Gathering card images from plain text or structured data. Runs in Node and the browser.">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/domainellipticlanguage/mtg-crucible/main/logo/og-image.png">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, sans-serif; background: #1a1a2e; color: #e0e0e0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 2rem; }

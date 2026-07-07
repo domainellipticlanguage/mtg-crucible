@@ -1,10 +1,14 @@
 {
   "name": "mtg-crucible",
   "version": "0.4.11",
-  "description": "TypeScript library for rendering custom Magic: The Gathering card images, in Node and the browser",
+  "description": "Render custom Magic: The Gathering card images from plain text or structured data — planeswalkers, sagas, transform, split, and more. Runs in Node and the browser.",
+  "homepage": "https://domainellipticlanguage.com/project/mtg-crucible-playground/",
   "repository": {
     "type": "git",
     "url": "https://github.com/domainellipticlanguage/mtg-crucible.git"
+  },
+  "bugs": {
+    "url": "https://github.com/domainellipticlanguage/mtg-crucible/issues"
   },
   "main": "dist/index.js",
   "browser": "dist/index.browser.js",
@@ -56,9 +60,19 @@
   "keywords": [
     "mtg",
     "magic-the-gathering",
+    "magic-the-gathering-card",
     "card-renderer",
     "card-image",
-    "custom-cards"
+    "card-generator",
+    "custom-cards",
+    "proxy",
+    "tcg",
+    "scryfall",
+    "planeswalker",
+    "canvas",
+    "image-generation",
+    "typescript",
+    "react"
   ],
   "author": "domainellipticlanguage",
   "license": "ISC",
