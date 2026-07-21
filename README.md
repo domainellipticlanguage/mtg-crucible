@@ -1,3 +1,5 @@
+<img src="https://raw.githubusercontent.com/domainellipticlanguage/mtg-crucible/main/logo/og-image.png" alt="MTG Crucible — render custom Magic: The Gathering card images" width="100%">
+
 # <img src="https://raw.githubusercontent.com/domainellipticlanguage/mtg-crucible/main/logo/logo-256.png" height="40"> MTG Crucible
 
 [![npm version](https://img.shields.io/npm/v/mtg-crucible.svg)](https://www.npmjs.com/package/mtg-crucible)
