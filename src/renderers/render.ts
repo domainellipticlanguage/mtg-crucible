@@ -410,10 +410,13 @@ export async function renderCardImage(card: NormalizedCardData, templateOverride
   return scaleOutput(canvas, STD_W, STD_H, quality, format);
 }
 
-const WEBP_QUALITY: Record<RenderQuality, number> = { low: 60, medium: 70, high: 80 };
+// Encoder quality per render tier, shared by both lossy formats: a `medium`
+// JPEG and a `medium` WebP are compressed alike, they just differ in how much
+// quality each format buys at that setting. PNG is lossless and takes none.
+const LOSSY_QUALITY: Record<RenderQuality, number> = { low: 60, medium: 70, high: 80 };
 
 function encodeCanvas(canvas: RenderCanvas, format: RenderFormat, quality: RenderQuality): Promise<Uint8Array> {
-  return encode(canvas, format, format === 'webp' ? WEBP_QUALITY[quality] : undefined);
+  return encode(canvas, format, format === 'png' ? undefined : LOSSY_QUALITY[quality]);
 }
 
 function scaleOutput(source: RenderCanvas, targetW: number, targetH: number, quality: RenderQuality, format: RenderFormat): Promise<Uint8Array> {

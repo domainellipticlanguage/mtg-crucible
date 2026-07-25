@@ -97,15 +97,18 @@ Convenience for the browser: wrap render bytes in a `Blob` with the right MIME t
 
 #### Output sizes
 
-Front-face image size for a typical card:
+Front-face image size for the Crucible of Legends card above (regenerate with
+`npx tsx scripts/measure-sizes.ts`):
 
 | quality | png | jpeg | webp |
 |---------|-----|------|------|
-| low (350×490) | 308 KB | 72 KB | 28 KB |
-| medium (745×1040) | 1167 KB | 233 KB | 86 KB |
-| high (2010×2814) | 5529 KB | 1013 KB | 355 KB |
+| low (350×490) | 285 KB | 30 KB | 23 KB |
+| medium (745×1040) | 1007 KB | 115 KB | 71 KB |
+| high (2010×2814) | 4224 KB | 592 KB | 301 KB |
 
-WebP uses lossy quality 60/70/80 for low/medium/high.
+JPEG and WebP both use lossy quality 60/70/80 for low/medium/high — a `medium`
+JPEG and a `medium` WebP are compressed alike, they just differ in how much
+quality each format buys at that setting. PNG is lossless and ignores it.
 
 ### `parseCard(text: string): CardData`
 

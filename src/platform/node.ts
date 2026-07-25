@@ -81,7 +81,7 @@ export async function fetchBuffer(url: string, allowUnsafe = false): Promise<Buf
 }
 
 function encodeCanvas(canvas: RenderCanvas, format: RenderFormat, quality?: number): Buffer {
-  if (format === 'jpeg') return canvas.toBuffer('image/jpeg');
+  if (format === 'jpeg') return (canvas.toBuffer as any)('image/jpeg', quality);
   if (format === 'webp') return (canvas.toBuffer as any)('image/webp', quality);
   return canvas.toBuffer('image/png');
 }
