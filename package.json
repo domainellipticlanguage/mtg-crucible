@@ -1,6 +1,6 @@
 {
   "name": "mtg-crucible",
-  "version": "0.4.14",
+  "version": "0.4.15",
   "description": "Render custom Magic: The Gathering card images from plain text or structured data — planeswalkers, sagas, transform, split, and more. Runs in Node and the browser.",
   "homepage": "https://domainellipticlanguage.com/project/mtg-crucible-playground/",
   "repository": {
