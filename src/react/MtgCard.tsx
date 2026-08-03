@@ -101,17 +101,21 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle, h
     rotate();
   }, [hasMultipleStates, rotate]);
 
-  // Close context menu on click outside or escape
+  // Close context menu on click outside or escape. pointerdown, not mousedown:
+  // mousedown is a compatibility event, so a host whose drag surfaces call
+  // preventDefault() on pointerdown (standard for pointer-events apps) would
+  // suppress it and the menu could never be dismissed. pointerdown always
+  // fires — preventDefault doesn't cancel it, only its mouse-event shadows.
   useEffect(() => {
     if (!menuPos) return;
-    const handleClose = (e: MouseEvent | KeyboardEvent) => {
+    const handleClose = (e: PointerEvent | KeyboardEvent) => {
       if (e instanceof KeyboardEvent && e.key !== 'Escape') return;
       setMenuPos(null);
     };
-    document.addEventListener('mousedown', handleClose);
+    document.addEventListener('pointerdown', handleClose);
     document.addEventListener('keydown', handleClose);
     return () => {
-      document.removeEventListener('mousedown', handleClose);
+      document.removeEventListener('pointerdown', handleClose);
       document.removeEventListener('keydown', handleClose);
     };
   }, [menuPos]);
@@ -321,7 +325,7 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle, h
             fontFamily: 'system-ui, -apple-system, sans-serif',
             fontSize: 13,
           }}
-          onMouseDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
         >
           {menuItems.map((item) => (
             <div
