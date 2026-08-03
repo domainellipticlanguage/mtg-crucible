@@ -263,6 +263,16 @@ export interface Rotation {
   z: number;
 }
 
+/**
+ * Whether a rotation state from computeRotations presents the linked/back
+ * face (an odd number of half-turns around Y). MtgCard uses this to pick the
+ * visible face; hosts that pin a rotation state externally (e.g. a synced
+ * multiplayer table) need the same test to know which face's data to show.
+ */
+export function rotationShowsBackFace(rotation: Rotation): boolean {
+  return Math.round(Math.abs(rotation.y) / 180) % 2 === 1;
+}
+
 export type RenderQuality = 'low' | 'medium' | 'high';
 
 export type RenderFormat = 'png' | 'jpeg' | 'webp';
@@ -319,7 +329,12 @@ export interface MtgCardDisplayData {
   name: string;
   backFaceName?: string;
   rotations?: Rotation[];
-  scryfallJson: string;
-  scryfallText: string;
-  crucibleText: string;
+  /**
+   * Text payloads for the context menu's copy items. Optional: hosts that
+   * build display data from their own sources (not toDisplayCard) can omit
+   * them, and the corresponding menu items simply don't appear.
+   */
+  scryfallJson?: string;
+  scryfallText?: string;
+  crucibleText?: string;
 }

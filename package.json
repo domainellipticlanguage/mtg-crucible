@@ -35,7 +35,8 @@
     "./react": {
       "types": "./dist/react/index.d.ts",
       "default": "./dist/react/index.js"
-    }
+    },
+    "./assets/*": "./assets/*"
   },
   "files": [
     "dist",

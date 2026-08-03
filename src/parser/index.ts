@@ -22,6 +22,7 @@ export { normalizeCard } from '../parser';
 export {
   RARITIES, TEMPLATE_NAMES, COLORS, FRAME_COLORS, FRAME_EFFECTS,
   SUPERTYPES_LIST, CARD_TYPES, LINK_TYPES,
+  rotationShowsBackFace,
 } from '../types';
 
 export type {

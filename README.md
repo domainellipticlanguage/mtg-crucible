@@ -223,7 +223,22 @@ const renderedCardDisplay = toDisplayCard(result);
 The component supports:
 - Rotations for non-standard cards (battles, flip, aftermath, etc.)
 - Right-click context menu: download, copy image, copy text formats
+  (`hideMenuItems` hides built-ins, `extraMenuItems` appends your own; the
+  menu closes itself after any item runs, and copy items only appear when
+  their text field is present in the display data)
 - Invisible searchable text overlay for Ctrl+F
+
+Hosts that drive display data from their own sources (instead of
+`toDisplayCard`) can build `MtgCardDisplayData` by hand — the text fields are
+optional — and use `rotationShowsBackFace(rotation)` (exported from every
+entry point) to know which face a pinned rotation state presents.
+
+Styling hooks — set CSS custom properties on any ancestor instead of fighting
+the inline styles:
+
+```css
+.my-small-cards { --mtg-card-radius: 6px; --mtg-card-face-shadow: none; }
+```
 
 ![React Component Demo](https://raw.githubusercontent.com/domainellipticlanguage/mtg-crucible/main/examples/react-component.gif)
 
@@ -232,8 +247,10 @@ The component supports:
 Projects built with Crucible:
 
 - **[This Magic Card Does Not Exist](https://thismagiccarddoesnotexist.com/)** — A website for creating custom cards with AI.
+- **[Playmat](https://playmat.domainellipticlanguage.com)** — a shared virtual table for paper-style Magic; every card face is `MtgCard`, custom tokens are crucible-rendered in each player's browser, and `computeRotations` drives flip/transform/battle orientation.
 - **[Obsidian Custom MTG](https://github.com/domainellipticlanguage/obsidian-custom-mtg)** — an [Obsidian](https://obsidian.md) plugin for creating custom cards in plaintext in your vault.
 - **[Command Tower MCP](https://github.com/domainellipticlanguage/command-tower-mcp)** — an MCP server for vibe-brewing Magic: The Gathering decks on Archidekt, with support for custom card creation.
+- **[mtg-export](https://github.com/domainellipticlanguage/mtg-export)** — a CLI that turns a deck list into a printable PDF proxy sheet; its `--modernize` flag uses Crucible to redraw pre-M15 cards in modern frames with current oracle text.
 
 Built something with Crucible? Open a PR to add it here.
 
@@ -299,6 +316,14 @@ Notes:
 - On the first render, the symbols a card uses are fetched on demand (a card-specific set, not the whole symbol manifest) and cached for subsequent renders.
 - Fonts are loaded with `FontFace` and awaited before any text is drawn.
 - Non-Chromium browsers may rasterize text slightly differently than the Node (`@napi-rs/canvas`) output; this is expected and acceptable.
+
+Individual assets are also importable straight from the package (the
+`./assets/*` subpath is exported), so a bundler can fingerprint and serve
+them like any local asset — no CDN, no hand-vendoring:
+
+```typescript
+import wUrl from 'mtg-crucible/assets/symbols/mana/w.svg?url'; // vite
+```
 
 
 

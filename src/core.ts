@@ -19,6 +19,7 @@ export type {
   CardData, Rotation, RenderedCard, RenderQuality, RenderFormat, RenderOptions,
 } from './types';
 export type { MtgCardDisplayData } from './types';
+export { rotationShowsBackFace } from './types';
 export { parseCard, formatCard, parseTypeLine, formatTypeLine, parseAbilities, formatAbilities, normalizeCard, getArtDimensions, resolveTemplate, toScryfallJson, toScryfallText } from './parser';
 
 // Backwards-compatible individual renderer exports

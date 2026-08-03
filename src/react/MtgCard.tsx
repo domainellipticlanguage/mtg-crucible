@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { rotationShowsBackFace } from '../types';
 import type { MtgCardDisplayData } from '../types';
 
 export interface MtgCardMenuItem {
@@ -77,8 +78,7 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle, h
   const rotations = card.rotations ?? [];
   const hasMultipleStates = rotations.length > 1;
   const currentRotation = rotations[rotationIndex] ?? { x: 0, y: 0, z: 0 };
-  // Back face is visible when Y rotation puts it face-forward
-  const showingFront = !card.backFaceImageUrl || (Math.round(currentRotation.y / 180) % 2 === 0);
+  const showingFront = !card.backFaceImageUrl || !rotationShowsBackFace(currentRotation);
 
   const rotate = useCallback(() => {
     if (!hasMultipleStates) return;
@@ -181,14 +181,18 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle, h
 
   const hideAll = hideMenuItems === 'all';
   const hiddenSet = !hideAll && hideMenuItems ? new Set(hideMenuItems) : null;
+  // Copy items appear only when their payload was provided — display data
+  // built outside toDisplayCard may legitimately omit the text fields.
+  const copyItem = (id: string, label: string, text: string | undefined): ContextMenuItem[] =>
+    text ? [{ id, label, action: () => copyText(text) }] : [];
   const builtinItems: ContextMenuItem[] = [
     { id: 'download', label: 'Download Image', action: downloadImage },
     { id: 'copy-image', label: 'Copy Card Image', action: copyImage },
     { id: 'copy-image-url', label: 'Copy Image URL', action: copyImageUrl },
-    { id: 'copy-scryfall-text', label: 'Copy Scryfall Text', action: () => copyText(card.scryfallText) },
-    { id: 'copy-crucible-text', label: 'Copy Crucible Text', action: () => copyText(card.crucibleText) },
-    { id: 'copy-scryfall-json', label: 'Copy Scryfall JSON', action: () => copyText(card.scryfallJson) },
-    { id: 'copy-card-json', label: 'Copy Card Data JSON', action: () => copyText(card.scryfallJson) },
+    ...copyItem('copy-scryfall-text', 'Copy Scryfall Text', card.scryfallText),
+    ...copyItem('copy-crucible-text', 'Copy Crucible Text', card.crucibleText),
+    ...copyItem('copy-scryfall-json', 'Copy Scryfall JSON', card.scryfallJson),
+    ...copyItem('copy-card-json', 'Copy Card Data JSON', card.scryfallJson),
   ];
   const menuItems: ContextMenuItem[] = [
     ...(hideAll ? [] : builtinItems.filter(item => !hiddenSet || !hiddenSet.has(item.id!))),
@@ -202,15 +206,16 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle, h
   const cardTransform = transforms.join(' ') || 'none';
 
   const aspectRatio = '5 / 7';
-  const borderRadius = '16px';
 
   const faceStyle: React.CSSProperties = {
     position: 'absolute',
     width: '100%',
     height: '100%',
     backfaceVisibility: card.backFaceImageUrl ? 'hidden' : 'visible',
-    borderRadius,
-    boxShadow: '0 0 0 1px #555',
+    // Themeable without !important wars: hosts set the CSS custom properties
+    // on any ancestor (e.g. `--mtg-card-radius: 6px` for small table cards).
+    borderRadius: 'var(--mtg-card-radius, 16px)',
+    boxShadow: 'var(--mtg-card-face-shadow, 0 0 0 1px #555)',
   };
 
   return (
@@ -330,7 +335,10 @@ export function MtgCard({ card, cardText, className, style, rotateWidgetStyle, h
           {menuItems.map((item) => (
             <div
               key={item.label}
-              onClick={(e) => { e.stopPropagation(); e.preventDefault(); item.action(); }}
+              // Close unconditionally: built-in actions close via their own
+              // setMenuPos(null), but extraMenuItems used to leave the menu
+              // hanging open after their action ran.
+              onClick={(e) => { e.stopPropagation(); e.preventDefault(); item.action(); setMenuPos(null); }}
               style={{
                 padding: '6px 14px',
                 cursor: 'pointer',
